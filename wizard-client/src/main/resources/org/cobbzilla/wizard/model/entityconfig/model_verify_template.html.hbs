@@ -1,0 +1,41 @@
+<html>
+<head>
+    <title>Model Verification Results</title>
+</head>
+<body>
+
+{{#if diffs}}
+
+    {{#each diffs}}
+        <hr/>
+        <h2>{{entityId}}</h2>
+      {{#if createEntity}}
+          <h4>create</h4>
+          <p><pre>
+{{{json createEntity}}}
+          </pre></p>
+      {{else}}
+          {{#if deltas}}
+              <h4>deltas</h4>
+              <ul>
+              {{#each deltas}}
+                  <li>{{{this}}}</li>
+              {{/each}}
+              </ul>
+          {{else}}
+              {{#if jsonDiff}}
+                  <h4>json-diff</h4>
+                  <p>{{{jsonDiff}}}</p>
+              {{else}}
+                  <h4>?unknown diff?</h4>
+              {{/if}}
+          {{/if}}
+      {{/if}}
+    {{/each}}
+
+{{else}}
+  <h2>No differences detected</h2>
+{{/if}}
+
+</body>
+</html>

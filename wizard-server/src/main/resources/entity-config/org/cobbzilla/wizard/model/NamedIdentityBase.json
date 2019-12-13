@@ -1,0 +1,5 @@
+{
+  "fields": {
+    "name": { "length": 100, "mode": "createOnly", "displayName": "Name" }
+  }
+}

@@ -1,0 +1,12 @@
+*.iml
+.idea
+target
+tmp
+logs
+dependency-reduced-pom.xml
+velocity.log
+*~
+shareice-merged.yml
+bin/prod-shareice.sh
+*.gz
+build.log

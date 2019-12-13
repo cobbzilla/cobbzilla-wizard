@@ -1,0 +1,11 @@
+dependency-reduced-pom.xml
+target
+.idea
+*.iml
+logs
+build.log
+*-merged.yml
+tmp
+build.log
+*~
+.DS_Store
