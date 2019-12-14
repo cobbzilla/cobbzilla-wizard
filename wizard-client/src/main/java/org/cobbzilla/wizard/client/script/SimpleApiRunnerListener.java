@@ -20,8 +20,7 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.now;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.system.Sleep.sleep;
 import static org.cobbzilla.util.time.TimeUtil.parseDuration;
@@ -31,6 +30,8 @@ import static org.cobbzilla.wizard.main.ScriptMainBase.handleSleep;
 @Slf4j
 public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
 
+    public static final String ADJUST_SYSTEM_CLOCK = "adjust_system_clock";
+    public static final String RESET_SYSTEM_CLOCK = "reset_system_clock";
     public static final String AWAIT_URL = "await_url";
     public static final String VERIFY_UNREACHABLE = "verify_unreachable";
     public static final String RESPONSE_VAR = "await_json";
@@ -49,6 +50,12 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         if (before == null) return;
         if (before.startsWith(SLEEP)) {
             handleSleep(before);
+        } else if (before.startsWith(ADJUST_SYSTEM_CLOCK)) {
+            final String duration = before.substring(ADJUST_SYSTEM_CLOCK.length()).trim();
+            setSystemTimeOffset(parseDuration(duration));
+
+        } else if (before.startsWith(RESET_SYSTEM_CLOCK)) {
+            setSystemTimeOffset(0);
         } else if (before.startsWith(AWAIT_URL)) {
             handleAwaitUrl(before, ctx);
         } else if (before.startsWith(VERIFY_UNREACHABLE)) {
@@ -62,6 +69,11 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         if (after == null) return;
         if (after.startsWith(SLEEP)) {
             handleSleep(after);
+        } else if (after.startsWith(ADJUST_SYSTEM_CLOCK)) {
+            final String duration = after.substring(ADJUST_SYSTEM_CLOCK.length()).trim();
+            setSystemTimeOffset(parseDuration(duration));
+        } else if (after.startsWith(RESET_SYSTEM_CLOCK)) {
+            setSystemTimeOffset(0);
         } else if (after.startsWith(AWAIT_URL)) {
             handleAwaitUrl(after, ctx);
         } else if (after.startsWith(VERIFY_UNREACHABLE)) {
