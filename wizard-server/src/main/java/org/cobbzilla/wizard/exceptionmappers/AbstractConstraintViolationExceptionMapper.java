@@ -2,7 +2,6 @@ package org.cobbzilla.wizard.exceptionmappers;
 
 import org.cobbzilla.util.http.HttpStatusCodes;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
-import org.cobbzilla.wizard.validation.ValidationMessages;
 
 import javax.validation.ConstraintViolation;
 import javax.ws.rs.core.Response;
@@ -21,7 +20,7 @@ public abstract class AbstractConstraintViolationExceptionMapper<E extends Excep
     }
 
     protected ConstraintViolationBean mapGenericExceptionToConstraintViolationBean(E e) {
-        return new ConstraintViolationBean(scrubMessage(e.getMessage()), ValidationMessages.translateMessage(e.getMessage()), getInvalidValue(e));
+        return new ConstraintViolationBean(scrubMessage(e.getMessage()), e.getMessage(), getInvalidValue(e));
     }
 
     protected List<ConstraintViolationBean> getConstraintViolationBeans(List<ConstraintViolation> violations) {

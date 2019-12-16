@@ -138,7 +138,7 @@ public class ResourceUtil {
     public static Response invalid(String messageTemplate) { return invalid(messageTemplate, null); }
 
     public static Response invalid(String messageTemplate, String invalidValue) {
-        return invalid(messageTemplate, ValidationMessages.translateMessage(messageTemplate), invalidValue);
+        return invalid(messageTemplate, messageTemplate, invalidValue);
     }
 
     public static Response invalid(String messageTemplate, String message, String invalidValue) {
@@ -146,6 +146,8 @@ public class ResourceUtil {
         violations.add(new ConstraintViolationBean(messageTemplate, message, invalidValue));
         return invalid(violations);
     }
+
+    public static Response invalid(SimpleViolationException e) { return invalid(e.getBean()); }
 
     public static Response invalid(ValidationResult result) { return invalid(result.getViolationBeans()); }
 
