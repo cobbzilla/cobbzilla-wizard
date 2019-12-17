@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.model.entityconfig;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Cleanup;
@@ -12,7 +13,6 @@ import net.sf.cglib.proxy.InvocationHandler;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.cobbzilla.util.daemon.AwaitResult;
-import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.api.ValidationException;
@@ -39,8 +39,7 @@ import static org.cobbzilla.util.http.HttpStatusCodes.NOT_FOUND;
 import static org.cobbzilla.util.http.HttpStatusCodes.OK;
 import static org.cobbzilla.util.io.FileUtil.dirname;
 import static org.cobbzilla.util.io.StreamUtil.stream2string;
-import static org.cobbzilla.util.json.JsonUtil.json;
-import static org.cobbzilla.util.json.JsonUtil.jsonWithComments;
+import static org.cobbzilla.util.json.JsonUtil.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.forName;
 import static org.cobbzilla.util.reflect.ReflectionUtil.getSimpleClass;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
@@ -102,12 +101,37 @@ public class ModelSetup {
                                                            String manifest,
                                                            ModelSetupListener listener,
                                                            String runName) throws Exception {
-        final String[] models = json(stream2string(prefix + manifest + ".json"), String[].class, JsonUtil.FULL_MAPPER_ALLOW_COMMENTS);
+        final String[] models = json(stream2string(prefix + manifest + ".json"), String[].class, FULL_MAPPER_ALLOW_COMMENTS);
+        final LinkedHashMap<String, String> modelJson = loadModels(prefix, models);
+        return setupModel(api, entityConfigsEndpoint, modelJson, new ManifestClasspathResolver(prefix), listener, runName);
+    }
+
+    private static LinkedHashMap<String, String> loadModels(String prefix, String[] models) {
         final LinkedHashMap<String, String> modelJson = new LinkedHashMap<>(models.length);
         for (String model : models) {
-            modelJson.put(model, stream2string(prefix + model + ".json"));
+            final String json = stream2string(prefix + model + ".json");
+            try {
+                // If the json is an array of strings, treat it like a manifest
+                final String[] includes = fromJson(json, String[].class);
+                log.debug("loadModels: including manifest: "+model);
+                final LinkedHashMap<String, String> includedModels = loadModels(prefix, includes);
+                for (Map.Entry<String, String> entry : includedModels.entrySet()) {
+                    final String path = entry.getKey();
+                    if (modelJson.containsKey(path)) {
+                        log.debug("loadModels: already included "+ path +", not including again");
+                    } else {
+                        log.debug("loadModels: adding included model: "+ path);
+                        modelJson.put(path, entry.getValue());
+                    }
+                }
+            } catch (MismatchedInputException e) {
+                log.debug("loadModels: including regular model file: "+model);
+                modelJson.put(model, json);
+            } catch (Exception e) {
+                return die("loadModels("+prefix+", "+Arrays.toString(models)+"): "+e);
+            }
         }
-        return setupModel(api, entityConfigsEndpoint, modelJson, new ManifestClasspathResolver(prefix), listener, runName);
+        return modelJson;
     }
 
     public static LinkedHashMap<String, String> setupModel(ApiClientBase api,
@@ -154,7 +178,7 @@ public class ModelSetup {
         final String cacheKey = prefix + "/" + manifest;
         String hash = modelHashCache.get(cacheKey);
         if (hash == null) {
-            final String[] models = json(stream2string(prefix + manifest + ".json"), String[].class, JsonUtil.FULL_MAPPER_ALLOW_COMMENTS);
+            final String[] models = json(stream2string(prefix + manifest + ".json"), String[].class, FULL_MAPPER_ALLOW_COMMENTS);
             StringBuilder b = new StringBuilder();
             for (String model : models) {
                 b.append(stream2string(prefix + model + ".json"));
