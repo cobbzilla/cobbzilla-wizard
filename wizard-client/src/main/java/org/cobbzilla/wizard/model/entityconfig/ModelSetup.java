@@ -109,7 +109,13 @@ public class ModelSetup {
     private static LinkedHashMap<String, String> loadModels(String prefix, String[] models) {
         final LinkedHashMap<String, String> modelJson = new LinkedHashMap<>(models.length);
         for (String model : models) {
-            final String json = stream2string(prefix + model + ".json");
+            final String resourcePath = prefix + model + ".json";
+            final String json;
+            try {
+                json = stream2string(resourcePath);
+            } catch (IllegalArgumentException e) {
+                return die("loadModels: model resource not found: "+resourcePath);
+            }
             try {
                 // If the json is an array of strings, treat it like a manifest
                 final String[] includes = fromJson(json, String[].class);
@@ -127,6 +133,10 @@ public class ModelSetup {
             } catch (MismatchedInputException e) {
                 log.debug("loadModels: including regular model file: "+model);
                 modelJson.put(model, json);
+
+            } catch (IllegalArgumentException e) {
+                throw e;
+
             } catch (Exception e) {
                 return die("loadModels("+prefix+", "+Arrays.toString(models)+"): "+e);
             }
