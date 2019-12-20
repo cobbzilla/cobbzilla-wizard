@@ -232,7 +232,7 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
     protected boolean dropDb(C config, String dbName, boolean background) throws IOException { return notSupported("dropDb: must be defined in subclass"); }
 
     @Override public void beforeStart(RestServer<C> server) {
-        if (useTestSpecificDatabase() && server.getConfiguration() instanceof HasDatabaseConfiguration) {
+        if (useTestSpecificDatabase()) {
             final String dbName = ((HasDatabaseConfiguration) server.getConfiguration()).getDatabase().getDatabaseName();
             if (dropPreExistingDatabase()) {
                 try {
@@ -249,6 +249,7 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
             } catch (Exception e) {
                 if (allowPreExistingDatabase()) {
                     log.warn("beforeStart: error creating database: " + dbName+": "+e);
+                    server.getConfiguration().getDatabase().getHibernate().setHbm2ddlAuto("validate");
                 } else {
                     die("beforeStart: error creating database: " + dbName + ": " + e);
                 }

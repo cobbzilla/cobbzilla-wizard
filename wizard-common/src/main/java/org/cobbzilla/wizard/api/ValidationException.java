@@ -11,9 +11,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+
 public class ValidationException extends ApiException {
 
     @Getter private Map<String, ConstraintViolationBean> violations;
+    public boolean hasViolations () { return !empty(violations); }
 
     public ValidationException (RestResponse response) { this(null, response); }
 
