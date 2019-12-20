@@ -143,6 +143,16 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
     public String[] pgOptions() { return pgCommand(""); }
     public String[] pgOptions(String dbName) { return pgCommand("", dbName); }
 
+    public boolean dbExists() {
+        try {
+            execSql("select 1");
+            return true;
+        } catch (Exception e) {
+            log.warn("dbExists: "+shortErrorString(e));
+            return false;
+        }
+    }
+
     public String[] pgCommand(String command)            { return pgCommand(command, null, null); }
     public String[] pgCommand(String command, String db) { return pgCommand(command, db, null); }
 
