@@ -13,5 +13,6 @@ public @interface ECForeignKey {
     Class<? extends Identifiable> entity();
     String field() default "uuid";
     boolean index() default true;
+    boolean cascade() default true;
 
 }

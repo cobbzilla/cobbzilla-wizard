@@ -34,6 +34,9 @@ public class EntityReferences {
     public static final Predicate<Field> FIELD_HAS_FK
             = f -> f.getAnnotation(ECForeignKey.class) != null;
 
+    public static final Predicate<Field> FIELD_HAS_CASCADING_FK
+            = f -> f.getAnnotation(ECForeignKey.class) != null && f.getAnnotation(ECForeignKey.class).cascade();
+
     public static final Predicate<Field> FIELD_HAS_INDEX
             = f -> f.getAnnotation(ECIndex.class) != null;
 
@@ -69,7 +72,7 @@ public class EntityReferences {
         final List<Class<? extends Identifiable>> refs = new ArrayList<>();
         while (!clazz.getName().equals(Object.class.getName())) {
             refs.addAll(Arrays.stream(clazz.getDeclaredFields())
-                    .filter(EntityReferences.FIELD_HAS_FK)
+                    .filter(EntityReferences.FIELD_HAS_CASCADING_FK)
                     .map(EntityReferences.FIELD_TO_FK_CLASS)
                     .collect(Collectors.toList()));
             clazz = clazz.getSuperclass();
