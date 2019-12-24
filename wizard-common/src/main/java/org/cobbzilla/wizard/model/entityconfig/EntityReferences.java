@@ -150,7 +150,7 @@ public class EntityReferences {
             }
             indexName = shortName;
         }
-        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+")";
+        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+") "+index.where();
     }
 
     private List<String> fkField(Class<? extends Identifiable> clazz, Field f, boolean includeIndexes) {
