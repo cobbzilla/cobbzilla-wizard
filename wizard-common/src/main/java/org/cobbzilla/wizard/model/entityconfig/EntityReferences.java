@@ -120,7 +120,7 @@ public class EntityReferences {
         if (statement != null) return statement;
 
         final String indexName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" + columnName;
-        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" "+"ON "+tableName+"(" + columnName + ")";
+        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" "+"ON "+tableName+"(" + columnName + ") "+index.where();
     }
 
     private String compositeIndex(Class<? extends Identifiable> clazz, ECIndex index) {

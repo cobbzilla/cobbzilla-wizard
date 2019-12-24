@@ -12,5 +12,6 @@ public @interface ECIndex {
     boolean unique() default false;
     String[] of() default {};
     String statement() default "";
+    String where() default "";
 
 }
