@@ -113,6 +113,7 @@ public class EntityReferences {
         final String statement = empty(index.statement()) ? null : index.statement();
         String name = empty(index.name()) ? null : index.name();
         final boolean unique = index.unique();
+        final String where = empty(index.where()) ? "" : " WHERE "+index.where();
 
         if (name != null && statement != null) {
             return die("ECIndex("+clazz.getName()+", "+f.getName()+"): cannot specify both name and statement");
@@ -120,7 +121,7 @@ public class EntityReferences {
         if (statement != null) return statement;
 
         final String indexName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" + columnName;
-        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" "+"ON "+tableName+"(" + columnName + ") "+index.where();
+        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" "+"ON "+tableName+"(" + columnName + ")"+where;
     }
 
     private String compositeIndex(Class<? extends Identifiable> clazz, ECIndex index) {
@@ -137,6 +138,7 @@ public class EntityReferences {
         final String statement = empty(index.statement()) ? null : index.statement();
         String name = empty(index.name()) ? null : index.name();
         final boolean unique = index.unique();
+        final String where = empty(index.where()) ? "" : " WHERE "+index.where();
 
         if (name != null && statement != null) {
             return die("ECIndexes("+clazz.getName()+"): ECIndex cannot specify both name and statement");
@@ -150,7 +152,7 @@ public class EntityReferences {
             }
             indexName = shortName;
         }
-        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+") "+index.where();
+        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+")"+where;
     }
 
     private List<String> fkField(Class<? extends Identifiable> clazz, Field f, boolean includeIndexes) {
