@@ -37,6 +37,8 @@ import static org.cobbzilla.util.system.CommandShell.execScript;
 @Slf4j
 public class PgRestServerConfiguration extends RestServerConfiguration implements HasDatabaseConfiguration {
 
+    public static final String ENV_PGPASSWORD = "PGPASSWORD";
+
     private DatabaseConfiguration database;
     @Override @Bean public DatabaseConfiguration getDatabase() { return database; }
     @Override public void setDatabase(DatabaseConfiguration config) { this.database = config; }
@@ -182,7 +184,7 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         command = ArrayUtil.arrayToString(pgCommand(command, db, user), " ", "", false);
         final File pgPassFile = getPgPassFile();
         return pgPassFile != null && pgPassFile.exists()
-                ? "PGPASSWORD=\"$(cat " + abs(pgPassFile) + ")\" " + command
+                ? ENV_PGPASSWORD+"=\"$(cat " + abs(pgPassFile) + ")\" " + command
                 : command;
     }
 
@@ -201,7 +203,7 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
 
         final Map<String, String> env = new HashMap<>();
         env.putAll(getEnvironment());
-        env.put("PGPASSWORD", dbPass);
+        env.put(ENV_PGPASSWORD, dbPass);
         String path = env.get("PATH");
         if (path == null) {
             path = "/bin:/usr/bin:/usr/local/bin";
