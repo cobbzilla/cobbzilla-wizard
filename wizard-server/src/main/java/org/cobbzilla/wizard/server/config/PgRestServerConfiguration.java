@@ -184,7 +184,7 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         command = ArrayUtil.arrayToString(pgCommand(command, db, user), " ", "", false);
         final File pgPassFile = getPgPassFile();
         return pgPassFile != null && pgPassFile.exists()
-                ? ENV_PGPASSWORD+"=\"$(cat " + abs(pgPassFile) + ")\" " + command
+                ? ENV_PGPASSWORD + "=\"$(cat " + abs(pgPassFile) + ")\" " + command
                 : command;
     }
 
