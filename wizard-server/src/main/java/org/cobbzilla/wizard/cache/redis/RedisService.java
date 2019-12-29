@@ -114,6 +114,7 @@ public class RedisService {
     }
 
     public String get(String key) { return decrypt(__get(key, 0, MAX_RETRIES)); }
+    public String get_withPrefix(String prefixedKey) { return decrypt(__get(prefixedKey, 0, MAX_RETRIES, false)); }
 
     public String get_plaintext(String key) { return __get(key, 0, MAX_RETRIES); }
 
@@ -316,9 +317,13 @@ public class RedisService {
     }
 
     private String __get(String key, int attempt, int maxRetries) {
+        return __get(key, attempt, maxRetries, true);
+    }
+
+    private String __get(String key, int attempt, int maxRetries, boolean applyPrefix) {
         try {
             synchronized (redis) {
-                return getRedis().get(prefix(key));
+                return getRedis().get(applyPrefix ? prefix(key) : key);
             }
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
