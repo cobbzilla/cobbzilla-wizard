@@ -86,7 +86,7 @@ public class RdbmsConfigCommon {
         final HibernateConfiguration hibernateConfiguration = getDatabase().getHibernate();
         final Properties properties = new Properties();
         properties.put("hibernate.dialect", hibernateConfiguration.getDialect());
-        properties.put("hibernate.show_sql", hibernateConfiguration.isShowSql());
+        properties.put("hibernate.show_sql", hibernateConfiguration.showSql());
         properties.put("hibernate.hbm2ddl.auto", hibernateConfiguration.getHbm2ddlAuto());
         properties.put("hibernate.validator.apply_to_ddl", hibernateConfiguration.isApplyValidatorToDDL());
         properties.put("javax.persistence.verification.mode", hibernateConfiguration.getValidationMode());
