@@ -27,6 +27,10 @@ public class RedisService {
 
     public static final int MAX_RETRIES = 5;
 
+    public static final String EX = "EX";
+    public static final String XX = "XX";
+    public static final String NX = "NX";
+
     @Autowired @Getter @Setter private HasRedisConfiguration configuration;
 
     @Getter @Setter private String key;
@@ -118,8 +122,8 @@ public class RedisService {
     }
 
     public void set(String key, String value, String expx, long time) {
-        __set(key, value, "XX", expx, time, 0, MAX_RETRIES);
-        __set(key, value, "NX", expx, time, 0, MAX_RETRIES);
+        __set(key, value, XX, expx, time, 0, MAX_RETRIES);
+        __set(key, value, NX, expx, time, 0, MAX_RETRIES);
     }
 
     public void set(String key, String value) { __set(key, value, 0, MAX_RETRIES); }
@@ -215,7 +219,7 @@ public class RedisService {
         String lockVal = get(key);
         final long start = now();
         while ((lockVal == null || !lockVal.equals(uuid)) && (now() - start < lockTimeout)) {
-            set(key, uuid, "NX", "EX", deadlockTimeout);
+            set(key, uuid, NX, EX, deadlockTimeout);
             lockVal = get(key);
         }
         if (lockVal == null || !lockVal.equals(uuid)) return die("lock: timeout locking "+key);

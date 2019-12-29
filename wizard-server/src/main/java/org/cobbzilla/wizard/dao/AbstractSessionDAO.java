@@ -12,6 +12,7 @@ import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.getFirstTypeParam;
+import static org.cobbzilla.wizard.cache.redis.RedisService.*;
 import static org.cobbzilla.wizard.resources.ResourceUtil.forbiddenEx;
 
 @Slf4j
@@ -62,7 +63,7 @@ public abstract class AbstractSessionDAO<T extends Identifiable> {
     }
 
     private void rawSet(String uuid, T thing, boolean shouldExist) {
-        getSessionRedis().set(uuid, toJson(thing), shouldExist ? "XX" : "NX", "EX", getSessionTimeout(thing));
+        getSessionRedis().set(uuid, toJson(thing), shouldExist ? XX : NX, EX, getSessionTimeout(thing));
     }
 
     private long getSessionTimeout(T thing) { return getSessionTimeout(); }

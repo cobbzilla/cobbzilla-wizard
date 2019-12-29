@@ -12,6 +12,7 @@ import org.cobbzilla.wizard.model.shard.Shardable;
 import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
+import static org.cobbzilla.wizard.cache.redis.RedisService.EX;
 import static org.cobbzilla.wizard.dao.shard.AbstractShardedDAO.NULL_CACHE;
 
 @AllArgsConstructor @Accessors(chain=true)
@@ -32,16 +33,16 @@ public abstract class ShardCacheableFinder<E extends Shardable, D extends Single
         if (json == null) {
             entity = (E) find(args);
             if (entity == null) {
-                shardedDAO.getShardCache().set(cacheKey, NULL_CACHE, "EX", getCacheTimeoutSeconds());
+                shardedDAO.getShardCache().set(cacheKey, NULL_CACHE, EX, getCacheTimeoutSeconds());
                 final String cacheRefsKey = shardedDAO.getCacheRefsKey(NULL_CACHE);
                 shardedDAO.getShardCache().lpush(cacheRefsKey, cacheKey);
             } else {
-                shardedDAO.getShardCache().set(cacheKey, toJsonOrDie(entity), "EX", getCacheTimeoutSeconds());
+                shardedDAO.getShardCache().set(cacheKey, toJsonOrDie(entity), EX, getCacheTimeoutSeconds());
                 shardedDAO.getShardCache().lpush(shardedDAO.getCacheRefsKey(entity.getUuid()), cacheKey);
             }
         } else if (!json.equals(NULL_CACHE)) {
             entity = JsonUtil.fromJsonOrDie(json, shardedDAO.getEntityClass());
-            shardedDAO.getShardCache().set(cacheKey, json, "EX", getCacheTimeoutSeconds());
+            shardedDAO.getShardCache().set(cacheKey, json, EX, getCacheTimeoutSeconds());
         }
         return entity;
     }

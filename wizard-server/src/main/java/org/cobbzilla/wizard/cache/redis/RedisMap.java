@@ -13,6 +13,8 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.getFirstTypeParam;
+import static org.cobbzilla.wizard.cache.redis.RedisService.NX;
+import static org.cobbzilla.wizard.cache.redis.RedisService.XX;
 
 @AllArgsConstructor
 public class RedisMap<V> implements Map<String, V> {
@@ -46,8 +48,8 @@ public class RedisMap<V> implements Map<String, V> {
         } else if (duration == null) {
             redis.set(keyName(key), toJsonOrDie(value));
         } else {
-            redis.set(keyName(key), toJsonOrDie(value), "NX", "PX", duration);
-            redis.set(keyName(key), toJsonOrDie(value), "XX", "PX", duration);
+            redis.set(keyName(key), toJsonOrDie(value), NX, "PX", duration);
+            redis.set(keyName(key), toJsonOrDie(value), XX, "PX", duration);
         }
         return null;
     }

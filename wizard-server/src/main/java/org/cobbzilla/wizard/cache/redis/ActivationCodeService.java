@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.cobbzilla.wizard.cache.redis.RedisService.EX;
+import static org.cobbzilla.wizard.cache.redis.RedisService.NX;
+
 @Service @Slf4j
 public class ActivationCodeService {
 
@@ -31,7 +34,7 @@ public class ActivationCodeService {
     }
 
     public void define (String key, int quantity, long expirationSeconds) {
-        redis.set_plaintext(key, String.valueOf(quantity), "NX", "EX", expirationSeconds);
+        redis.set_plaintext(key, String.valueOf(quantity), NX, EX, expirationSeconds);
     }
 
     public List<String> getClaimants (String key) { return redis.list(getClaimantsKey(key)); }

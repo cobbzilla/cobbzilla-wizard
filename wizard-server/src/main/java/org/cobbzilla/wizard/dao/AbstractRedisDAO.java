@@ -15,6 +15,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.getTypeParameter;
+import static org.cobbzilla.wizard.cache.redis.RedisService.*;
 
 public abstract class AbstractRedisDAO<E extends ExpirableBase> implements DAO<E> {
 
@@ -63,8 +64,8 @@ public abstract class AbstractRedisDAO<E extends ExpirableBase> implements DAO<E
 
     @Override public E update(@Valid E entity) {
         if (entity.shouldExpire()) {
-            getRedis().set(entity.getUuid(), toJsonOrDie(entity), "XX", "EX", entity.getExpirationSeconds());
-            getRedis().set(entity.getUuid(), toJsonOrDie(entity), "NX", "EX", entity.getExpirationSeconds());
+            getRedis().set(entity.getUuid(), toJsonOrDie(entity), XX, EX, entity.getExpirationSeconds());
+            getRedis().set(entity.getUuid(), toJsonOrDie(entity), NX, EX, entity.getExpirationSeconds());
         } else {
             getRedis().set(entity.getUuid(), toJsonOrDie(entity));
         }
@@ -80,7 +81,8 @@ public abstract class AbstractRedisDAO<E extends ExpirableBase> implements DAO<E
         for (E entity : entities) getRedis().del(entity.getUuid());
     }
 
-    public String getMetadata (String key) { return getRedis().get("__metadata_"+key); }
-    public void setMetadata (String key, String value) { getRedis().set("__metadata_"+key, value); }
+    public static final String METADATA_PREFIX = "__metadata_";
+    public String getMetadata (String key) { return getRedis().get(METADATA_PREFIX+key); }
+    public void setMetadata (String key, String value) { getRedis().set(METADATA_PREFIX+key, value); }
 
 }
