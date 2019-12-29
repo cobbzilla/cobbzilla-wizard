@@ -58,7 +58,10 @@ public class RestServerConfiguration {
     @Getter @Setter private String springContextPath = "classpath:/spring.xml";
     @Getter @Setter private String springShardContextPath = "classpath:/spring-shard.xml";
     @Getter @Setter private int bcryptRounds = 12;
-    @Getter @Setter private boolean testMode = false;
+
+    @Getter @Setter private Boolean testMode;
+    public boolean testMode() { return testMode != null && testMode; }
+
     @Getter @Setter private LogRelayAppenderConfig logRelay;
 
     private String appendPathToUriBase(String base, String... pathParts) {
