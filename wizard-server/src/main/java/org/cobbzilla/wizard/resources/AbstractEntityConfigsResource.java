@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -47,6 +48,8 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
     protected long getConfigRefreshInterval() { return TimeUnit.DAYS.toMillis(30); }
     protected abstract boolean authorized(ContainerRequest ctx);
     protected File getLocalConfig(EntityConfig name) { return null; }
+
+    public static final AtomicReference<Map<String, EntityConfig>> lastConfig = new AtomicReference<>();
 
     @Getter(AccessLevel.PROTECTED) private final AutoRefreshingReference<Map<String, EntityConfig>> configs = new EntityConfigsMap();
     public boolean refresh() { return refresh(configs); }
@@ -139,6 +142,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
             }
 
             synchronized (configs) {
+                lastConfig.set(configMap);
                 configs.set(configMap);
             }
             return configs.get();

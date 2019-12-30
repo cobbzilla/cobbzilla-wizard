@@ -6,7 +6,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.SingletonSet;
 import org.cobbzilla.util.reflect.ReflectionUtil;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.UniquelyNamedEntity;
 
 import javax.persistence.Transient;
@@ -195,8 +195,8 @@ public abstract class LdapEntity extends UniquelyNamedEntity {
 
     private static Map<String, Comparator<LdapEntity>> comparatorCache = new ConcurrentHashMap<>();
 
-    public static Comparator<LdapEntity> comparator (final String field, ResultPage.SortOrder order) {
-        final ResultPage.SortOrder sort = order == null ? ResultPage.SortOrder.ASC : order;
+    public static Comparator<LdapEntity> comparator (final String field, SearchQuery.SortOrder order) {
+        final SearchQuery.SortOrder sort = order == null ? SearchQuery.SortOrder.ASC : order;
         final String cacheKey = field + ":" + order;
         Comparator<LdapEntity> comp = comparatorCache.get(cacheKey);
         if (comp == null) {

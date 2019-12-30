@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.dao;
 import lombok.Getter;
 import org.cobbzilla.wizard.cache.redis.RedisService;
 import org.cobbzilla.wizard.model.ExpirableBase;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.validation.Valid;
@@ -32,8 +32,8 @@ public abstract class AbstractRedisDAO<E extends ExpirableBase> implements DAO<E
     protected String getRedisEncryptionKey() { return null; }
 
     // not supported
-    @Override public SearchResults<E> search(ResultPage resultPage) { return notSupported(); }
-    @Override public SearchResults<E> search(ResultPage resultPage, String entityAlias) { return notSupported(); }
+    @Override public SearchResults<E> search(SearchQuery searchQuery) { return notSupported(); }
+    @Override public SearchResults<E> search(SearchQuery searchQuery, String entityAlias) { return notSupported(); }
     @Override public E findByUniqueField(String field, Object value) { return notSupported(); }
     @Override public List<E> findByField(String field, Object value) { return notSupported(); }
     @Override public List<E> findByFieldLike(String field, String value) { return notSupported(); }

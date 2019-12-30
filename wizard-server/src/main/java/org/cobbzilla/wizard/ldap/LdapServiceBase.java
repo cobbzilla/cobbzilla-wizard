@@ -6,7 +6,7 @@ import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.model.ldap.LdapBindException;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.server.config.LdapConfiguration;
 
 import java.util.Map;
@@ -37,10 +37,10 @@ public abstract class LdapServiceBase implements LdapService {
         return okResult(exec(ldapRootCommand("ldapdelete").addArgument(dn)));
     }
 
-    private ResultPage resultPage(String dn) { return new ResultPage().setBound(BOUND_DN, dn); }
+    private SearchQuery resultPage(String dn) { return new SearchQuery().setBound(BOUND_DN, dn); }
 
     @Override public String rootsearch(String dn) { return rootsearch(resultPage(dn)); }
-    @Override public String rootsearch(ResultPage page) { return ldapsearch(adminDN(), password(), page); }
+    @Override public String rootsearch(SearchQuery page) { return ldapsearch(adminDN(), password(), page); }
 
     protected abstract String ldapFilter(String base, String filter, Map<String, String> bounds);
     protected abstract String ldapField(String base, String javaName);
@@ -49,7 +49,7 @@ public abstract class LdapServiceBase implements LdapService {
         return ldapsearch(userDn, password, resultPage(dn));
     }
 
-    @Override public String ldapsearch(String userDn, String password, ResultPage page) {
+    @Override public String ldapsearch(String userDn, String password, SearchQuery page) {
 
         final CommandLine command = ldapCommand("ldapsearch", userDn, password);
         final Map<String, String> bounds = NameAndValue.toMap(page.getBounds());
@@ -63,10 +63,10 @@ public abstract class LdapServiceBase implements LdapService {
         } else {
             if (!empty(filter) || !empty(bounds)) command.addArgument(ldapFilter(base, filter, bounds));
             if (page.getHasSortField()) {
-                final ResultPage.SortOrder sortOrder = page.getSortType();
+                final SearchQuery.SortOrder sortOrder = page.getSortType();
                 final String sort = page.getSortField();
                 if (sort != null) {
-                    final String sortArg = ((sortOrder != null && sortOrder == ResultPage.SortOrder.DESC) ? "-" : "");
+                    final String sortArg = ((sortOrder != null && sortOrder == SearchQuery.SortOrder.DESC) ? "-" : "");
                     command.addArgument("-E").addArgument("!sss=" + sortArg + sort);
                 }
             }

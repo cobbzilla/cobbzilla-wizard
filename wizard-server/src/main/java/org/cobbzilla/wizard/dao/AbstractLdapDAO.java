@@ -6,7 +6,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Transformer;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.wizard.ldap.LdapService;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.ldap.LdapEntity;
 import org.cobbzilla.wizard.server.config.LdapConfiguration;
 
@@ -59,29 +59,29 @@ public abstract class AbstractLdapDAO<E extends LdapEntity> implements DAO<E> {
 
     protected String formatBound(String bound, String value) { return notSupported("Invalid bound: " + bound); }
 
-    @Override public SearchResults<E> search(ResultPage resultPage, String entityAlias) {
-        mapBounds(resultPage);
-        final String ldif = ldap().rootsearch(resultPage);
+    @Override public SearchResults<E> search(SearchQuery searchQuery, String entityAlias) {
+        mapBounds(searchQuery);
+        final String ldif = ldap().rootsearch(searchQuery);
         final List<E> matches = multiFromLdif(ldif);
         final SearchResults results = new SearchResults().setTotalCount(matches.size());
-        for (int i=resultPage.getPageOffset(); i<matches.size() && i<resultPage.getPageEndOffset(); i++) {
+        for (int i = searchQuery.getPageOffset(); i<matches.size() && i< searchQuery.getPageEndOffset(); i++) {
             results.addResult(matches.get(i));
         }
         // the caller may want the results filtered (remove sensitive fields)
-        if (resultPage.hasScrubber() && !results.getResults().isEmpty()) {
-            results.setResults(resultPage.getScrubber().scrub(results.getResults()));
+        if (searchQuery.hasScrubber() && !results.getResults().isEmpty()) {
+            results.setResults(searchQuery.getScrubber().scrub(results.getResults()));
         }
         return results;
     }
 
-    private NameAndValue[] mapBounds(ResultPage resultPage) {
-        if (!resultPage.getHasBounds()) return null;
-        final NameAndValue[] bounds = resultPage.getBounds();
+    private NameAndValue[] mapBounds(SearchQuery searchQuery) {
+        if (!searchQuery.getHasBounds()) return null;
+        final NameAndValue[] bounds = searchQuery.getBounds();
         final NameAndValue[] mapped = new NameAndValue[bounds.length];
         for (int i=0; i<bounds.length; i++) {
             mapped[i] = new NameAndValue(getTemplateObject().typeForJava(bounds[i].getName()).getLdapName(), bounds[i].getValue());
         }
-        resultPage.setBounds(mapped);
+        searchQuery.setBounds(mapped);
         return mapped;
     }
 
@@ -116,14 +116,14 @@ public abstract class AbstractLdapDAO<E extends LdapEntity> implements DAO<E> {
     private String attrFilter(String field, String filter) { return "(" + field + "=*" + filter + "*)"; }
 
     @Override public List<E> findAll() {
-        final String ldif = ldap().rootsearch(new ResultPage()
+        final String ldif = ldap().rootsearch(new SearchQuery()
                 .setBound(LdapService.BOUND_NAME, "*")
                 .setBound(LdapService.BOUND_BASE, parentDN()));
         return multiFromLdif(ldif);
     }
 
     public List<E> findByField(String field, Object value) {
-        final ResultPage page = new ResultPage()
+        final SearchQuery page = new SearchQuery()
                 .setBound(LdapService.BOUND_BASE, parentDN())
                 .setBound(field, value.toString());
         if (!field.equals(LdapService.BOUND_NAME)) {

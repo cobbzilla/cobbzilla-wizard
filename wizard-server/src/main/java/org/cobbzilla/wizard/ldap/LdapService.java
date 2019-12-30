@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.ldap;
 
 import org.cobbzilla.util.system.CommandResult;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.server.config.LdapConfiguration;
 
 public interface LdapService {
@@ -28,7 +28,7 @@ public interface LdapService {
      * @param page the search criteria
      * @return an LDIF with the results (may or may not contain a match)
      */
-    public String ldapsearch(String userDn, String password, ResultPage page);
+    public String ldapsearch(String userDn, String password, SearchQuery page);
 
     /**
      * Same as ldapsearch, but authenticates to LDAP as an admin user
@@ -42,7 +42,7 @@ public interface LdapService {
      * @param page the search criteria
      * @return an LDIF with the results (may or may not contain a match)
      */
-    public String rootsearch(ResultPage page);
+    public String rootsearch(SearchQuery page);
 
     /**
      * Add an entry to LDAP

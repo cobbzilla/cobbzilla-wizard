@@ -7,13 +7,16 @@ package org.cobbzilla.wizard.dao;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.IdentifiableBase;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
+import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
 import org.hibernate.Criteria;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +37,8 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
+import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
+import static org.cobbzilla.wizard.model.crypto.EncryptedTypes.isEncryptedField;
 
 /**
  * An abstract base class for Hibernate DAO classes.
@@ -240,72 +246,98 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     public static final Object[] EMPTY_VALUES = new Object[0];
     public static final String[] PARAM_FILTER = new String[]{FILTER_PARAM};
 
-    public SqlViewField[] getSearchFields() { return null; }
+    public SqlViewField[] getSearchFields() {
+        final List<SqlViewField> fields = new ArrayList<>();
+        for (Field f : FieldUtils.getAllFields(getEntityClass())) {
+            final ECSearchable search = f.getAnnotation(ECSearchable.class);
+            if (search == null) continue;
 
-    @Override public SearchResults<E> search(ResultPage resultPage) {
-        return search(resultPage, getEntityClass().getSimpleName());
+            final String property = empty(search.property()) ? null : search.property();
+
+            final SqlViewFieldSetter set = search.setter().equals(ECSearchable.DefaultSqlViewFieldSetter.class)
+                    ? null : instantiate(search.setter());
+
+            fields.add(new SqlViewField(f.getName())
+                    .setType(getEntityClass())
+                    .setFieldType(f.getType())
+                    .setEncrypted(isEncryptedField(f))
+                    .setFilter(search.filter())
+                    .setProperty(property)
+                    .setSetter(set));
+        }
+        return fields.toArray(new SqlViewField[0]);
     }
 
-    @Override public SearchResults<E> search(ResultPage resultPage, String entityType) {
-        String filterClause = "";
+    @Override public SearchResults<E> search(SearchQuery searchQuery) {
+        return search(searchQuery, getEntityClass().getSimpleName());
+    }
+
+    @Override public SearchResults<E> search(SearchQuery searchQuery, String entityType) {
+        final StringBuilder filterClause;
         String[] params;
         Object[] values;
-        if (resultPage.getHasFilter()) {
+        if (searchQuery.getHasFilter()) {
             params = PARAM_FILTER;
-            values = new Object[] { StringUtil.sqlFilter(resultPage.getFilter()) };
-            filterClause = getFilterClause(entityAlias, FILTER_PARAM);
+            values = new Object[] { StringUtil.sqlFilter(searchQuery.getFilter()) };
+            filterClause = new StringBuilder(getFilterClause(entityAlias, FILTER_PARAM));
         } else {
             params = EMPTY_PARAMS;
             values = EMPTY_VALUES;
+            filterClause = new StringBuilder();
         }
-        if (resultPage.getHasBounds()) {
-            for (NameAndValue bound : resultPage.getBounds()) {
-                if (filterClause.length() > 0) filterClause += "and ";
-                filterClause += formatBound(entityAlias, bound.getName(), bound.getValue());
+        if (searchQuery.getHasBounds()) {
+            for (NameAndValue bound : searchQuery.getBounds()) {
+                if (filterClause.length() > 0) filterClause.append("and ");
+                filterClause.append(formatBound(entityAlias, bound.getName(), bound.getValue()));
             }
         }
-        if (filterClause.length() > 0) filterClause = "where "+filterClause;
+        if (filterClause.length() > 0) filterClause.insert(0, "where ");
 
-        final String selectClause = getSelectClause(resultPage);
+        final String selectClause = getSelectClause(searchQuery);
         final StringBuilder qBuilder = new StringBuilder("select ")
                 .append(selectClause).append(" ")
                 .append("from ").append(getEntityClass().getSimpleName()).append(" ").append(entityAlias).append(" ")
                 .append(filterClause);
 
         final String countQuery = "select count(*) " + qBuilder.toString();
-        final String query = qBuilder.append(" order by ").append(entityAlias).append(".").append(resultPage.getSortField()).append(" ").append(resultPage.getSortType().name()).toString();
+        final String query = qBuilder.append(" order by ").append(entityAlias).append(".").append(searchQuery.getSortField()).append(" ").append(searchQuery.getSortType().name()).toString();
 
-        List<E> results = query(query, resultPage, params, values);
-        final int totalCount = Integer.valueOf(""+query(countQuery, ResultPage.INFINITE_PAGE, params, values).get(0));
+        List<E> results = query(query, searchQuery, params, values);
+        final int totalCount = Integer.valueOf(""+query(countQuery, SearchQuery.INFINITE_PAGE, params, values).get(0));
 
         // the caller may want the results filtered (remove sensitive fields)
-        if (resultPage.hasScrubber() && !results.isEmpty()) {
-            results = resultPage.getScrubber().scrub(results);
+        if (searchQuery.hasScrubber() && !results.isEmpty()) {
+            results = searchQuery.getScrubber().scrub(results);
         }
 
         return new SearchResults<>(results, totalCount);
     }
 
-    public String getSelectClause(ResultPage resultPage) {
+    // default search view is the table itself
+    @Getter(lazy=true) private final String searchView = camelCaseToSnakeCase(getEntityClass().getName().replace(".", ""));
+
+    public String getSelectClause(SearchQuery searchQuery) {
+        if (this instanceof SqlViewSearchableDAO) return ((SqlViewSearchableDAO) this).selectClause(searchQuery);
+
         final StringBuilder selectFields = new StringBuilder();
-        if (!resultPage.getHasFields()) return "*";
+        if (!searchQuery.getHasFields()) return "*";
 
         final SqlViewField[] searchFields = getSearchFields();
         if (empty(searchFields)) die("search: requested specific fields but "+getClass().getSimpleName()+" returned null/empty from getSearchFields()");
 
-        for (String field : resultPage.getFields()) {
+        for (String field : searchQuery.getFields()) {
             if (selectFields.length() > 0) selectFields.append(", ");
             selectFields.append(field);
         }
         return selectFields.toString();
     }
 
-    public List query(String queryString, ResultPage resultPage, String[] params, Object[] values) {
-        return query(queryString, resultPage, params, values, null);
+    public List query(String queryString, SearchQuery searchQuery, String[] params, Object[] values) {
+        return query(queryString, searchQuery, params, values, null);
     }
 
-    public List query(String queryString, ResultPage resultPage, String[] params, Object[] values, String[] listParams) {
-        final HibernateCallbackImpl callback = new HibernateCallbackImpl(queryString, params, values, resultPage.getPageOffset(), resultPage.getPageSize());
+    public List query(String queryString, SearchQuery searchQuery, String[] params, Object[] values, String[] listParams) {
+        final HibernateCallbackImpl callback = new HibernateCallbackImpl(queryString, params, values, searchQuery.getPageOffset(), searchQuery.getPageSize());
         if (!empty(listParams)) {
             for (String listParam : listParams) {
                 callback.markAsListParameter(listParam);

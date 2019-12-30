@@ -14,7 +14,7 @@ import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableFindByUnique3FieldFind
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableIdentityFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableUniqueFieldFinder;
 import org.cobbzilla.wizard.dao.shard.task.*;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.shard.ShardIO;
 import org.cobbzilla.wizard.model.shard.ShardMap;
 import org.cobbzilla.wizard.model.shard.ShardRange;
@@ -279,10 +279,10 @@ public abstract class AbstractShardedDAO<E extends Shardable, D extends SingleSh
     public List<ShardMap> getAllShards()   { return getShardDAO().findAllShards(getShardConfiguration().getName()); }
 
     @Transactional(readOnly=true) // todo
-    @Override public SearchResults<E> search(ResultPage resultPage) { return notSupported(); }
+    @Override public SearchResults<E> search(SearchQuery searchQuery) { return notSupported(); }
 
     @Transactional(readOnly=true) // todo
-    @Override public SearchResults<E> search(ResultPage resultPage, String entityType) { return notSupported(); }
+    @Override public SearchResults<E> search(SearchQuery searchQuery, String entityType) { return notSupported(); }
 
     @Transactional(readOnly=true)
     @Override public E get(Serializable id) {

@@ -29,8 +29,6 @@ public interface SearchField {
     SearchBound[] getBounds();
     default boolean hasBounds() { return !empty(getBounds()); }
 
-    List<String> getComparisons();
-
     String getSort();
     default boolean hasSort() { return !empty(getSort()); }
 
@@ -71,7 +69,7 @@ public interface SearchField {
         return copy;
     }
 
-    static String buildBound(SearchField field, String value, List<Object> params) {
+    static String buildBound(SearchField field, String value, List<Object> params, String locale) {
         final String bound = field.name();
         if (!field.hasBounds()) throw invalid("err.bound.invalid", "bind is not valid", bound);
 
@@ -111,7 +109,7 @@ public interface SearchField {
             if (comparison.isCustom()) throw invalid("err.bound.custom.invalid", "custom bound was missing argument", value);
         }
 
-        return comparison.sql(searchBound, params, value);
+        return comparison.sql(searchBound, params, value, locale);
     }
 
     static SimpleViolationException invalid(String messageTemplate, String message, String invalidValue) {

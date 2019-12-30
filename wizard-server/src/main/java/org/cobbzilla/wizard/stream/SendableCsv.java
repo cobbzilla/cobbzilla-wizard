@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.stream;
 import com.github.jknack.handlebars.Handlebars;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.http.HttpContentTypes;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 
 import java.util.Collection;
@@ -27,7 +27,7 @@ public class SendableCsv extends SendableResource {
     @Override public String getContentType() { return HttpContentTypes.TEXT_CSV; }
     @Override public Boolean getForceDownload() { return true; }
 
-    public static SendableCsv searchToCSV(ResultPage search, String name, List results, SqlViewField[] searchFields, Handlebars handlebars) {
+    public static SendableCsv searchToCSV(SearchQuery search, String name, List results, SqlViewField[] searchFields, Handlebars handlebars) {
         final String[] fields;
         final String[] header;
         if (search.hasFieldMappings()) {

@@ -1,6 +1,9 @@
 package org.cobbzilla.wizard.model.crypto;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.hibernate.annotations.Type;
+
+import java.lang.reflect.Field;
 
 public class EncryptedTypes {
 
@@ -22,5 +25,10 @@ public class EncryptedTypes {
     };
 
     public static boolean isEncryptedType (String t) { return ArrayUtils.contains(ENCRYPTED_TYPES, t); }
+
+    public static boolean isEncryptedField(Field f) {
+        final Type t = f.getAnnotation(Type.class);
+        return t != null && isEncryptedType(t.type());
+    }
 
 }

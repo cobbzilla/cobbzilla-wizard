@@ -6,7 +6,11 @@ import org.cobbzilla.wizard.model.entityconfig.validation.*;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
 
+import javax.persistence.Column;
+import java.lang.reflect.Field;
 import java.util.Locale;
+
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 @AllArgsConstructor
 public enum EntityFieldType {
@@ -89,7 +93,33 @@ public enum EntityFieldType {
     private EntityConfigFieldValidator fieldValidator;
 
     /** Jackson-hook to create a new instance based on a string, case-insensitively */
-    @JsonCreator public static EntityFieldType create (String val) { return valueOf(val.toLowerCase()); }
+    @JsonCreator public static EntityFieldType fromString(String val) { return valueOf(val.toLowerCase()); }
+
+    public static EntityFieldType safeFromString(String val) {
+        try {
+            return valueOf(val.toLowerCase());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static boolean isNullable(Field f) {
+        final Column column = f.getAnnotation(Column.class);
+        if (column == null) return !f.getType().isPrimitive();
+        if (!column.nullable()) return false;
+        if (!empty(column.columnDefinition()) && column.columnDefinition().toUpperCase().contains("NOT NULL")) return false;
+        return true;
+    }
+
+    public static int safeColumnLength(Field f) {
+        final Integer val = columnLength(f);
+        return val == null ? -1 : val;
+    }
+
+    public static Integer columnLength(Field f) {
+        final Column column = f.getAnnotation(Column.class);
+        return column == null ? null : column.length();
+    }
 
     public Object toObject(Locale locale, String value) {
         return fieldValidator == null ? value : fieldValidator.toObject(locale, value);

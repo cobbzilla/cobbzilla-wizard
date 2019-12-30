@@ -20,7 +20,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 @NoArgsConstructor @Accessors(chain=true) @ToString
-public class ResultPage {
+public class SearchQuery {
 
     public static final String ASC = SortOrder.ASC.toString();
     public static final String DESC = SortOrder.DESC.toString();
@@ -45,20 +45,20 @@ public class ResultPage {
     }
     public static final String DEFAULT_SORT = SortOrder.DESC.name();
 
-    public static final ResultPage DEFAULT_PAGE = new ResultPage();
-    public static final ResultPage FIRST_RESULT = new ResultPage(1, 1);
+    public static final SearchQuery DEFAULT_PAGE = new SearchQuery();
+    public static final SearchQuery FIRST_RESULT = new SearchQuery(1, 1);
     public static final int INFINITE = Integer.MAX_VALUE;
-    public static final ResultPage INFINITE_PAGE = new ResultPage(1, INFINITE);
+    public static final SearchQuery INFINITE_PAGE = new SearchQuery(1, INFINITE);
 
-    public static final ResultPage EMPTY_PAGE = new ResultPage(1, 0);
-    public static final ResultPage LARGE_PAGE = new ResultPage(1, 100);
+    public static final SearchQuery EMPTY_PAGE = new SearchQuery(1, 0);
+    public static final SearchQuery LARGE_PAGE = new SearchQuery(1, 100);
 
     // for using ResultPage as a query-parameter
-    public static ResultPage valueOf (String json) throws Exception {
-        return JsonUtil.fromJson(json, ResultPage.class);
+    public static SearchQuery valueOf (String json) throws Exception {
+        return JsonUtil.fromJson(json, SearchQuery.class);
     }
 
-    public ResultPage(ResultPage other) {
+    public SearchQuery(SearchQuery other) {
         this.setPageNumber(other.getPageNumber());
         this.setPageSize(other.getPageSize());
         this.setFilter(other.getFilter());
@@ -67,7 +67,7 @@ public class ResultPage {
         this.setBounds(other.getBounds());
     }
 
-    public ResultPage(Integer pageNumber, Integer pageSize, String sortField, String sortOrder, String filter, NameAndValue[] bounds) {
+    public SearchQuery(Integer pageNumber, Integer pageSize, String sortField, String sortOrder, String filter, NameAndValue[] bounds) {
         if (pageNumber != null) setPageNumber(pageNumber);
         if (pageSize != null) setPageSize(pageSize);
         if (sortField != null) this.sortField = sortField;
@@ -76,39 +76,39 @@ public class ResultPage {
         this.bounds = bounds;
     }
 
-    public ResultPage (int pageNumber, int pageSize) {
+    public SearchQuery(int pageNumber, int pageSize) {
         this(pageNumber, pageSize, null, normalizeSortOrder(null), null);
     }
 
-    public ResultPage (int pageNumber, int pageSize, String sortField, SortOrder sortOrder) {
+    public SearchQuery(int pageNumber, int pageSize, String sortField, SortOrder sortOrder) {
         this(pageNumber, pageSize, sortField, sortOrder, null);
     }
 
-    public ResultPage (int pageNumber, int pageSize, String sortField, SortOrder sortOrder, String filter) {
+    public SearchQuery(int pageNumber, int pageSize, String sortField, SortOrder sortOrder, String filter) {
         this(pageNumber, pageSize, sortField, normalizeSortOrder(sortOrder), filter, null);
     }
 
-    public ResultPage (int pageNumber, int pageSize, String sortField, String sortOrder, String filter) {
+    public SearchQuery(int pageNumber, int pageSize, String sortField, String sortOrder, String filter) {
         this(pageNumber, pageSize, sortField, sortOrder, filter, null);
     }
 
     private static String normalizeSortOrder(SortOrder sortOrder) {
-        return (sortOrder == null) ? ResultPage.DEFAULT_SORT : sortOrder.name();
+        return (sortOrder == null) ? SearchQuery.DEFAULT_SORT : sortOrder.name();
     }
 
-    public static ResultPage singleResult (String sortField, SortOrder sortOrder) {
-        return new ResultPage(1, 1, sortField, sortOrder);
+    public static SearchQuery singleResult (String sortField, SortOrder sortOrder) {
+        return new SearchQuery(1, 1, sortField, sortOrder);
     }
 
-    public static ResultPage singleResult (String sortField, SortOrder sortOrder, String filter) {
-        return new ResultPage(1, 1, sortField, sortOrder, filter);
+    public static SearchQuery singleResult (String sortField, SortOrder sortOrder, String filter) {
+        return new SearchQuery(1, 1, sortField, sortOrder, filter);
     }
 
     @Getter private int pageNumber = 1;
-    public ResultPage setPageNumber(int pageNumber) { this.pageNumber = pageNumber <= 0 ? 1 : pageNumber; return this; }
+    public SearchQuery setPageNumber(int pageNumber) { this.pageNumber = pageNumber <= 0 ? 1 : pageNumber; return this; }
 
     @Getter private int pageSize = 10;
-    public ResultPage setPageSize(int pageSize) { this.pageSize = pageSize <= 0 ? 10 : pageSize; return this; }
+    public SearchQuery setPageSize(int pageSize) { this.pageSize = pageSize <= 0 ? 10 : pageSize; return this; }
 
     @JsonIgnore public int getPageOffset () { return (getPageNumber()-1) * pageSize; }
     public boolean containsResult(int i) { return (i >= getPageOffset() && i <= getPageOffset()+getPageSize()); }
@@ -118,7 +118,7 @@ public class ResultPage {
         return isInfinitePage() ? INFINITE_PAGE.pageSize : getPageOffset() + getPageSize();
     }
 
-    public ResultPage setReturnAllResults () { setPageNumber(INFINITE_PAGE.pageNumber); setPageSize(INFINITE_PAGE.pageSize); return this; }
+    public SearchQuery setReturnAllResults () { setPageNumber(INFINITE_PAGE.pageNumber); setPageSize(INFINITE_PAGE.pageSize); return this; }
 
     public static final int MAX_PAGE_BUFFER = 100;
     @JsonIgnore public int getPageBufferSize () {
@@ -137,8 +137,8 @@ public class ResultPage {
     @JsonIgnore public boolean getHasSortField () { return sortField != null; }
 
     @ValidEnum(type=SortOrder.class, emptyOk=true, message= BasicConstraintConstants.ERR_SORT_ORDER_INVALID)
-    @Getter private String sortOrder = ResultPage.DEFAULT_SORT;
-    public ResultPage setSortOrder(Object thing) {
+    @Getter private String sortOrder = SearchQuery.DEFAULT_SORT;
+    public SearchQuery setSortOrder(Object thing) {
         if (thing == null) {
             sortOrder = null;
         } else if (thing instanceof SortOrder) {
@@ -151,8 +151,8 @@ public class ResultPage {
 
     @JsonIgnore public SortOrder getSortType () { return sortOrder == null ? null : SortOrder.valueOf(sortOrder); }
 
-    public ResultPage sortAscending () { sortOrder = SortOrder.ASC.name(); return this; }
-    public ResultPage sortDescending () { sortOrder = SortOrder.DESC.name(); return this; }
+    public SearchQuery sortAscending () { sortOrder = SortOrder.ASC.name(); return this; }
+    public SearchQuery sortDescending () { sortOrder = SortOrder.DESC.name(); return this; }
 
     @Setter private String filter = null;
     public String getFilter() {
@@ -164,7 +164,7 @@ public class ResultPage {
     @Getter @Setter private NameAndValue[] bounds;
     @JsonIgnore public boolean getHasBounds() { return !empty(bounds); }
 
-    public ResultPage setBound(String name, String value) {
+    public SearchQuery setBound(String name, String value) {
         if (bounds == null) bounds = NameAndValue.EMPTY_ARRAY;
         bounds = ArrayUtil.append(bounds, new NameAndValue(name, value));
         return this;
@@ -179,11 +179,14 @@ public class ResultPage {
     @JsonIgnore @Getter @Setter private SearchScrubber scrubber;
     public boolean hasScrubber () { return scrubber != null; }
 
+    @JsonIgnore @Getter @Setter private String locale;
+    public boolean hasLocale () { return locale != null; }
+
     @Override public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ResultPage that = (ResultPage) o;
+        SearchQuery that = (SearchQuery) o;
 
         if (getPageNumber() != that.getPageNumber()) return false;
         if (getPageSize() != that.getPageSize()) return false;

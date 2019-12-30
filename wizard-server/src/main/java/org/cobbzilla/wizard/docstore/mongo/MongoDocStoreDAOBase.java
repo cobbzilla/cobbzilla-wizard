@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.docstore.mongo;
 import lombok.Getter;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.dao.SearchResults;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 
 import javax.validation.Valid;
 import java.io.Serializable;
@@ -56,11 +56,11 @@ public abstract class MongoDocStoreDAOBase<T extends MongoDocBase> extends Mongo
         return found.get(0);
     }
 
-    @Override public SearchResults<T> search(ResultPage resultPage) {
-        return search(resultPage, getEntityClass().getSimpleName());
+    @Override public SearchResults<T> search(SearchQuery searchQuery) {
+        return search(searchQuery, getEntityClass().getSimpleName());
     }
 
-    @Override public SearchResults<T> search(ResultPage resultPage, String entityAlias) {
+    @Override public SearchResults<T> search(SearchQuery searchQuery, String entityAlias) {
         // todo
         return new SearchResults<>();
     }

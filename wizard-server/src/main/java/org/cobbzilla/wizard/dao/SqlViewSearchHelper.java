@@ -6,7 +6,7 @@ import org.cobbzilla.util.jdbc.ResultSetBean;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.model.FilterableSqlViewSearchResult;
 import org.cobbzilla.wizard.model.Identifiable;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.model.search.SqlViewSearchResult;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
@@ -24,7 +24,7 @@ import static org.cobbzilla.util.daemon.DaemonThreadFactory.fixedPool;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
-import static org.cobbzilla.wizard.model.search.ResultPage.DEFAULT_SORT;
+import static org.cobbzilla.wizard.model.search.SearchQuery.DEFAULT_SORT;
 import static org.cobbzilla.wizard.resources.ResourceUtil.invalidEx;
 
 @Slf4j
@@ -34,7 +34,7 @@ public class SqlViewSearchHelper {
 
     public static <E extends Identifiable, R extends SqlViewSearchResult>
     SearchResults<E> search(SqlViewSearchableDAO<E> dao,
-                            ResultPage resultPage,
+                            SearchQuery searchQuery,
                             Class<R> resultClass,
                             SqlViewField[] fields,
                             HibernatePBEStringEncryptor hibernateEncryptor,
@@ -46,23 +46,23 @@ public class SqlViewSearchHelper {
         final List<Object> params = new ArrayList<>();
         final boolean searchByEncryptedField = Arrays.stream(fields).anyMatch(a -> a.isFilter() && a.isEncrypted());
 
-        if (resultPage.getHasFilter() && !searchByEncryptedField) {
-            final String filter = dao.buildFilter(resultPage, params);
+        if (searchQuery.getHasFilter() && !searchByEncryptedField) {
+            final String filter = dao.buildFilter(searchQuery, params);
             if (!empty(filter)) sql.append(" AND (").append(filter).append(") ");
         }
 
-        if (resultPage.getHasBounds()) {
-            for (NameAndValue bound : resultPage.getBounds()) {
-                sql.append(" AND (").append(dao.buildBound(bound.getName(), bound.getValue(), params))
+        if (searchQuery.getHasBounds()) {
+            for (NameAndValue bound : searchQuery.getBounds()) {
+                sql.append(" AND (").append(dao.buildBound(bound.getName(), bound.getValue(), params, searchQuery.getLocale()))
                                     .append(") ");
             }
         }
 
         final String sort;
         final String sortedField;
-        if (resultPage.getHasSortField()) {
-            sortedField = dao.getSortField(resultPage.getSortField());
-            sort = sortedField + " " + resultPage.getSortOrder();
+        if (searchQuery.getHasSortField()) {
+            sortedField = dao.getSortField(searchQuery.getSortField());
+            sort = sortedField + " " + searchQuery.getSortOrder();
         } else {
             sort = dao.getDefaultSort();
             sortedField = sort.split(" ")[0];
@@ -76,12 +76,12 @@ public class SqlViewSearchHelper {
             limit = "";
             sortClause = "";
         } else {
-            offset = " OFFSET " + resultPage.getPageOffset();
-            limit = " LIMIT " + resultPage.getPageSize();
+            offset = " OFFSET " + searchQuery.getPageOffset();
+            limit = " LIMIT " + searchQuery.getPageSize();
             sortClause = " ORDER BY "  + sort;
         }
 
-        final String query = "select " + dao.getSelectClause(resultPage) + " " + sql.toString() + sortClause + limit + offset;
+        final String query = "select " + dao.getSelectClause(searchQuery) + " " + sql.toString() + sortClause + limit + offset;
 
         Integer totalCount = null;
         final ArrayList<E> thingsList = new ArrayList<>();
@@ -124,11 +124,11 @@ public class SqlViewSearchHelper {
             // find matches among all candidates
             final List<Future<?>> filterJobs = new ArrayList<>();
             final List<E> matched = new ArrayList<>();
-            if (resultPage.getHasFilter()) {
+            if (searchQuery.getHasFilter()) {
                 for (E thing : thingsList) {
                     if (thing instanceof FilterableSqlViewSearchResult) {
                         filterJobs.add(exec.submit(() -> {
-                            if (((FilterableSqlViewSearchResult) thing).matches(resultPage.getFilter())) {
+                            if (((FilterableSqlViewSearchResult) thing).matches(searchQuery.getFilter())) {
                                 synchronized (matched) { matched.add(thing); }
                             }
                         }));
@@ -152,18 +152,18 @@ public class SqlViewSearchHelper {
             final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortedField)).findFirst().get();
             final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField);
 
-            if (!resultPage.getSortOrder().equals(DEFAULT_SORT)) {
+            if (!searchQuery.getSortOrder().equals(DEFAULT_SORT)) {
                 matched.sort(comparator);
             } else {
                 matched.sort(comparator.reversed());
             }
 
             totalCount = matched.size();
-            int startIndex = resultPage.getPageOffset();
+            int startIndex = searchQuery.getPageOffset();
             if (totalCount == 0 || matched.size() < startIndex) {
                 return new SearchResults<>(new ArrayList<>(), totalCount);
             } else {
-                int endIndex = startIndex + resultPage.getPageSize();
+                int endIndex = startIndex + searchQuery.getPageSize();
                 endIndex = min(endIndex, matched.size()); // ensure we do not run past the end of our matches
                 return new SearchResults<>(matched.subList(startIndex, endIndex), totalCount);
             }

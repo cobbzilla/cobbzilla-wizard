@@ -31,7 +31,7 @@ public enum SearchBoundComparison {
 
     is_null (sqlNullCompare(true)),
     not_null(sqlNullCompare(false)),
-    empty   (sqlCompare(ComparisonOperator.eq.sql, (b, v) -> "")),
+    empty   (sqlCompare(ComparisonOperator.eq.sql, (b, v, l) -> "")),
     in      (sqlInCompare(SearchBoundComparison::parseInArgument)),
 
     before  (sqlCompare(ComparisonOperator.le.sql, SearchBoundComparison::parseDateArgument)),
@@ -41,13 +41,13 @@ public enum SearchBoundComparison {
             ComparisonOperator.ge.sql,
             ComparisonOperator.le.sql
     }, new SearchBoundValueFunction[] {
-            (bound, value) -> TimePeriodType.fromString(value).start(),
-            (bound, value) -> TimePeriodType.fromString(value).end()
+            (bound, value, locale) -> TimePeriodType.fromString(value).start(),
+            (bound, value, locale) -> TimePeriodType.fromString(value).end()
     })),
 
     custom  (null);
 
-    private static Object parseInArgument(SearchBound bound, String val) {
+    private static Object parseInArgument(SearchBound bound, String val, String locale) {
         if (empty(val)) return Collections.emptyList();
         char delim = ',';
         if (!isAlphanumericSpace(""+val.charAt(0))) {
@@ -59,9 +59,9 @@ public enum SearchBoundComparison {
 
     private SearchBoundSqlFunction sqlFunction;
 
-    private static Object parseLikeArgument(SearchBound bound, String val) { return sqlFilter(val); }
+    private static Object parseLikeArgument(SearchBound bound, String val, String locale) { return sqlFilter(val); }
 
-    private static Object parseCompareArgument(SearchBound bound, String val) {
+    private static Object parseCompareArgument(SearchBound bound, String val, String locale) {
         SearchFieldType type = bound.getType();
         if (type == null) {
             final SearchBoundComparison comparison = bound.getComparison();
@@ -78,9 +78,9 @@ public enum SearchBoundComparison {
         }
     }
 
-    private static Object parseDateArgument(SearchBound bound, String val) {
+    private static Object parseDateArgument(SearchBound bound, String val, String locale) {
         try {
-            Object t = TimeUtil.parse(val);
+            Object t = TimeUtil.parseWithLocale(val, locale);
             if (t != null) return t;
         } catch (Exception ignored) {
             // noop
@@ -120,8 +120,8 @@ public enum SearchBoundComparison {
                 : new SearchBound(name, custom, SearchFieldType.string, null, processorClass.getName());
     }
 
-    public String sql(SearchBound bound, List<Object> params, String value) {
-        return sqlFunction.generateSqlAndAddParams(bound, params, value);
+    public String sql(SearchBound bound, List<Object> params, String value, String locale) {
+        return sqlFunction.generateSqlAndAddParams(bound, params, value, locale);
     }
 
     public static String customPrefix(String op) { return SearchBoundComparison.custom.name() + OP_SEP + op + OP_SEP; }

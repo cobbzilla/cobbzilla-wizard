@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.dao;
 
 import org.cobbzilla.wizard.model.Identifiable;
-import org.cobbzilla.wizard.model.search.ResultPage;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.hibernate.criterion.Order;
 
 import javax.validation.Valid;
@@ -15,8 +15,8 @@ public interface DAO<E extends Identifiable> {
 
     Class<E> getEntityClass();
 
-    SearchResults<E> search(ResultPage resultPage);
-    SearchResults<E> search(ResultPage resultPage, String entityType);
+    SearchResults<E> search(SearchQuery searchQuery);
+    SearchResults<E> search(SearchQuery searchQuery, String entityType);
 
     E get(Serializable id);
 
