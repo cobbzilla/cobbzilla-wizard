@@ -10,6 +10,7 @@ import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldMode;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
+import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.hibernate.cfg.ImprovedNamingStrategy;
 
 import javax.persistence.Column;
@@ -40,6 +41,13 @@ public class IdentifiableBase implements Identifiable {
     @Id @Column(unique=true, updatable=false, nullable=false, length=UUID_MAXLEN)
     @Getter @Setter private volatile String uuid = null;
     public boolean hasUuid () { return !empty(uuid); }
+
+    @Getter @Setter @Transient private transient RelatedEntities related;
+    public RelatedEntities related() {
+        if (related != null) return related;
+        setRelated(new RelatedEntities());
+        return getRelated();
+    }
 
     public static final int DEFAULT_SHORT_ID_LENGTH = 8;
     @Transient @JsonIgnore public int getShortIdLength () { return DEFAULT_SHORT_ID_LENGTH; }
@@ -84,11 +92,13 @@ public class IdentifiableBase implements Identifiable {
         }
     }
 
+    @ECSearchable
     @Column(updatable=false, nullable=false)
     @ECField(type=EntityFieldType.epoch_time, mode=EntityFieldMode.readOnly)
     @Getter @Setter @JsonIgnore private long ctime = now();
     @JsonIgnore @Transient public long getCtimeAge () { return now() - ctime; }
 
+    @ECSearchable
     @Column(nullable=false)
     @ECField(type=EntityFieldType.epoch_time)
     @Getter @Setter @JsonIgnore private long mtime = now();

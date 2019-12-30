@@ -17,25 +17,23 @@ import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
+import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 import org.hibernate.Criteria;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.DetachedCriteria;
+import org.jasypt.hibernate4.encryptor.HibernatePBEStringEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.wizard.model.crypto.EncryptedTypes.isEncryptedField;
@@ -48,6 +46,8 @@ import static org.cobbzilla.wizard.model.crypto.EncryptedTypes.isEncryptedField;
 public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
 
     @Autowired @Getter @Setter private HibernateTemplate hibernateTemplate;
+    @Autowired @Getter @Setter private HibernatePBEStringEncryptor hibernateEncryptor;
+    @Autowired @Getter @Setter private PgRestServerConfiguration configuration;
 
     private final Class<?> entityClass;
 
@@ -246,26 +246,35 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     public static final Object[] EMPTY_VALUES = new Object[0];
     public static final String[] PARAM_FILTER = new String[]{FILTER_PARAM};
 
-    public SqlViewField[] getSearchFields() {
-        final List<SqlViewField> fields = new ArrayList<>();
-        for (Field f : FieldUtils.getAllFields(getEntityClass())) {
-            final ECSearchable search = f.getAnnotation(ECSearchable.class);
-            if (search == null) continue;
+    @Getter(lazy=true) private final SqlViewField[] searchFields = initSearchFields();
 
-            final String property = empty(search.property()) ? null : search.property();
+    private SqlViewField[] initSearchFields() {
+        final Map<String, SqlViewField> fields = new LinkedHashMap<>();
+        final Class<E> entityClass = getEntityClass();
+        Class c = entityClass;
+        while (!c.equals(Object.class)) {
+            for (Field f : FieldUtils.getAllFields(entityClass)) {
+                final ECSearchable search = f.getAnnotation(ECSearchable.class);
+                if (search == null || fields.containsKey(f.getName())) continue;
 
-            final SqlViewFieldSetter set = search.setter().equals(ECSearchable.DefaultSqlViewFieldSetter.class)
-                    ? null : instantiate(search.setter());
+                final String property = empty(search.property()) ? f.getName() : search.property();
 
-            fields.add(new SqlViewField(f.getName())
-                    .setType(getEntityClass())
-                    .setFieldType(f.getType())
-                    .setEncrypted(isEncryptedField(f))
-                    .setFilter(search.filter())
-                    .setProperty(property)
-                    .setSetter(set));
+                final SqlViewFieldSetter set = search.setter().equals(ECSearchable.DefaultSqlViewFieldSetter.class)
+                        ? null : instantiate(search.setter());
+
+                String entity = empty(search.entity()) ? entityClass.getName() : search.entity();
+                fields.putIfAbsent(f.getName(), new SqlViewField(f.getName())
+                        .setType(entityClass)
+                        .fieldType(f.getType())
+                        .encrypted(isEncryptedField(f))
+                        .filter(search.filter())
+                        .property(property)
+                        .entity(entity)
+                        .setter(set));
+            }
+            c = c.getSuperclass();
         }
-        return fields.toArray(new SqlViewField[0]);
+        return fields.values().toArray(new SqlViewField[0]);
     }
 
     @Override public SearchResults<E> search(SearchQuery searchQuery) {
@@ -273,6 +282,10 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     }
 
     @Override public SearchResults<E> search(SearchQuery searchQuery, String entityType) {
+        if (this instanceof SqlViewSearchableDAO) {
+            final SqlViewSearchableDAO sqlSearch = (SqlViewSearchableDAO) this;
+            return SqlViewSearchHelper.search(sqlSearch, searchQuery, sqlSearch.getResultClass(), getSearchFields(), hibernateEncryptor, configuration);
+        }
         final StringBuilder filterClause;
         String[] params;
         Object[] values;
@@ -313,21 +326,33 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
         return new SearchResults<>(results, totalCount);
     }
 
-    // default search view is the table itself
-    @Getter(lazy=true) private final String searchView = camelCaseToSnakeCase(getEntityClass().getName().replace(".", ""));
+    // default search view is the table itself. subclasses can override this and provide custom views
+    @Getter(lazy=true) private final String searchView = camelCaseToSnakeCase(getEntityClass().getSimpleName().replace(".", ""));
 
     public String getSelectClause(SearchQuery searchQuery) {
-        if (this instanceof SqlViewSearchableDAO) return ((SqlViewSearchableDAO) this).selectClause(searchQuery);
+        final SqlViewField[] searchFields = getSearchFields();
 
         final StringBuilder selectFields = new StringBuilder();
-        if (!searchQuery.getHasFields()) return "*";
+        if (!searchQuery.getHasFields()) {
+            if (empty(searchFields)) return "*";
+            for (SqlViewField field : searchFields) {
+                if (selectFields.length() > 0) selectFields.append(", ");
+                selectFields.append(field.getProperty());
+            }
+            return selectFields.toString();
+        }
 
-        final SqlViewField[] searchFields = getSearchFields();
-        if (empty(searchFields)) die("search: requested specific fields but "+getClass().getSimpleName()+" returned null/empty from getSearchFields()");
+        if (empty(searchFields)) die("getSelectClause: requested specific fields but "+getClass().getSimpleName()+" returned null/empty from getSearchFields()");
 
         for (String field : searchQuery.getFields()) {
+            final SqlViewField sqlViewField = Arrays.stream(searchFields)
+                    .filter(f -> f.getName().equalsIgnoreCase(field))
+                    .findFirst().orElse(null);
+            if (sqlViewField == null) {
+                return die("getSelectClause: cannot search for field "+field+", add @ECSearchable annotation to enable searching");
+            }
             if (selectFields.length() > 0) selectFields.append(", ");
-            selectFields.append(field);
+            selectFields.append(sqlViewField.getProperty());
         }
         return selectFields.toString();
     }

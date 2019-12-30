@@ -1,15 +1,25 @@
 package org.cobbzilla.wizard.dao;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.InvocationHandler;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.cobbzilla.util.collection.ExpirationMap;
+import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.RelatedEntities;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
+import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.*;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Arrays.asList;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
@@ -23,32 +33,6 @@ import static org.cobbzilla.wizard.model.search.SearchBoundComparison.*;
 public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
 
     String getSearchView();
-
-    default String getSelectClause(SearchQuery searchQuery) { return selectClause(searchQuery); }
-
-    default String selectClause(SearchQuery searchQuery) {
-        final SqlViewField[] searchFields = getSearchFields();
-
-        final StringBuilder selectFields = new StringBuilder();
-        if (!searchQuery.getHasFields()) {
-            if (empty(searchFields)) return "*";
-            for (SqlViewField field : searchFields) {
-                if (selectFields.length() > 0) selectFields.append(", ");
-                selectFields.append(field);
-            }
-        }
-
-        if (empty(searchFields)) die("getSelectClause: requested specific fields but "+getClass().getSimpleName()+" returned null/empty from getSearchFields()");
-
-        for (String field : searchQuery.getFields()) {
-            if (Arrays.stream(searchFields).noneMatch(f -> f.getName().equalsIgnoreCase(field))) {
-                return die("getSelectClause: cannot search for field "+field+", add @ECSearchable annotation to enable searching");
-            }
-            if (selectFields.length() > 0) selectFields.append(", ");
-            selectFields.append(field);
-        }
-        return selectFields.toString();
-    }
 
     default String fixedFilters() { return "1=1"; }
 
@@ -88,34 +72,42 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
                 @Override public String name() { return camelCaseToSnakeCase(f.getName()); }
                 @Override public SearchBound[] getBounds() {
                     List<SearchBound> bounds = new ArrayList<>();
-                    final EntityFieldType fieldType = safeFromString(search.bounds());
-                    if (fieldType == null) {
-                        try {
-                            final SearchBoundBuilder builder = instantiate(search.bounds());
-                            return builder.build(bound, value, params, locale);
-                        } catch (Exception e) {
-                            return die("getBounds("+bound+"): error invoking  custom SearchBoundBuilder: "+search.bounds()+": "+e);
+                    final EntityFieldType fieldType;
+                    if (!empty(search.bounds())) {
+                        fieldType = safeFromString(search.bounds());
+                        if (fieldType == null) {
+                            try {
+                                final SearchBoundBuilder builder = instantiate(search.bounds());
+                                return builder.build(bound, value, params, locale);
+                            } catch (Exception e) {
+                                return die("getBounds(" + bound + "): error invoking  custom SearchBoundBuilder: " + search.bounds() + ": " + e);
+                            }
                         }
+                    } else {
+                        final ECField ecField = f.getAnnotation(ECField.class);
+                        fieldType = ecField != null ? ecField.type() : null;
                     }
-                    switch (fieldType) {
-                        case epoch_time: case date: case date_past: case date_future:
-                        case year: case year_and_month: case year_and_month_past:
-                        case year_future: case year_past: case year_and_month_future:
-                            bounds.addAll(asList(SearchField.bindTime(name())));
-                            break;
-                        case flag:
-                            bounds.add(eq.bind(name(), SearchFieldType.integer));
-                            break;
-                        case string:
-                            bounds.add(eq.bind(name(), SearchFieldType.string));
-                            break;
-                    }
-                    if (isNullable(f)) {
-                        bounds.add(is_null.bind(name()));
-                        bounds.add(not_null.bind(name()));
-                    }
-                    if (safeColumnLength(f) > 500) {
-                        bounds.add(like.bind(name()));
+                    if (fieldType != null) {
+                        switch (fieldType) {
+                            case epoch_time: case date: case date_past: case date_future:
+                            case year: case year_and_month: case year_and_month_past:
+                            case year_future: case year_past: case year_and_month_future:
+                                bounds.addAll(asList(SearchField.bindTime(name())));
+                                break;
+                            case flag:
+                                bounds.add(eq.bind(name(), SearchFieldType.integer));
+                                break;
+                            case string:
+                                bounds.add(eq.bind(name(), SearchFieldType.string));
+                                break;
+                        }
+                        if (isNullable(f)) {
+                            bounds.add(is_null.bind(name()));
+                            bounds.add(not_null.bind(name()));
+                        }
+                        if (safeColumnLength(f) > 500) {
+                            bounds.add(like.bind(name()));
+                        }
                     }
                     if (empty(bounds)) return die("getBounds: no bounds defined for: "+bound);
                     return bounds.toArray(SearchBound[]::new);
@@ -129,4 +121,37 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
 
     default String getDefaultSort() { return "ctime"; }
 
+    String getSelectClause(SearchQuery searchQuery);
+
+    Map<String, Class<? extends SqlViewSearchResult>> _resultClassCache = new ConcurrentHashMap<>();
+
+    default Class<? extends SqlViewSearchResult> getResultClass() {
+        final Class<T> entityClass = getEntityClass();
+        if (SqlViewSearchResult.class.isAssignableFrom(entityClass)) return (Class<? extends SqlViewSearchResult>) entityClass;
+        return _resultClassCache.computeIfAbsent(entityClass.getName(), k -> {
+            final Enhancer enhancer = new Enhancer();
+            enhancer.setInterfaces(new Class[]{SqlViewSearchResult.class});
+            enhancer.setSuperclass(entityClass);
+            enhancer.setCallback(new SimpleSearchResultHandler());
+            return (Class<? extends SqlViewSearchResult>) enhancer.create().getClass();
+        });
+    }
+
+    @AllArgsConstructor
+    class SimpleSearchResultHandler implements InvocationHandler  {
+
+        @Getter private ThreadLocal<Map<String, RelatedEntities>> relatedByUuid = new ThreadLocal<>();
+
+        public SimpleSearchResultHandler () { relatedByUuid.set(new ExpirationMap<>()); }
+
+        @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            switch (method.getName()) {
+                case "getRelated":
+                    final Object uuid = ReflectionUtil.get(proxy, "uuid");
+                    if (uuid == null) return die("getRelated: no uuid found: "+proxy);
+                    return this.getRelatedByUuid().get().computeIfAbsent(uuid.toString(), k -> new RelatedEntities());
+            }
+            return method.invoke(proxy, args);
+        }
+    }
 }

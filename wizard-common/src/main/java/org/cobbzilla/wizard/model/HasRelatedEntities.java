@@ -4,4 +4,5 @@ public interface HasRelatedEntities {
 
     RelatedEntities getRelated();
 
+    RelatedEntities related();
 }

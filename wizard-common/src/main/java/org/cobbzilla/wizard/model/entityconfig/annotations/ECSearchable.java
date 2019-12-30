@@ -18,6 +18,7 @@ public @interface ECSearchable {
     Class<? extends SqlViewFieldSetter> setter() default DefaultSqlViewFieldSetter.class;
     String sortField() default "";
     String bounds() default "";
+    String entity() default "";
 
     class DefaultSqlViewFieldSetter implements SqlViewFieldSetter {
         @Override public void set(Object target, String entityProperty, Object value, HibernatePBEStringEncryptor hibernateEncryptor) {

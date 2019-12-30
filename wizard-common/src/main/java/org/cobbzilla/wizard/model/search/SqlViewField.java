@@ -12,7 +12,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.forName;
 import static org.cobbzilla.util.string.StringUtil.snakeCaseToCamelCase;
 
-@NoArgsConstructor @Accessors(chain=true) @ToString
+@NoArgsConstructor @Accessors(chain=true) @ToString(of={"name","property","encrypted", "filter"})
 public class SqlViewField {
 
     @Getter @Setter private Class<? extends Identifiable> type;

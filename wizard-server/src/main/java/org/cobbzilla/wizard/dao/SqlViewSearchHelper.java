@@ -140,8 +140,8 @@ public class SqlViewSearchHelper {
                 matched.addAll(thingsList);
             }
 
-            matched.stream().forEach(a -> {
-                for (Map.Entry<String, Identifiable> relatedEntry : ((R) a).getRelated().entrySet()) {
+            matched.forEach(a -> {
+                for (Map.Entry<String, Identifiable> relatedEntry : ((R) a).related().entrySet()) {
                     if (relatedEntry.getValue().getUuid() == null) {
                         ((R) a).getRelated().remove(relatedEntry.getKey());
                     }
@@ -149,7 +149,9 @@ public class SqlViewSearchHelper {
             });
 
             // manually sort and apply offset + limit
-            final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortedField)).findFirst().get();
+            final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortedField)).findFirst().orElse(null);
+            if (sqlViewField == null) return die("search: sort field not defined/mapped: "+sortedField);
+
             final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField);
 
             if (!searchQuery.getSortOrder().equals(DEFAULT_SORT)) {
@@ -215,7 +217,7 @@ public class SqlViewSearchHelper {
             final Class<? extends Identifiable> type = field.getType();
             try {
                 Object target = thing;
-                if (type != null) {
+                if (type != null && !type.isAssignableFrom(thing.getClass())) {
                     if (!field.hasEntity()) die("populate: type was " + type.getName() + " but entity was null: " + field); // sanity check, should never happen
                     target = thing.getRelated().entity(type, field.getEntity());
                 }
