@@ -69,6 +69,18 @@ public enum EntityFieldType {
     /** a date or date/time value  (null), represented as milliseconds since 1/1/1970 */
     epoch_time  (new EntityConfigFieldValidator_integer()),
 
+    /** a time-zone (for example America/New York) */
+    time_zone  (null),
+
+    /** a locale (for example en_US) */
+    locale  (null),
+
+    /** an IPv4 address */
+    ip4  (null),
+
+    /** an IPv6 address */
+    ip6  (null),
+
     /** a 2-letter US state abbreviation */
     us_state  (null),
 
