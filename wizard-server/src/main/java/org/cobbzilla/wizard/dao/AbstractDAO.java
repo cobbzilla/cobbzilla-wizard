@@ -7,7 +7,6 @@ package org.cobbzilla.wizard.dao;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
@@ -33,6 +32,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.commons.lang3.reflect.FieldUtils.getAllFields;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
@@ -253,7 +253,7 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
         final Class<E> entityClass = getEntityClass();
         Class c = entityClass;
         while (!c.equals(Object.class)) {
-            for (Field f : FieldUtils.getAllFields(entityClass)) {
+            for (Field f : getAllFields(entityClass)) {
                 final ECSearchable search = f.getAnnotation(ECSearchable.class);
                 if (search == null || fields.containsKey(f.getName())) continue;
 
@@ -263,7 +263,7 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
                         ? null : instantiate(search.setter());
 
                 String entity = empty(search.entity()) ? entityClass.getName() : search.entity();
-                fields.putIfAbsent(f.getName(), new SqlViewField(f.getName())
+                fields.putIfAbsent(f.getName(), new SqlViewField(camelCaseToSnakeCase(f.getName()))
                         .setType(entityClass)
                         .fieldType(f.getType())
                         .encrypted(isEncryptedField(f))
@@ -337,7 +337,7 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
             if (empty(searchFields)) return "*";
             for (SqlViewField field : searchFields) {
                 if (selectFields.length() > 0) selectFields.append(", ");
-                selectFields.append(field.getProperty());
+                selectFields.append(field.getName());
             }
             return selectFields.toString();
         }
