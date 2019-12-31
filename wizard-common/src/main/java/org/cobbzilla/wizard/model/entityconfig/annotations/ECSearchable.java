@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.model.entityconfig.annotations;
 
+import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
 import org.jasypt.hibernate4.encryptor.HibernatePBEStringEncryptor;
 
@@ -17,6 +18,7 @@ public @interface ECSearchable {
     String property() default "";
     Class<? extends SqlViewFieldSetter> setter() default DefaultSqlViewFieldSetter.class;
     String sortField() default "";
+    EntityFieldType type() default EntityFieldType.none_set;
     String bounds() default "";
     String entity() default "";
 

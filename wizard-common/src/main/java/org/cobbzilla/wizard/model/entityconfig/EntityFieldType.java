@@ -15,6 +15,14 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 @AllArgsConstructor
 public enum EntityFieldType {
 
+    /** it holds a place where nothing was set */
+    none_set (new EntityConfigFieldValidator() {
+        @Override public ValidationResult validate(Locale locale, Validator validator, EntityFieldConfig fieldConfig, Object value) {
+            return new ValidationResult("err.ec.fieldType.none_set");
+        }
+        @Override public Object toObject(Locale locale, String value) { return null; }
+    }),
+
     /** a string of characters */
     string (new EntityConfigFieldValidator_string()),
 
@@ -66,8 +74,11 @@ public enum EntityFieldType {
     /** a 4-digit year and 2-digit month field (YYYY-MM) field that starts with the current year and goes into the future */
     year_and_month_future  (null),
 
-    /** a date or date/time value  (null), represented as milliseconds since 1/1/1970 */
+    /** a date or date/time value, represented as milliseconds since 1/1/1970 */
     epoch_time  (new EntityConfigFieldValidator_integer()),
+
+    /** a date or date/time value, represented as milliseconds since 1/1/1970 */
+    expiration_time  (new EntityConfigFieldValidator_integer()),
 
     /** a time-zone (for example America/New York) */
     time_zone  (null),
