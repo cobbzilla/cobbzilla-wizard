@@ -1,0 +1,4 @@
+CREATE OR REPLACE VIEW {{safeSql viewName}} ( {{#each viewColumns}}{{#unless @first}}, {{/unless}}{{safeSql this}}{{/each}} )
+AS SELECT {{#each selectColumns}}{{#unless @first}}, {{/unless}}{{safeSql this}}{{/each}}
+FROM {{#each fromClauses}}{{#unless @first}}, {{/unless}}{{safeSql this}}{{/each}}
+WHERE {{#each whereClauses}}{{#unless @first}} AND {{/unless}}( {{safeSql this}} ){{/each}};

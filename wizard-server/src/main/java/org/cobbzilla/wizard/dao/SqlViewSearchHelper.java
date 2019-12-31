@@ -219,7 +219,7 @@ public class SqlViewSearchHelper {
                 Object target = thing;
                 if (type != null && !type.isAssignableFrom(thing.getClass())) {
                     if (!field.hasEntity()) die("populate: type was " + type.getName() + " but entity was null: " + field); // sanity check, should never happen
-                    target = thing.getRelated().entity(type, field.getEntity());
+                    target = thing.related().entity(type, field.getEntity());
                 }
                 final Object value = getValue(row, field.getName(), hibernateEncryptor, field.isEncrypted());
                 if (field.hasSetter()) {

@@ -30,6 +30,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.URIUtil.getHost;
 import static org.cobbzilla.util.http.URIUtil.getPort;
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.system.CommandShell.exec;
 import static org.cobbzilla.util.system.CommandShell.execScript;
@@ -39,7 +40,17 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
 
     public static final String ENV_PGPASSWORD = "PGPASSWORD";
 
+    public static final int MAX_ID_LENGTH = 63;  // max length of database identifiers
+    public static final int HASH_LENGTH = 20;    // if we must truncate, use this many chars for hash
+
     private DatabaseConfiguration database;
+
+    public static String dbName(Class c) { return dbName(c.getSimpleName()); }
+    public static String dbName(String s) { return safeDbName(camelCaseToSnakeCase(s)); }
+    public static String safeDbName(String s) {
+        return s.length() <= MAX_ID_LENGTH ? s : s.substring(0, MAX_ID_LENGTH-HASH_LENGTH-1) + "_" + hexToBase36(sha256_hex(s)).substring(0, HASH_LENGTH).toLowerCase();
+    }
+
     @Override @Bean public DatabaseConfiguration getDatabase() { return database; }
     @Override public void setDatabase(DatabaseConfiguration config) { this.database = config; }
 

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.daemon.ZillaRuntime.hashOf;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.sqlFilter;
 
@@ -65,7 +66,7 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
             final ECSearchable search = f.getAnnotation(ECSearchable.class);
             if (!f.getName().equalsIgnoreCase(bound) || search == null) continue;
 
-            final String hash = SqlDefaultSearchField.hash(f, search, bound, value, params, locale);
+            final String hash = hashOf(f, search, bound, value, params, locale);
             return _fieldCache.computeIfAbsent(hash, k -> {
                 final SearchField field = new SqlDefaultSearchField(f, search, bound, value, params, locale);
                 return SearchField.buildBound(field, value, params, locale);

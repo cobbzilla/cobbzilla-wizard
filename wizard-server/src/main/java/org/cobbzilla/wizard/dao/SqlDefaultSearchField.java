@@ -16,7 +16,6 @@ import static java.util.Arrays.asList;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
-import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.wizard.model.entityconfig.EntityFieldType.*;
 import static org.cobbzilla.wizard.model.search.SearchBoundComparison.*;
@@ -30,10 +29,6 @@ public class SqlDefaultSearchField implements SearchField {
     private final String value;
     private final List<Object> params;
     private final String locale;
-
-    public static String hash (Field f, ECSearchable search, String bound, String value, List<Object> params, String locale) {
-        return sha256_hex(hashOf(f, search, bound, value, params, locale));
-    }
 
     public SqlDefaultSearchField(Field f, ECSearchable search, String bound, String value, List<Object> params, String locale) {
         this.f = f;

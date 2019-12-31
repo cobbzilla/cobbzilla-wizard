@@ -7,15 +7,14 @@ package org.cobbzilla.wizard.dao;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.IdentifiableBase;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
-import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 import org.hibernate.Criteria;
 import org.hibernate.Hibernate;
@@ -28,21 +27,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 
 import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.commons.lang3.reflect.FieldUtils.getAllFields;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
-import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
-import static org.cobbzilla.wizard.model.crypto.EncryptedTypes.isEncryptedField;
 
 /**
  * An abstract base class for Hibernate DAO classes.
  *
  * @param <E> the class which this DAO manages
  */
+@Slf4j
 public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
 
     @Autowired @Getter @Setter private HibernateTemplate hibernateTemplate;
@@ -246,35 +245,20 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     public static final Object[] EMPTY_VALUES = new Object[0];
     public static final String[] PARAM_FILTER = new String[]{FILTER_PARAM};
 
-    @Getter(lazy=true) private final SqlViewField[] searchFields = initSearchFields();
+    @Getter(lazy=true) private final SearchViewContext searchViewContext = new SearchViewContext(getEntityClass());
+    @Getter(lazy=true) private final SqlViewField[] searchFields = getSearchViewContext().getSearchFields();
 
-    private SqlViewField[] initSearchFields() {
-        final Map<String, SqlViewField> fields = new LinkedHashMap<>();
-        final Class<E> entityClass = getEntityClass();
-        Class c = entityClass;
-        while (!c.equals(Object.class)) {
-            for (Field f : getAllFields(entityClass)) {
-                final ECSearchable search = f.getAnnotation(ECSearchable.class);
-                if (search == null || fields.containsKey(f.getName())) continue;
-
-                final String property = empty(search.property()) ? f.getName() : search.property();
-
-                final SqlViewFieldSetter set = search.setter().equals(ECSearchable.DefaultSqlViewFieldSetter.class)
-                        ? null : instantiate(search.setter());
-
-                String entity = empty(search.entity()) ? entityClass.getName() : search.entity();
-                fields.putIfAbsent(f.getName(), new SqlViewField(camelCaseToSnakeCase(f.getName()))
-                        .setType(entityClass)
-                        .fieldType(f.getType())
-                        .encrypted(isEncryptedField(f))
-                        .filter(search.filter())
-                        .property(property)
-                        .entity(entity)
-                        .setter(set));
-            }
-            c = c.getSuperclass();
+    // default search view is the table itself. subclasses can override this and provide custom views
+    @Getter(lazy=true) private final String searchView = initSearchView();
+    private String initSearchView() {
+        // Let the entity decide what the search view should look like
+        final SearchViewContext ctx = getSearchViewContext();
+        try {
+            configuration.execSql(ctx.getRendered());
+        } catch (Exception e) {
+            return die("initSearchView: error running "+ctx.getRendered()+": "+e);
         }
-        return fields.values().toArray(new SqlViewField[0]);
+        return ctx.getViewName();
     }
 
     @Override public SearchResults<E> search(SearchQuery searchQuery) {
@@ -325,9 +309,6 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
 
         return new SearchResults<>(results, totalCount);
     }
-
-    // default search view is the table itself. subclasses can override this and provide custom views
-    @Getter(lazy=true) private final String searchView = camelCaseToSnakeCase(getEntityClass().getSimpleName().replace(".", ""));
 
     public String getSelectClause(SearchQuery searchQuery) {
         final SqlViewField[] searchFields = getSearchFields();
@@ -383,4 +364,5 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     public static List<String> toUuidList(List<? extends Identifiable> entities) { return IdentifiableBase.toUuidList(entities); }
     public static <T> T[] collectArray(List<? extends Identifiable> entities, String field) { return IdentifiableBase.collectArray(entities, field); }
     public static <T> List<T> collectList(List<? extends Identifiable> entities, String field) { return IdentifiableBase.collectList(entities, field); }
+
 }

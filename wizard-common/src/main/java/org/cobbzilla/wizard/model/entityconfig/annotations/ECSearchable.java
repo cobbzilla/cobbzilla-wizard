@@ -21,6 +21,7 @@ public @interface ECSearchable {
     EntityFieldType type() default EntityFieldType.none_set;
     String bounds() default "";
     String entity() default "";
+    ECForeignKeySearchDepth fkDepth() default ECForeignKeySearchDepth.inherit;
 
     class DefaultSqlViewFieldSetter implements SqlViewFieldSetter {
         @Override public void set(Object target, String entityProperty, Object value, HibernatePBEStringEncryptor hibernateEncryptor) {
