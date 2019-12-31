@@ -51,6 +51,17 @@ public interface SearchField {
     static SearchBound[] bindString(String name) {
         return new SearchBound[] {
                 eq.bind(name, SearchFieldType.string),
+                lt.bind(name, SearchFieldType.string),
+                le.bind(name, SearchFieldType.string),
+                gt.bind(name, SearchFieldType.string),
+                ge.bind(name, SearchFieldType.string),
+                ne.bind(name, SearchFieldType.string),
+                like.bind(name, SearchFieldType.string)
+        };
+    }
+    static SearchBound[] bindUuid(String name) {
+        return new SearchBound[] {
+                eq.bind(name, SearchFieldType.string),
                 ne.bind(name, SearchFieldType.string),
                 like.bind(name, SearchFieldType.string)
         };

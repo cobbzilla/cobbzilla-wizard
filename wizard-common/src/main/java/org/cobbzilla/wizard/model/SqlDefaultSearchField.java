@@ -81,7 +81,11 @@ public class SqlDefaultSearchField implements SearchField {
                 case string: case email: case time_zone: case locale:
                 case ip4: case ip6: case http_url:
                 case us_phone: case us_state: case us_zip:
-                    bounds.addAll(asList(SearchField.bindString(name())));
+                    if (f.getName().equals("uuid")) {
+                        bounds.addAll(asList(SearchField.bindUuid(name())));
+                    } else {
+                        bounds.addAll(asList(SearchField.bindString(name())));
+                    }
                     break;
             }
             if (isNullable(f)) bounds.addAll(asList(SearchField.bindNullable(name())));
