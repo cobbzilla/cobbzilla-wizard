@@ -38,7 +38,7 @@ public class IdentifiableBase implements Identifiable {
     public static final Comparator<IdentifiableBase> CTIME_DESC = (o1, o2) -> Long.compare(o2.getCtime(), o1.getCtime());
     public static final Comparator<IdentifiableBase> CTIME_ASC = (o1, o2) -> Long.compare(o1.getCtime(), o2.getCtime());
 
-    @ECSearchable(filter=true)
+    @ECSearchable
     @Id @Column(unique=true, updatable=false, nullable=false, length=UUID_MAXLEN)
     @Getter @Setter private volatile String uuid = null;
     public boolean hasUuid () { return !empty(uuid); }

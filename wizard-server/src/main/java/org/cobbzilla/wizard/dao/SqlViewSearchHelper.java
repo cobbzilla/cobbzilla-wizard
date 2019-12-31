@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.jdbc.ResultSetBean;
 import org.cobbzilla.util.reflect.ReflectionUtil;
-import org.cobbzilla.wizard.model.FilterableSqlViewSearchResult;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
@@ -126,9 +125,9 @@ public class SqlViewSearchHelper {
             final List<E> matched = new ArrayList<>();
             if (searchQuery.getHasFilter()) {
                 for (E thing : thingsList) {
-                    if (thing instanceof FilterableSqlViewSearchResult) {
+                    if (thing instanceof SqlViewSearchResult) {
                         filterJobs.add(exec.submit(() -> {
-                            if (((FilterableSqlViewSearchResult) thing).matches(searchQuery.getFilter())) {
+                            if (((SqlViewSearchResult) thing).matches(fields, searchQuery.getFilter())) {
                                 synchronized (matched) { matched.add(thing); }
                             }
                         }));
