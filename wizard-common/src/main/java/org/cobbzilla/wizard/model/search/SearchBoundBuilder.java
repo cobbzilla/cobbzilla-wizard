@@ -1,4 +1,4 @@
-package org.cobbzilla.wizard.dao;
+package org.cobbzilla.wizard.model.search;
 
 import org.cobbzilla.wizard.model.search.SearchBound;
 

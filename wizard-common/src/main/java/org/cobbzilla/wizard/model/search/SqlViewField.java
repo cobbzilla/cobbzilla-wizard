@@ -28,6 +28,8 @@ public class SqlViewField {
     @JsonIgnore @Getter @Setter private SqlViewFieldSetter setter;
     public boolean hasSetter () { return setter != null; }
 
+    @Getter @Setter private SearchBound[] bounds;
+
     public SqlViewField(String name) {
         this.name = name;
         this.property = snakeCaseToCamelCase(name);

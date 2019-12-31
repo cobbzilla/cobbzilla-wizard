@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.model.entityconfig;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.wizard.model.entityconfig.validation.*;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
@@ -12,7 +13,7 @@ import java.util.Locale;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
-@AllArgsConstructor
+@AllArgsConstructor @Slf4j
 public enum EntityFieldType {
 
     /** it holds a place where nothing was set */
@@ -142,6 +143,39 @@ public enum EntityFieldType {
     public static Integer columnLength(Field f) {
         final Column column = f.getAnnotation(Column.class);
         return column == null ? null : column.length();
+    }
+
+    public static EntityFieldType guessFieldType(Field f) {
+        switch (f.getType().getName()) {
+            case "boolean":
+            case "java.lang.Boolean":
+                return flag;
+            case "long":
+            case "java.lang.Long":
+                if (f.getName().equals("ctime") || f.getName().equals("mtime")) return epoch_time;
+            case "byte":
+            case "short":
+            case "int":
+            case "java.lang.Byte":
+            case "java.lang.Short":
+            case "java.lang.Integer":
+            case "java.math.BigInteger":
+                return integer;
+            case "char":
+            case "java.lang.Character":
+            case "java.lang.String":
+                return string;
+            case "float":
+            case "double":
+            case "java.lang.Float":
+            case "java.lang.Double":
+            case "java.math.BigDecimal":
+                return decimal;
+            default:
+                if (f.getType().isEnum()) return string;
+                log.warn("guessFieldType: unrecognized type ("+f.getType().getName()+") for field: "+f.getName());
+                return null;
+        }
     }
 
     public Object toObject(Locale locale, String value) {

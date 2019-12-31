@@ -2,7 +2,6 @@ package org.cobbzilla.wizard.dao;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JavaType;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,6 +9,7 @@ import lombok.experimental.Accessors;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.filters.Scrubbable;
 import org.cobbzilla.wizard.filters.ScrubbableField;
+import org.cobbzilla.wizard.model.search.SearchQuery;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +19,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
-@NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
+@NoArgsConstructor @Accessors(chain=true)
 public class SearchResults<E> implements Scrubbable {
 
     public static final ScrubbableField[] SCRUBBABLE_FIELDS = new ScrubbableField[]{
             new ScrubbableField(SearchResults.class, "results.*", List.class)
     };
+
+    public SearchResults(List<E> results, int totalCount) {
+        this.results = results;
+        this.totalCount = totalCount;
+    }
+
     @Override public ScrubbableField[] fieldsToScrub() { return SCRUBBABLE_FIELDS; }
 
     private static Map<Class, JavaType> jsonTypeCache = new ConcurrentHashMap<>();
@@ -39,6 +45,7 @@ public class SearchResults<E> implements Scrubbable {
 
     @Getter @Setter private List<E> results = new ArrayList<>();
     @Getter @Setter private Integer totalCount;
+    @Getter @Setter private String nextPage;
 
     public String getResultType() { return empty(results) ? null : results.get(0).getClass().getName(); }
     public void setResultType (String val) {} // noop
@@ -63,6 +70,10 @@ public class SearchResults<E> implements Scrubbable {
         if (results == null) results = new ArrayList<>();
         results.add(result);
         return this;
+    }
+
+    public boolean hasNextPage(SearchQuery searchQuery) {
+        return getTotalCount() > searchQuery.getPageNumber() * searchQuery.getPageSize();
     }
 
 }

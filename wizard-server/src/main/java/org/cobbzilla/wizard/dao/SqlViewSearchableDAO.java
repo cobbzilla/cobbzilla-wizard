@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.InvocationHandler;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.cobbzilla.util.collection.ExpirationMap;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.RelatedEntities;
+import org.cobbzilla.wizard.model.SqlDefaultSearchField;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.SearchField;
 import org.cobbzilla.wizard.model.search.SearchQuery;
@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.hashOf;
+import static org.cobbzilla.util.reflect.ReflectionUtil.fieldsWithAnnotation;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.sqlFilter;
 
@@ -62,9 +63,9 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
     Map<String, String> _fieldCache = new ExpirationMap<>();
 
     default String buildBound(String bound, String value, List<Object> params, String locale) {
-        for (Field f : FieldUtils.getAllFields(getEntityClass())) {
+        for (Field f : fieldsWithAnnotation(getEntityClass(), ECSearchable.class)) {
+            if (!f.getName().equalsIgnoreCase(bound)) continue;
             final ECSearchable search = f.getAnnotation(ECSearchable.class);
-            if (!f.getName().equalsIgnoreCase(bound) || search == null) continue;
 
             final String hash = hashOf(f, search, bound, value, params, locale);
             return _fieldCache.computeIfAbsent(hash, k -> {

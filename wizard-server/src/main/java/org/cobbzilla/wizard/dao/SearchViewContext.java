@@ -2,20 +2,21 @@ package org.cobbzilla.wizard.dao;
 
 import com.github.jknack.handlebars.Handlebars;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKey;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKeySearchDepth;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchDepth;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
-import org.cobbzilla.wizard.model.search.SqlViewField;
-import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
+import org.cobbzilla.wizard.model.search.*;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.daemon.ZillaRuntime.hashOf;
@@ -28,6 +29,7 @@ import static org.cobbzilla.wizard.model.crypto.EncryptedTypes.isEncryptedField;
 import static org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKeySearchDepth.*;
 import static org.cobbzilla.wizard.server.config.PgRestServerConfiguration.safeDbName;
 
+@Slf4j
 public class SearchViewContext {
 
     @Getter(lazy=true) private static final String defaultViewTemplate = stream2string(getPackagePath(AbstractDAO.class)+"/default_search_view.sql.hbs");
@@ -67,13 +69,20 @@ public class SearchViewContext {
 
     @Getter private final SqlViewField[] searchFields;
 
+    private static int longestFieldSet = 0;
+
     private SqlViewField[] initSearchFields() {
         final Map<String, SqlViewField> fields = new LinkedHashMap<>();
         final ECSearchDepth mainSearchDepth = clazz.getAnnotation(ECSearchDepth.class);
         final ECForeignKeySearchDepth mainDepth = mainSearchDepth == null ? inherit : mainSearchDepth.fkDepth();
         final Map<String, SqlViewField> finalizedFields = initFields(clazz, "", fields, mainDepth, mainDepth);
+        if (finalizedFields.size() > longestFieldSet) {
+            longestFieldSet = finalizedFields.size();
+        }
         return finalizedFields.values().toArray(new SqlViewField[0]);
     }
+
+    private static final Map<String, SearchBound[]> fieldBounds = new ConcurrentHashMap<>();
 
     private Map<String, SqlViewField> initFields(Class<? extends Identifiable> entityClass,
                                                  String prefix,
@@ -99,6 +108,16 @@ public class SearchViewContext {
                 final String entity = !empty(search.entity()) ? search.entity() : empty(prefix) ? null : prefix;
 
                 addColumn(viewFieldName, empty(prefix) ? entityTable : prefix, fieldName);
+
+                // calculate search field
+                final String sfKey = entityClass.getName() + "." + f.getName();
+                SearchBound[] bounds = null;
+                try {
+                    bounds = fieldBounds.computeIfAbsent(sfKey, k -> ((SqlViewSearchResult) instantiate(entityClass)).searchField(f.getName()).getBounds());
+                } catch (Exception e) {
+                    log.warn("initFields: error building SearchField for "+entityClass.getSimpleName()+"."+f.getName()+": "+e);
+                }
+
                 fields.putIfAbsent(viewFieldName, new SqlViewField(viewFieldName)
                         .setType(entityClass)
                         .fieldType(f.getType())
@@ -106,9 +125,11 @@ public class SearchViewContext {
                         .filter(search.filter())
                         .property(property)
                         .entity(entity)
-                        .setter(set));
+                        .setter(set)
+                        .setBounds(bounds));
 
                 if (fk != null) {
+                    if (!fk.cascade()) continue;
                     if (mainDepth == none) continue;
                     if (currentDepth == none) continue;
 

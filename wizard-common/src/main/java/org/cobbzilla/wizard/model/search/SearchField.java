@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.model.search;
 
 import org.cobbzilla.wizard.validation.SimpleViolationException;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +23,33 @@ public interface SearchField {
     }
 
     static SearchBound[] bindTime(String name) { return new SearchBound[] { during.bind(name), after.bind(name), before.bind(name) }; }
+    static SearchBound[] bindInteger(String name) {
+        return new SearchBound[] {
+                eq.bind(name, SearchFieldType.integer),
+                lt.bind(name, SearchFieldType.integer),
+                le.bind(name, SearchFieldType.integer),
+                gt.bind(name, SearchFieldType.integer),
+                ge.bind(name, SearchFieldType.integer),
+                ne.bind(name, SearchFieldType.integer)
+        };
+    }
+    static SearchBound[] bindDecimal(String name) {
+        return new SearchBound[] {
+                eq.bind(name, SearchFieldType.decimal),
+                lt.bind(name, SearchFieldType.decimal),
+                le.bind(name, SearchFieldType.decimal),
+                gt.bind(name, SearchFieldType.decimal),
+                ge.bind(name, SearchFieldType.decimal),
+                ne.bind(name, SearchFieldType.decimal)
+        };
+    }
+    static SearchBound[] bindString(Field f, String name) {
+        return new SearchBound[] {
+                eq.bind(name, SearchFieldType.string),
+                ne.bind(name, SearchFieldType.string),
+                like.bind(name, SearchFieldType.string)
+        };
+    }
     static SearchBound[] bindNullable(String name) { return new SearchBound[] { eq.bind(name), is_null.bind(name), not_null.bind(name) }; }
 
     String name();
