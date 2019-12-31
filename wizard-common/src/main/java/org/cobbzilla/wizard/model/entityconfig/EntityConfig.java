@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.reflect.ReflectionUtil.fieldNamesWithAnnotation;
 import static org.cobbzilla.util.string.StringUtil.*;
 
 /**
@@ -139,11 +140,11 @@ public class EntityConfig {
     /**
      * After using the `searchUri` to obtain some entities, the `searchFields` tells which fields should be
      * "columns" in the resulting data table. Fields not listed in `searchFields` will not be shown.
-     * Default value: the same as listFields
+     * Default value: all fields annotated with @ECSearchable
      * @return a List of field names (keys found in the `fields` map) to use when displaying a list of entities.
      */
     @Setter private List<String> searchFields;
-    public List<String> getSearchFields() { return !empty(searchFields) ? searchFields : getListFields(); }
+    public List<String> getSearchFields() { return !empty(searchFields) ? searchFields : fieldNamesWithAnnotation(getClassName(), ECSearchable.class); }
 
     /** The HTTP method to use when deleting an entity. Default value: `DELETE` */
     @Getter @Setter private String deleteMethod = "DELETE";
