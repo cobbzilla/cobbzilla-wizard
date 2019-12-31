@@ -2,7 +2,6 @@ package org.cobbzilla.wizard.model.search;
 
 import org.cobbzilla.wizard.validation.SimpleViolationException;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,14 +42,20 @@ public interface SearchField {
                 ne.bind(name, SearchFieldType.decimal)
         };
     }
-    static SearchBound[] bindString(Field f, String name) {
+    static SearchBound[] bindBoolean(String name) {
+        return new SearchBound[] {
+                eq.bind(name, SearchFieldType.flag),
+                ne.bind(name, SearchFieldType.flag)
+        };
+    }
+    static SearchBound[] bindString(String name) {
         return new SearchBound[] {
                 eq.bind(name, SearchFieldType.string),
                 ne.bind(name, SearchFieldType.string),
                 like.bind(name, SearchFieldType.string)
         };
     }
-    static SearchBound[] bindNullable(String name) { return new SearchBound[] { eq.bind(name), is_null.bind(name), not_null.bind(name) }; }
+    static SearchBound[] bindNullable(String name) { return new SearchBound[] { is_null.bind(name), not_null.bind(name) }; }
 
     String name();
 

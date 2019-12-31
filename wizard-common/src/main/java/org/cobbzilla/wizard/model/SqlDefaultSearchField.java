@@ -8,19 +8,17 @@ import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.SearchBound;
 import org.cobbzilla.wizard.model.search.SearchBoundBuilder;
 import org.cobbzilla.wizard.model.search.SearchField;
-import org.cobbzilla.wizard.model.search.SearchFieldType;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.wizard.model.entityconfig.EntityFieldType.*;
-import static org.cobbzilla.wizard.model.search.SearchBoundComparison.*;
 
 @EqualsAndHashCode @Slf4j
 public class SqlDefaultSearchField implements SearchField {
@@ -78,18 +76,15 @@ public class SqlDefaultSearchField implements SearchField {
                     bounds.addAll(asList(SearchField.bindDecimal(name())));
                     break;
                 case flag:
-                    bounds.add(eq.bind(name(), SearchFieldType.flag));
+                    bounds.addAll(asList(SearchField.bindBoolean(name())));
                     break;
                 case string: case email: case time_zone: case locale:
                 case ip4: case ip6: case http_url:
                 case us_phone: case us_state: case us_zip:
-                    bounds.addAll(asList(SearchField.bindString(f, name())));
+                    bounds.addAll(asList(SearchField.bindString(name())));
                     break;
             }
-            if (isNullable(f)) {
-                bounds.add(is_null.bind(name()));
-                bounds.add(not_null.bind(name()));
-            }
+            if (isNullable(f)) bounds.addAll(asList(SearchField.bindNullable(name())));
         }
         if (empty(bounds)) return die("getBounds: no bounds defined for: "+ bound);
         return bounds.toArray(SearchBound[]::new);

@@ -69,16 +69,11 @@ public class SearchViewContext {
 
     @Getter private final SqlViewField[] searchFields;
 
-    private static int longestFieldSet = 0;
-
     private SqlViewField[] initSearchFields() {
         final Map<String, SqlViewField> fields = new LinkedHashMap<>();
         final ECSearchDepth mainSearchDepth = clazz.getAnnotation(ECSearchDepth.class);
         final ECForeignKeySearchDepth mainDepth = mainSearchDepth == null ? inherit : mainSearchDepth.fkDepth();
         final Map<String, SqlViewField> finalizedFields = initFields(clazz, "", fields, mainDepth, mainDepth);
-        if (finalizedFields.size() > longestFieldSet) {
-            longestFieldSet = finalizedFields.size();
-        }
         return finalizedFields.values().toArray(new SqlViewField[0]);
     }
 
