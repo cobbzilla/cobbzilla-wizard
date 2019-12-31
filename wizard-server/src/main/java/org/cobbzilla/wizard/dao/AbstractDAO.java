@@ -248,6 +248,13 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     @Getter(lazy=true) private final SearchViewContext searchViewContext = new SearchViewContext(getEntityClass());
     @Getter(lazy=true) private final SqlViewField[] searchFields = getSearchViewContext().getSearchFields();
 
+    public SqlViewField findSearchField(Class type, String name) {
+        for (SqlViewField f : getSearchFields()) {
+            if (f.getType().equals(type) && f.getProperty().equals(name)) return f;
+        }
+        return null;
+    }
+
     // default search view is the table itself. subclasses can override this and provide custom views
     @Getter(lazy=true) private final String searchView = initSearchView();
     private String initSearchView() {
