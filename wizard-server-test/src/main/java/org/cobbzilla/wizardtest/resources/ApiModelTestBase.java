@@ -5,9 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.SingletonList;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.jdbc.UncheckedSqlException;
-import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Sleep;
+import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.client.script.ApiRunner;
+import org.cobbzilla.wizard.client.script.ApiRunnerListenerBase;
 import org.cobbzilla.wizard.client.script.ApiRunnerMultiListener;
 import org.cobbzilla.wizard.client.script.ApiScriptIncludeHandler;
 import org.cobbzilla.wizard.model.entityconfig.ModelSetupListener;
@@ -21,7 +22,6 @@ import org.junit.Before;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,10 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.lang.System.identityHashCode;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
-import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.temp;
-import static org.cobbzilla.util.io.FileUtil.writeStringOrDie;
-import static org.cobbzilla.util.io.StreamUtil.stream2string;
+import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.modelHash;
@@ -47,9 +44,16 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         extends ApiDocsResourceIT<C, S>
         implements ApiScriptIncludeHandler {
 
-    protected abstract String getModelPrefix();
-    protected abstract String getEntityConfigsEndpoint();
-    protected abstract ApiRunner getApiRunner();
+    protected String getModelPrefix() { return "models/"; }
+    protected String getEntityConfigsEndpoint() { return "/ec"; }
+
+    protected String getBaseUri() { return getConfiguration().getApiUriBase(); }
+
+    @Getter private final AtomicReference<ApiRunner> _defaultRunner = new AtomicReference<>();
+
+    protected ApiRunner getApiRunner() {
+        return new ApiRunner(new ApiClientBase(getBaseUri()), new ApiRunnerListenerBase(getBaseUri()));
+    }
 
     @Override public boolean useTestSpecificDatabase () { return true; }
 
@@ -275,19 +279,7 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         apiRunner.run(include(name));
     }
 
-    @Override public String include(String path) {
-        final String fileName = path + ".json";
-        for (String inc : getIncludePaths()) {
-            try {
-                return stream2string(Paths.get(inc, fileName).toString());
-            } catch (Exception e) {
-                log.debug("include(" + path + "): not found in " + inc);
-            }
-        }
-        return die("include("+path+"): not found anywhere in "+StringUtil.toString(getIncludePaths()));
-    }
-
-    protected List<String> getIncludePaths() {
+    @Override public List<String> getIncludePaths() {
         return new SingletonList<>(getModelPrefix() + (getModelPrefix().endsWith("/") ? "" : File.separator) + "tests");
     }
 

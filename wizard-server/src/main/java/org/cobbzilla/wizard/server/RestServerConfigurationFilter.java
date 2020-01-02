@@ -4,6 +4,6 @@ import org.cobbzilla.wizard.server.config.RestServerConfiguration;
 
 public interface RestServerConfigurationFilter<C extends RestServerConfiguration> {
 
-    C filterConfiguration(C configuration);
+    default C filterConfiguration(C configuration) { return configuration; }
 
 }

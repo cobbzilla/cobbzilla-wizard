@@ -24,6 +24,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.system.Sleep.sleep;
 import static org.cobbzilla.util.time.TimeUtil.parseDuration;
+import static org.cobbzilla.wizard.client.script.ApiRunner.standardHandlebars;
 import static org.cobbzilla.wizard.main.ScriptMainBase.SLEEP;
 import static org.cobbzilla.wizard.main.ScriptMainBase.handleSleep;
 
@@ -44,7 +45,7 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
     private ApiClientBase currentApi() { return getApiRunner().getCurrentApi(); }
 
     @Getter(lazy=true) private final Handlebars handlebars = initHandlebars();
-    protected Handlebars initHandlebars() { return new Handlebars(new HandlebarsUtil(getClass().getSimpleName())); }
+    protected Handlebars initHandlebars() { return standardHandlebars(new Handlebars(new HandlebarsUtil(getClass().getSimpleName()))); }
 
     @Override public void beforeScript(String before, Map<String, Object> ctx) throws Exception {
         if (before == null) return;
@@ -88,9 +89,9 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
     // todo: allow listeners to have access to the runner, or at least the current/correct API
     // we are getting 404 because we're sending the wrong token (default API instead of remote)
     private boolean handleAwaitUrl(String arg, Map<String, Object> ctx) {
-        final String[] parts = arg.split("\\s+");
+        final String[] parts = HandlebarsUtil.apply(getHandlebars(), arg, ctx).split("\\s+");
         if (parts.length < 3) return die(AWAIT_URL+": no URL and/or timeout specified");
-        final String url = formatUrl(parts[1], ctx);
+        final String url = formatUrl(parts[1]);
         final long timeout = parseDuration(parts[2]);
         final long checkInterval = (parts.length >= 4) ? parseDuration(parts[3]) : DEFAULT_AWAIT_URL_CHECK_INTERVAL;
         final String jsCondition = (parts.length >= 5) ? parseJs(parts, 4) : "true";
@@ -122,7 +123,7 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
     private boolean handleVerifyUnreachable(String arg, Map<String, Object> ctx) {
         final String[] parts = arg.split("\\s+");
         if (parts.length < 2) return die(VERIFY_UNREACHABLE+": no URL specified");
-        final String url = formatUrl(parts[1], ctx);
+        final String url = formatUrl(parts[1]);
         final long connectTimeout = (parts.length >= 3) ? parseDuration(parts[2]) : DEFAULT_VERIFY_UNAVAILABLE_TIMEOUT;
         final long socketTimeout = (parts.length >= 4) ? parseDuration(parts[3]) : connectTimeout;
 
@@ -153,9 +154,8 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         }
     }
 
-    private String formatUrl(String url, Map<String, Object> ctx) {
+    private String formatUrl(String url) {
         final ApiClientBase currentApi = currentApi();
-        url = HandlebarsUtil.apply(getHandlebars(), url, ctx);
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             if (!url.startsWith("/") && !currentApi.getBaseUri().endsWith("/")) url = "/" + url;
             url = currentApi.getBaseUri() + url;

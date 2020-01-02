@@ -91,21 +91,22 @@ public class ApiRunner {
 
     private Map<String, ApiClientBase> alternateApis = new HashMap<>();
 
-    private ApiRunnerListener listener;
-    @Getter @Setter private ApiScriptIncludeHandler includeHandler;
+    private ApiRunnerListener listener = new ApiRunnerListenerBase("default");
+    @Getter @Setter private ApiScriptIncludeHandler includeHandler = new ApiScriptIncludeHandlerBase();
 
     protected final Map<String, Object> ctx = new ConcurrentHashMap<>();
     public Map<String, Object> getContext () { return ctx; }
 
-    @Getter(lazy=true) private final Handlebars handlebars = initHandlebars();
-    protected Handlebars initHandlebars() {
-        final Handlebars hb = new Handlebars(new HandlebarsUtil("api-runner(" + api + ")"));
-        HandlebarsUtil.registerUtilityHelpers(hb);
-        HandlebarsUtil.registerCurrencyHelpers(hb);
-        HandlebarsUtil.registerDateHelpers(hb);
-        HandlebarsUtil.registerJurisdictionHelpers(hb, SimpleJurisdictionResolver.instance);
-        HandlebarsUtil.registerJavaScriptHelper(hb, StandardJsEngine::new);
-        return hb;
+    @Getter(lazy=true) private final Handlebars handlebars = standardHandlebars(new Handlebars(new HandlebarsUtil("api-runner(" + api + ")")));
+
+    public static Handlebars standardHandlebars(Handlebars hbs) {
+        HandlebarsUtil.registerUtilityHelpers(hbs);
+        HandlebarsUtil.registerDateHelpers(hbs);
+        HandlebarsUtil.registerCurrencyHelpers(hbs);
+        HandlebarsUtil.registerJavaScriptHelper(hbs, StandardJsEngine::new);
+        HandlebarsUtil.registerJurisdictionHelpers(hbs, SimpleJurisdictionResolver.instance);
+        HandlebarsUtil.registerJavaScriptHelper(hbs, StandardJsEngine::new);
+        return hbs;
     }
 
     protected final Map<String, Class> storeTypes = new HashMap<>();

@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.http.HttpStatusCodes;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.client.ApiClientBase;
+import org.cobbzilla.wizard.client.script.ApiRunner;
+import org.cobbzilla.wizard.client.script.ApiRunnerListenerBase;
 import org.cobbzilla.wizard.server.RestServer;
 import org.cobbzilla.wizard.server.RestServerConfigurationFilter;
 import org.cobbzilla.wizard.server.RestServerHarness;
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.io.StreamUtil.loadResourceAsStringOrDie;
 import static org.cobbzilla.util.io.StreamUtil.stream2string;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.reflect.ReflectionUtil.getFirstTypeParam;
@@ -186,6 +189,13 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
 
     protected boolean createSqlIndexes () { return false; }
     protected String[] getSqlPostScripts() { return getConfiguration().getSqlConstraints(createSqlIndexes()); }
+
+    // default resolution
+    protected String resolveInclude(String path) { return loadResourceAsStringOrDie(path+".json"); }
+
+    public void runScript(String script) throws Exception {
+        new ApiRunner(getApi(), new ApiRunnerListenerBase(getClass().getName())).run(script);
+    }
 
     @Override public void beforeStop(RestServer<C> server) {}
     @Override public void onStop(RestServer<C> server) {}
