@@ -30,8 +30,8 @@ public class ClasspathScanner<T> {
         return classes;
     }
 
-    public static <C> List<C> scan(Class<C> iface, String[] packages) {
-        return (List<C>) new ClasspathScanner<C>()
+    public static <C> List<Class<? extends C>> scan(Class<C> iface, String[] packages) {
+        return new ClasspathScanner<C>()
                 .setFilter(new AssignableTypeFilter(iface))
                 .setPackages(packages)
                 .scan();
