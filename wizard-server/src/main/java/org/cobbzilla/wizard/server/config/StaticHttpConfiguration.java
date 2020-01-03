@@ -19,7 +19,7 @@ public class StaticHttpConfiguration {
     @Getter @Setter private String resourceRoot;
 
     public boolean hasAssetRoot() { return !empty(assetRoot); }
-    public boolean hasLocalOverride() { return localOverride != null; }
+    public boolean hasLocalOverride() { return !empty(localOverride); }
 
     @Getter @Setter private Map<String, Map<String, String>> substitutions = new HashMap<>();
     public Map<String, String> getSubstitutions(String resourcePath) { return substitutions.get(resourcePath); }
