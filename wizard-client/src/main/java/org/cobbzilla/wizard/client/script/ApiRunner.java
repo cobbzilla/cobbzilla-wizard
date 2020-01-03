@@ -105,7 +105,6 @@ public class ApiRunner {
         HandlebarsUtil.registerCurrencyHelpers(hbs);
         HandlebarsUtil.registerJavaScriptHelper(hbs, StandardJsEngine::new);
         HandlebarsUtil.registerJurisdictionHelpers(hbs, SimpleJurisdictionResolver.instance);
-        HandlebarsUtil.registerJavaScriptHelper(hbs, StandardJsEngine::new);
         return hbs;
     }
 
