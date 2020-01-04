@@ -23,6 +23,7 @@ public @interface ECField {
     String options() default "";
     String emptyDisplayValue() default "";
     String objectType() default "";
+    int index() default -1;
 
     // Skipping EntityFieldReference property from the original EC class, as there is
     // org.cobbzilla.wizard.model.entityconfig.annotations.ECFieldReference annotation for this.

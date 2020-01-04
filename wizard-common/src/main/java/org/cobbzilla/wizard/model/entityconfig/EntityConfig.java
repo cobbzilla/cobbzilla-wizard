@@ -17,13 +17,14 @@ import org.springframework.util.ReflectionUtils;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.reflect.ReflectionUtil.fieldNamesWithAnnotation;
+import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.string.StringUtil.*;
 
 /**
@@ -195,6 +196,7 @@ public class EntityConfig {
     public EntityConfig updateWithAnnotations(Class<?> clazz, boolean isRootECCall) {
         if (isRootECCall && clazz == null) throw new NullPointerException("Root class cannot be null");
 
+        final Map<String, Integer> fieldIndexes = new HashMap<>();
         String clazzPackageName = null;
         if (clazz != null) {
             final ECType mainECAnnotation = clazz.getAnnotation(ECType.class);
@@ -212,11 +214,8 @@ public class EntityConfig {
             updateWithAnnotation(clazz.getAnnotation(ECTypeDelete.class));
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeURIs.class));
 
-            final Set<String> entityFields = new HashSet<>();
-            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECField.class));
-            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECSearchable.class));
-            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECForeignKey.class));
-            updateECFields(clazz, entityFields);
+            final Set<String> entityFields = new HashSet<>(fieldNamesWithAnnotations(clazz, ECField.class, ECSearchable.class, ECForeignKey.class));
+            updateECFields(clazz, entityFields, fieldIndexes);
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeChildren.class));
         }
 
@@ -229,10 +228,19 @@ public class EntityConfig {
         }
 
         if (clazz != null) {
-            updateWithAnnotation(clazz, clazz.getAnnotation(ECFieldOverwrite.class));
+            updateWithAnnotation(clazz, clazz.getAnnotation(ECFieldOverwrite.class), fieldIndexes);
             updateWithAnnotation(clazz, clazz.getAnnotation(ECFieldReferenceOverwrites.class));
         }
 
+        // sort fieldNames by indexes
+        if (!empty(fieldNames)) fieldNames.sort((f1, f2) -> {
+            final Integer i1 = fieldIndexes.get(f1);
+            final Integer i2 = fieldIndexes.get(f2);
+            if (i1 == null && i2 == null) return 0;
+            if (i1 == null) return 1;
+            if (i2 == null) return -1;
+            return i1 - i2;
+        });
         return this;
     }
 
@@ -330,7 +338,7 @@ public class EntityConfig {
     }
 
     /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateECFields(Class<?> clazz, Set<String> annotationFieldNames) {
+    private EntityConfig updateECFields(Class<?> clazz, Set<String> annotationFieldNames, Map<String, Integer> fieldIndexes) {
         if (empty(annotationFieldNames)) return this;
 
         // initialization of fieldNames according to the fields map (if set)
@@ -346,14 +354,14 @@ public class EntityConfig {
         // The config for fields can be taken (built) bellow first from the class property...
         ReflectionUtils.doWithFields(
                 clazz,
-                field -> updateFieldWithAnnotations(field),
+                field -> updateFieldWithAnnotations(field, fieldIndexes),
                 field -> fieldNames.contains(field.getName()) && !initiallyDefinedFields.contains(field.getName()));
         // ... and then can be overridden with annotation put over getter method (i.e. overridden getter in
         // a subclass). Of course, all this is done only if the field is not defined in the JSON (which overrides
         // everything here).
         ReflectionUtils.doWithMethods(
                 clazz,
-                method -> updateFieldWithAnnotations(method),
+                method -> updateFieldWithAnnotations(method, fieldIndexes),
                 method -> {
                     String fieldName;
                     try {
@@ -392,8 +400,14 @@ public class EntityConfig {
         throw new IllegalArgumentException("Not a Field not Method");
     }
 
-    private void updateFieldWithAnnotations(AccessibleObject accessor) {
-        EntityFieldConfig cfg = buildFieldConfig(accessor);
+    private <T extends Annotation> T annotationFromAccessor(AccessibleObject accessor, Class<T> aClass) throws IllegalArgumentException {
+        if (accessor instanceof Field) return accessor.getAnnotation(aClass);
+        if (accessor instanceof Method) return accessor.getAnnotation(aClass);
+        throw new IllegalArgumentException("Not a Field not Method");
+    }
+
+    private void updateFieldWithAnnotations(AccessibleObject accessor, Map<String, Integer> fieldIndexes) {
+        EntityFieldConfig cfg = buildFieldConfig(accessor, fieldIndexes);
         if (cfg != null) {
             cfg = updateFieldCfgWithRefAnnotation(cfg, accessor.getAnnotation(ECFieldReference.class));
             try {
@@ -437,7 +451,7 @@ public class EntityConfig {
     }
 
     /** Call this method only after all children entity-configs are fully updated. */
-    private EntityConfig updateWithAnnotation(Class<?> clazz, ECFieldOverwrite annotation) {
+    private EntityConfig updateWithAnnotation(Class<?> clazz, ECFieldOverwrite annotation, Map<String, Integer> fieldIndexes) {
         if (annotation == null) return this;
 
         final List<String> fieldPathParts = split(annotation.fieldPath(), ".");
@@ -445,7 +459,7 @@ public class EntityConfig {
         if (ecToUpdate == null) return this;
 
         final String fieldName = fieldPathParts.get(fieldPathParts.size() - 1);
-        ecToUpdate.fields.put(fieldName, buildFieldCfgFromAnnotation(annotation.fieldDef()));
+        ecToUpdate.fields.put(fieldName, buildFieldCfgFromAnnotation(fieldName, annotation.fieldDef(), fieldIndexes));
         return this;
     }
 
@@ -518,7 +532,7 @@ public class EntityConfig {
         }
     }
 
-    private EntityFieldConfig buildFieldCfgFromAnnotation(ECField fieldAnnotation) {
+    private EntityFieldConfig buildFieldCfgFromAnnotation(String fieldName, ECField fieldAnnotation, Map<String, Integer> fieldIndexes) {
         EntityFieldConfig cfg = new EntityFieldConfig().setMode(fieldAnnotation.mode()).setType(fieldAnnotation.type());
         if (!empty(fieldAnnotation.name())) cfg.setName(fieldAnnotation.name());
         if (!empty(fieldAnnotation.displayName())) cfg.setDisplayName(fieldAnnotation.displayName());
@@ -527,25 +541,30 @@ public class EntityConfig {
         if (!empty(fieldAnnotation.options())) cfg.setOptions(fieldAnnotation.options());
         if (!empty(fieldAnnotation.emptyDisplayValue())) cfg.setEmptyDisplayValue(fieldAnnotation.emptyDisplayValue());
         if (!empty(fieldAnnotation.objectType())) cfg.setObjectType(fieldAnnotation.objectType());
+        if (fieldAnnotation.index() >= 0) {
+            cfg.setIndex(fieldAnnotation.index());
+            fieldIndexes.put(fieldName, fieldAnnotation.index());
+        }
         return cfg;
     }
 
-    private EntityFieldConfig buildFieldConfig(AccessibleObject accessor) {
-        final ECField fieldAnnotation = accessor.getAnnotation(ECField.class);
-        if (fieldAnnotation != null) {
-            return buildFieldCfgFromAnnotation(fieldAnnotation);
-        }
+    private EntityFieldConfig buildFieldConfig(AccessibleObject accessor, Map<String, Integer> fieldIndexes) {
+        final String fieldName = fieldNameFromAccessor(accessor);
+        final EntityFieldConfig cfg = EntityFieldConfig.field(fieldName);
 
-        String fieldName = fieldNameFromAccessor(accessor);
-        EntityFieldConfig cfg = EntityFieldConfig.field(fieldName);
+        final ECField fieldAnnotation = annotationFromAccessor(accessor, ECField.class);
+        if (fieldAnnotation != null) {
+            return buildFieldCfgFromAnnotation(fieldName, fieldAnnotation, fieldIndexes);
+        }
 
         if (!(accessor instanceof Field) && !(accessor instanceof Method)) {
             log.warn("Cannot build Field config for accessor which is not Field or Method");
             return cfg;
         }
 
-        Class<?> fieldType = accessor instanceof Field ? ((Field) accessor).getType()
-                                                       : ((Method) accessor).getReturnType();
+        final Class<?> fieldType = accessor instanceof Field
+                ? ((Field) accessor).getType()
+                : ((Method) accessor).getReturnType();
 
         if (accessor.isAnnotationPresent(Id.class)) {
             cfg.setMode(EntityFieldMode.readOnly).setControl(EntityFieldControl.hidden);

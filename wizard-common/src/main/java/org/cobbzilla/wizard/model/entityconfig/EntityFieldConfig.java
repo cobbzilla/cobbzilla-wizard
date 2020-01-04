@@ -35,6 +35,11 @@ public class EntityFieldConfig implements VerifyLogAware<EntityFieldConfig> {
      */
     @Getter @Setter private String name;
 
+    /**
+     * The order the field should appear in when viewing a single object. Lower indexes are shown first.
+     */
+    @Getter @Setter private Integer index;
+
     @Setter private String displayName;
     /**
      * The display name of the field.

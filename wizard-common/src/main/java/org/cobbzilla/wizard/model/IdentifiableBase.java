@@ -38,7 +38,7 @@ public class IdentifiableBase implements Identifiable {
     public static final Comparator<IdentifiableBase> CTIME_DESC = (o1, o2) -> Long.compare(o2.getCtime(), o1.getCtime());
     public static final Comparator<IdentifiableBase> CTIME_ASC = (o1, o2) -> Long.compare(o1.getCtime(), o2.getCtime());
 
-    @ECSearchable
+    @ECSearchable @ECField(index=0)
     @Id @Column(unique=true, updatable=false, nullable=false, length=UUID_MAXLEN)
     @Getter @Setter private volatile String uuid = null;
     public boolean hasUuid () { return !empty(uuid); }
@@ -95,13 +95,13 @@ public class IdentifiableBase implements Identifiable {
 
     @ECSearchable
     @Column(updatable=false, nullable=false)
-    @ECField(type=EntityFieldType.epoch_time, mode=EntityFieldMode.readOnly)
+    @ECField(type=EntityFieldType.epoch_time, mode=EntityFieldMode.readOnly, index=Integer.MAX_VALUE-1)
     @Getter @Setter @JsonIgnore private long ctime = now();
     @JsonIgnore @Transient public long getCtimeAge () { return now() - ctime; }
 
     @ECSearchable
     @Column(nullable=false)
-    @ECField(type=EntityFieldType.epoch_time)
+    @ECField(type=EntityFieldType.epoch_time, index=Integer.MAX_VALUE)
     @Getter @Setter @JsonIgnore private long mtime = now();
     public void setMtime () { setMtime(now()); }
     @JsonIgnore @Transient public long getMtimeAge () { return now() - mtime; }
