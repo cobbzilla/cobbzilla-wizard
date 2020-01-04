@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.shortErrorString;
+import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
 import static org.cobbzilla.util.io.StreamUtil.stream2string;
 
@@ -29,7 +29,7 @@ public interface ApiScriptIncludeHandler {
                 try {
                     return loadResourceAsString(inc + "/" + fileName);
                 } catch (Exception e2) {
-                    log.debug("include(" + path + "): not found in " + inc+": (e="+shortErrorString(e)+", e2="+shortErrorString(e2)+")");
+                    log.debug("include(" + path + "): not found in " + inc+": (e="+ shortError(e)+", e2="+ shortError(e2)+")");
                 }
             }
         }

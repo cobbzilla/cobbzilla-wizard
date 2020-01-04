@@ -161,7 +161,7 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
             execSql("select 1");
             return true;
         } catch (Exception e) {
-            log.warn("dbExists: "+shortErrorString(e));
+            log.warn("dbExists: "+ shortError(e));
             return false;
         }
     }
@@ -312,6 +312,10 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         final ArrayList<Class<? extends Identifiable>> reversed = new ArrayList<>(getEntityClasses());
         Collections.reverse(reversed);
         return reversed;
+    }
+
+    public List<String> getSortedEntityClassNames() {
+        return getEntityClasses().stream().map(Class::getName).sorted().collect(Collectors.toList());
     }
 
     @Getter(lazy=true) private final List<String> tableNames = initTableNames();
