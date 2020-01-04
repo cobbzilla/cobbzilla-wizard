@@ -212,7 +212,11 @@ public class EntityConfig {
             updateWithAnnotation(clazz.getAnnotation(ECTypeDelete.class));
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeURIs.class));
 
-            updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeFields.class));
+            final Set<String> entityFields = new HashSet<>();
+            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECField.class));
+            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECSearchable.class));
+            entityFields.addAll(fieldNamesWithAnnotation(clazz, ECForeignKey.class));
+            updateECFields(clazz, entityFields);
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeChildren.class));
         }
 
@@ -326,52 +330,47 @@ public class EntityConfig {
     }
 
     /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateWithAnnotation(Class<?> clazz, ECTypeFields annotation) {
-        if (annotation == null) return this;
+    private EntityConfig updateECFields(Class<?> clazz, Set<String> annotationFieldNames) {
+        if (empty(annotationFieldNames)) return this;
 
-        if (!empty(annotation.list())) {
-            // initialization of fieldNames according to the fields map (if set)
-            if (fieldNames == null) fieldNames = getFieldNames();
-            List<String> annotationFieldNames = Arrays.asList(annotation.list());
-            // remove duplicates if any ...
-            fieldNames.removeAll(annotationFieldNames);
-            // ... then add the set list in front of other fields (possibly set in JSON)
-            fieldNames.addAll(0, annotationFieldNames);
+        // initialization of fieldNames according to the fields map (if set)
+        if (fieldNames == null) fieldNames = getFieldNames();
 
-            if (fields == null) fields = new HashMap<>(fieldNames.size());
-            final Set<String> initiallyDefinedFields = new HashSet<>(fields.keySet());
-            // The config for fields can be taken (built) bellow first from the class property...
-            ReflectionUtils.doWithFields(
-                    clazz,
-                    field -> updateFieldWithAnnotations(field),
-                    field -> fieldNames.contains(field.getName()) && !initiallyDefinedFields.contains(field.getName()));
-            // ... and then can be overridden with annotation put over getter method (i.e. overridden getter in
-            // a subclass). Of course, all this is done only if the field is not defined in the JSON (which overrides
-            // everything here).
-            ReflectionUtils.doWithMethods(
-                    clazz,
-                    method -> updateFieldWithAnnotations(method),
-                    method -> {
-                        String fieldName;
-                        try {
-                            fieldName = fieldNameFromAccessor(method);
-                        } catch (IllegalArgumentException e) {
-                            return false;
-                        }
-                        // ECField annotation over getter will override entity config only if it is built above (by
-                        // previous ReflectionUtils call for properties). So the field was not initially configured, and
-                        // ECField annotation exists here.
-                        boolean isOverridingAnnotation = !initiallyDefinedFields.contains(fieldName) &&
-                                                         method.getAnnotation(ECField.class) != null;
-                        // Take this config into consideration either if there's no other, or if the overriding
-                        // annotation is set on this getter method:
-                        return fieldNames.contains(fieldName) &&
-                               (!fields.containsKey(fieldName) || isOverridingAnnotation);
-                    });
-        } else {
-            // if existing JSON-based field names are already set, do nothing more
-            // but if those are empty too, then scan the class for any @Column annotations, generate Fields for them
-        }
+        // remove duplicates if any ...
+        fieldNames.removeAll(annotationFieldNames);
+        // ... then add the set list in front of other fields (possibly set in JSON)
+        fieldNames.addAll(0, annotationFieldNames);
+
+        if (fields == null) fields = new HashMap<>(fieldNames.size());
+        final Set<String> initiallyDefinedFields = new HashSet<>(fields.keySet());
+        // The config for fields can be taken (built) bellow first from the class property...
+        ReflectionUtils.doWithFields(
+                clazz,
+                field -> updateFieldWithAnnotations(field),
+                field -> fieldNames.contains(field.getName()) && !initiallyDefinedFields.contains(field.getName()));
+        // ... and then can be overridden with annotation put over getter method (i.e. overridden getter in
+        // a subclass). Of course, all this is done only if the field is not defined in the JSON (which overrides
+        // everything here).
+        ReflectionUtils.doWithMethods(
+                clazz,
+                method -> updateFieldWithAnnotations(method),
+                method -> {
+                    String fieldName;
+                    try {
+                        fieldName = fieldNameFromAccessor(method);
+                    } catch (IllegalArgumentException e) {
+                        return false;
+                    }
+                    // ECField annotation over getter will override entity config only if it is built above (by
+                    // previous ReflectionUtils call for properties). So the field was not initially configured, and
+                    // ECField annotation exists here.
+                    boolean isOverridingAnnotation = !initiallyDefinedFields.contains(fieldName) &&
+                            method.getAnnotation(ECField.class) != null;
+                    // Take this config into consideration either if there's no other, or if the overriding
+                    // annotation is set on this getter method:
+                    return fieldNames.contains(fieldName) &&
+                            (!fields.containsKey(fieldName) || isOverridingAnnotation);
+                });
         return this;
     }
 
