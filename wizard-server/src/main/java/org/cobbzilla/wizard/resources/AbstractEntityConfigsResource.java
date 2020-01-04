@@ -2,15 +2,21 @@ package org.cobbzilla.wizard.resources;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.cache.AutoRefreshingReference;
 import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.wizard.dao.AbstractCRUDDAO;
+import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldConfig;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECType;
-import org.cobbzilla.wizard.server.config.HasDatabaseConfiguration;
+import org.cobbzilla.wizard.model.search.SqlViewSearchResult;
+import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 import org.cobbzilla.wizard.util.ClasspathScanner;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -20,15 +26,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.apache.commons.lang3.StringUtils.capitalize;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsStream;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER_ALLOW_COMMENTS;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
@@ -43,7 +46,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
     public static final String ENTITY_CONFIG_BASE = "entity-config";
 
-    protected abstract HasDatabaseConfiguration getConfiguration();
+    protected abstract PgRestServerConfiguration getConfiguration();
 
     protected long getConfigRefreshInterval() { return TimeUnit.DAYS.toMillis(30); }
     protected abstract boolean authorized(ContainerRequest ctx);
@@ -51,7 +54,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
     public static final AtomicReference<Map<String, EntityConfig>> lastConfig = new AtomicReference<>();
 
-    @Getter(AccessLevel.PROTECTED) private final AutoRefreshingReference<Map<String, EntityConfig>> configs = new EntityConfigsMap();
+    @Getter(AccessLevel.PROTECTED) private final EntityConfigsMap configs = new EntityConfigsMap();
     public boolean refresh() { return refresh(configs); }
     public boolean refresh(AutoRefreshingReference<Map<String, EntityConfig>> configsToReset) {
         configsToReset.flush();
@@ -59,9 +62,10 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
     }
 
     @GET
-    public Response getConfigNames (@Context ContainerRequest ctx) {
+    public Response getConfigs(@Context ContainerRequest ctx,
+                               @QueryParam("full") Boolean full) {
         if (!authorized(ctx)) return forbidden();
-        return ok(getConfigs().get().keySet());
+        return ok(full != null && full ? getConfigs().getEntries() : getConfigs().get().keySet());
     }
 
     @Override public EntityConfig getEntityConfig(Object thing) {
@@ -70,7 +74,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
         synchronized (configMap) {
             Class<?> clazz = thing instanceof Class ? (Class<?>) thing : thing.getClass();
             do {
-                final EntityConfig entityConfig = configMap.get(clazz.getName());
+                final EntityConfig entityConfig = configMap.get(clazz.getName().toLowerCase());
                 if (entityConfig != null) return entityConfig;
                 clazz = clazz.getSuperclass();
             } while (!clazz.equals(Object.class));
@@ -95,7 +99,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
         final EntityConfig config;
         synchronized (configMap) {
-            config = configMap.get(capitalize(name));
+            config = configMap.get(name.toLowerCase());
         }
 
         if (debug && config != null) {
@@ -113,7 +117,10 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
     public class EntityConfigsMap extends AutoRefreshingReference<Map<String, EntityConfig>> {
 
+        @Getter private List<EntityConfigsEntry> entries = new ArrayList<>();
+
         @Override public Map<String, EntityConfig> refresh() {
+            entries = new ArrayList<>();
             final Map<String, EntityConfig> configMap = new HashMap<>();
             final HashSet<Class<?>> classesWithoutConfigs = new HashSet<>();
 
@@ -126,11 +133,18 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
                 final EntityConfig config = toEntityConfig(clazz);
                 if (config != null) {
-                    configMap.put(clazz.getName(), config);
-                    if (configMap.containsKey(clazz.getSimpleName())) {
-                        log.warn("config already contains "+clazz.getSimpleName()+", not overwriting with "+clazz.getName());
+                    final String lcClass = clazz.getName().toLowerCase();
+                    final String lcSimpleClass = clazz.getSimpleName().toLowerCase();
+                    final EntityConfigsEntry entry = new EntityConfigsEntry(config)
+                            .addName(lcClass)
+                            .addName(clazz.getSimpleName().toLowerCase());
+                    entries.add(entry);
+
+                    configMap.put(lcClass, config);
+                    if (configMap.containsKey(lcSimpleClass)) {
+                        log.warn("config already contains "+lcSimpleClass+", not overwriting with "+clazz.getName());
                     } else {
-                        configMap.put(clazz.getSimpleName(), config);
+                        configMap.put(lcSimpleClass, config);
                     }
                 } else {
                     classesWithoutConfigs.add(clazz);
@@ -167,7 +181,16 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
         entityConfig.setClassName(clazz.getName());
 
         try {
-            return entityConfig.updateWithAnnotations(clazz, root);
+            final DAO dao = getConfiguration().getDaoForEntityClass(clazz);
+            final EntityConfig updated = entityConfig.updateWithAnnotations(clazz, root);
+
+            // add SQL search fields, if the entity supports them
+            if (SqlViewSearchResult.class.isAssignableFrom(clazz) && dao instanceof AbstractCRUDDAO) {
+                updated.setSqlViewFields(((AbstractCRUDDAO) dao).getSearchFields());
+            }
+
+            return updated;
+
         } catch (Exception e) {
             log.warn("getEntityConfig(" + clazz.getName() + "): Exception while reading entity cfg annotations", e);
             return null;
@@ -212,5 +235,15 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
                 setNames(child);
             }
         }
+    }
+
+    @NoArgsConstructor @Accessors(chain=true)
+    public static class EntityConfigsEntry {
+        @Getter @Setter private Set<String> names = new LinkedHashSet<>();
+        @Getter @Setter private EntityConfig entityConfig;
+
+        public EntityConfigsEntry(EntityConfig config) { this.entityConfig = config; }
+
+        public EntityConfigsEntry addName(String n) { this.names.add(n); return this; }
     }
 }

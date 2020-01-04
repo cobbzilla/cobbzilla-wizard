@@ -8,6 +8,7 @@ import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.HasLocale;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.entityconfig.annotations.*;
+import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -145,6 +146,9 @@ public class EntityConfig {
      */
     @Setter private List<String> searchFields;
     public List<String> getSearchFields() { return !empty(searchFields) ? searchFields : fieldNamesWithAnnotation(getClassName(), ECSearchable.class); }
+
+    // AbstractEntityConfigsResource populates this, if the entity supports SQL queries
+    @Getter @Setter private SqlViewField[] sqlViewFields;
 
     /** The HTTP method to use when deleting an entity. Default value: `DELETE` */
     @Getter @Setter private String deleteMethod = "DELETE";
