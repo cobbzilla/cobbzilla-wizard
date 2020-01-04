@@ -124,20 +124,15 @@ public class EntityConfig {
 
     private String uriPrefix = "";
 
-    /** The HTTP method to use when creating a new entity. Default value: `PUT` */
-    @Getter @Setter private String createMethod = "PUT";
+    /** The HTTP method to use when creating a new entity. Default value: null (disabled) */
+    @Getter @Setter private String createMethod;
     /** The API endpoint to use when creating a new entity. Default value: none */
     @Getter @Setter private String createUri;
 
-    /** The HTTP method to use when updating an entity. Default value: `POST` */
-    @Getter @Setter private String updateMethod = "POST";
+    /** The HTTP method to use when updating an entity. Default value: null (disabled) */
+    @Getter @Setter private String updateMethod;
     /** The API endpoint to use when updating an entity. Default value: none */
     @Getter @Setter private String updateUri;
-
-    /** The HTTP method to use when searching entities. Default value: `POST` */
-    @Getter @Setter private String searchMethod = "POST";
-    /** The API endpoint to use when searching entities. Default value: none */
-    @Getter @Setter private String searchUri;
 
     /**
      * After using the `searchUri` to obtain some entities, the `searchFields` tells which fields should be
@@ -151,8 +146,8 @@ public class EntityConfig {
     // AbstractEntityConfigsResource populates this, if the entity supports SQL queries
     @Getter @Setter private SqlViewField[] sqlViewFields;
 
-    /** The HTTP method to use when deleting an entity. Default value: `DELETE` */
-    @Getter @Setter private String deleteMethod = "DELETE";
+    /** The HTTP method to use when deleting an entity. Default value: null (disabled) */
+    @Getter @Setter private String deleteMethod;
     @Setter private String deleteUri;
     /** The API endpoint to use when deleting an entity. Default value: Default value: the value of `updateUri` */
     public String getDeleteUri() { return !empty(deleteUri) ? deleteUri : getUpdateUri(); }
@@ -208,7 +203,6 @@ public class EntityConfig {
 
             updateWithAnnotation(clazz, clazz.getAnnotation(ECType.class));
             updateWithAnnotation(clazz.getAnnotation(ECTypeList.class));
-            updateWithAnnotation(clazz.getAnnotation(ECTypeSearch.class));
             updateWithAnnotation(clazz.getAnnotation(ECTypeCreate.class));
             updateWithAnnotation(clazz.getAnnotation(ECTypeUpdate.class));
             updateWithAnnotation(clazz.getAnnotation(ECTypeDelete.class));
@@ -261,17 +255,6 @@ public class EntityConfig {
 
         if (empty(listFields)) setListFields(Arrays.asList(annotation.fields()));
         if (empty(listUri)) setListUri((annotation.uri().startsWith(":") ? "" : uriPrefix) + annotation.uri());
-
-        return this;
-    }
-
-    /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateWithAnnotation(ECTypeSearch annotation) {
-        if (annotation == null) return this;
-
-        if (empty(searchFields)) setSearchFields(Arrays.asList(annotation.fields()));
-        if (empty(searchMethod)) setSearchMethod(annotation.method());
-        if (empty(searchUri)) setSearchUri((annotation.uri().startsWith(":") ? "" : uriPrefix) + annotation.uri());
 
         return this;
     }
