@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.cobbzilla.util.collection.ArrayUtil;
+import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.jdbc.DbDumpMode;
 import org.cobbzilla.util.jdbc.ResultSetBean;
@@ -25,6 +26,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Comparator.comparing;
 import static org.cobbzilla.util.collection.ArrayUtil.EMPTY_OBJECT_ARRAY;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.URIUtil.getHost;
@@ -300,12 +302,9 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         }, MAX_DUMP_TRIES);
     }
 
-    @Getter(lazy=true) private final List<Class<? extends Identifiable>> entityClasses = initEntityClasses();
-    private List<Class<? extends Identifiable>> initEntityClasses() {
-        return new EntityReferences()
-                .setPackages(getDatabase().getHibernate().getEntityPackages())
-                .dependencyOrder();
-    }
+    @Getter(lazy=true) private final List<Class<? extends Identifiable>> entityClasses = new EntityReferences()
+            .setPackages(getDatabase().getHibernate().getEntityPackages())
+            .dependencyOrder();
 
     @Getter(lazy=true) private final List<Class<? extends Identifiable>> entityClassesReverse = initEntityClassesReverse();
     private List<Class<? extends Identifiable>> initEntityClassesReverse() {
@@ -314,8 +313,12 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return reversed;
     }
 
-    public List<String> getSortedEntityClassNames() {
-        return getEntityClasses().stream().map(Class::getName).sorted().collect(Collectors.toList());
+    @Getter(lazy=true) private final List<NameAndValue> sortedSimpleEntityClassMap = initSortedSimpleEntityClassMap();
+    private List<NameAndValue> initSortedSimpleEntityClassMap() {
+        return getEntityClasses().stream()
+                .sorted(comparing(Class::getSimpleName))
+                .map(c -> new NameAndValue(c.getSimpleName(), c.getName()))
+                .collect(Collectors.toList());
     }
 
     @Getter(lazy=true) private final List<String> tableNames = initTableNames();
