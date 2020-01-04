@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.server.config;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.cache.AutoRefreshingReference;
+import org.cobbzilla.util.cache.Refreshable;
 import org.cobbzilla.util.http.HttpUtil;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.io.StreamUtil;
@@ -12,8 +12,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.CLASSPATH_PREFIX;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.string.StringUtil.chop;
@@ -42,10 +42,8 @@ public class LegalInfo {
     public String getCommunityGuidelinesDocument () { return getDocument(DOC_COMMUNITY); }
     public String getLicensesDocument () { return getDocument(DOC_LICENSES); }
 
-    private final AutoRefreshingReference<Map<String, String>> loaders = new AutoRefreshingReference<Map<String, String>>() {
-        @Override public Map<String, String> refresh() { return initLoaders(); }
-        @Override public long getTimeout() { return TimeUnit.DAYS.toMillis(30); }
-    };
+    public static final long LOADER_CACHE_MILLIS = DAYS.toMillis(30);
+    private final Refreshable<Map<String, String>> loaders = new Refreshable<>("loaders", LOADER_CACHE_MILLIS, this::initLoaders);
 
     @SuppressWarnings("ConstantConditions")
     private ConcurrentHashMap<String, String> initLoaders() {
