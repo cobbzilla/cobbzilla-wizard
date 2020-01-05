@@ -276,7 +276,7 @@ public class ModelSetup {
                                        final ModelSetupListener listener,
                                        boolean update,
                                        final String runName) throws Exception {
-        createEntity(api, entityConfig, request, context, listener, false, false, runName);
+        createEntity(api, entityConfig, request, context, listener, update, false, runName);
     }
 
     protected static void createEntity(final ApiClientBase api,
@@ -633,7 +633,7 @@ public class ModelSetup {
         }
 
         public boolean hasData(final boolean strict) {
-            return IteratorUtils.toList(node.fieldNames()).stream().filter((n) -> !ArrayUtils.contains(entity.excludeUpdateFields(strict), n)).count() > 0;
+            return IteratorUtils.toList(node.fieldNames()).stream().anyMatch((n) -> !ArrayUtils.contains(entity.excludeUpdateFields(strict), n));
         }
 
         @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {

@@ -203,9 +203,9 @@ public class EntityConfig {
 
             updateWithAnnotation(clazz, clazz.getAnnotation(ECType.class));
             updateWithAnnotation(clazz.getAnnotation(ECTypeList.class));
-            updateWithAnnotation(clazz.getAnnotation(ECTypeCreate.class));
-            updateWithAnnotation(clazz.getAnnotation(ECTypeUpdate.class));
-            updateWithAnnotation(clazz.getAnnotation(ECTypeDelete.class));
+            updateWithAnnotation(mainECAnnotation, clazz.getAnnotation(ECTypeCreate.class));
+            updateWithAnnotation(mainECAnnotation, clazz.getAnnotation(ECTypeUpdate.class));
+            updateWithAnnotation(mainECAnnotation, clazz.getAnnotation(ECTypeDelete.class));
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeURIs.class));
 
             final Set<String> entityFields = new HashSet<>(fieldNamesWithAnnotations(clazz, ECField.class, ECSearchable.class, ECForeignKey.class));
@@ -260,8 +260,11 @@ public class EntityConfig {
     }
 
     /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateWithAnnotation(ECTypeCreate annotation) {
-        if (annotation == null) return this;
+    private EntityConfig updateWithAnnotation(ECType type, ECTypeCreate annotation) {
+        if (annotation == null) {
+            if (type != null && empty(createMethod)) setCreateMethod(ECTypeCreate.DEFAULT_METHOD);
+            return this;
+        }
 
         if (empty(createMethod)) setCreateMethod(annotation.method());
         if (empty(createUri)) setCreateUri((annotation.uri().startsWith(":") ? "" : uriPrefix) + annotation.uri());
@@ -270,8 +273,11 @@ public class EntityConfig {
     }
 
     /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateWithAnnotation(ECTypeUpdate annotation) {
-        if (annotation == null) return this;
+    private EntityConfig updateWithAnnotation(ECType type, ECTypeUpdate annotation) {
+        if (annotation == null) {
+            if (type != null && empty(updateMethod)) setUpdateMethod(ECTypeUpdate.DEFAULT_METHOD);
+            return this;
+        }
 
         if (empty(updateMethod)) setUpdateMethod(annotation.method());
         if (empty(updateUri)) setUpdateUri((annotation.uri().startsWith(":") ? "" : uriPrefix) + annotation.uri());
@@ -280,8 +286,11 @@ public class EntityConfig {
     }
 
     /** Update properties with values from the given annotation. Doesn't override existing non-empty values! */
-    private EntityConfig updateWithAnnotation(ECTypeDelete annotation) {
-        if (annotation == null) return this;
+    private EntityConfig updateWithAnnotation(ECType type, ECTypeDelete annotation) {
+        if (annotation == null) {
+            if (type != null && empty(deleteMethod)) setDeleteMethod(ECTypeDelete.DEFAULT_METHOD);
+            return this;
+        }
 
         if (empty(deleteMethod)) setDeleteMethod(annotation.method());
         if (empty(deleteUri)) setDeleteUri((annotation.uri().startsWith(":") ? "" : uriPrefix) + annotation.uri());

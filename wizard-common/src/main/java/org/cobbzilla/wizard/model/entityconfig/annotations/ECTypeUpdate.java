@@ -7,6 +7,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
 public @interface ECTypeUpdate {
-    String method() default "POST";
+    String DEFAULT_METHOD = "POST";
+
+    String method() default DEFAULT_METHOD;
     String uri() default "";
 }

@@ -3,7 +3,7 @@ package org.cobbzilla.wizard;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.util.collection.ExpirationMap;
 import org.cobbzilla.wizard.api.CrudOperation;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.model.Identifiable;
@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.cobbzilla.util.daemon.ZillaRuntime.now;
 import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
 import static org.cobbzilla.util.io.FileUtil.extension;
+import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.json.JsonUtil.newArrayNode;
 import static org.cobbzilla.wizard.Unroll.unrollOrInvalid;
@@ -34,7 +35,9 @@ public abstract class ModelSetupService {
     protected abstract String getEntityConfigsEndpoint();
     protected abstract void setOwner(Identifiable owner, Identifiable entity);
 
-    public Map<CrudOperation, Collection<Identifiable>> setupModel(Identifiable owner, File modelFile) {
+    private Map<String, ModelSetupForOwner> setupCache = new ExpirationMap<>();
+
+    public Map<CrudOperation, Collection<Identifiable>> setupModel(ApiClientBase api, Identifiable owner, File modelFile) {
         File modelDir;
         final String ext = extension(modelFile);
         switch (ext.toLowerCase()) {
@@ -64,12 +67,12 @@ public abstract class ModelSetupService {
             if (entityClass == null) throw invalidEx("err.entity.classInFilename.invalid");
 
             // Does the file contain a single object? if so, wrap in array
-            final JsonNode node = json(FileUtil.toStringOrDie(modelFile), JsonNode.class);
+            final JsonNode node = json(toStringOrDie(modelFile), JsonNode.class);
             if (!node.isArray()) {
                 final JsonNode arrayNode = newArrayNode().add(node);
-                models.put(entityClass.getName(), json(arrayNode));
+                models.put(entityClass.getSimpleName(), json(arrayNode));
             } else {
-                models.put(entityClass.getName(), json(node));
+                models.put(entityClass.getSimpleName(), json(node));
             }
         } else {
             resolver = new ManifestFileResolver(modelDir);
@@ -77,13 +80,12 @@ public abstract class ModelSetupService {
             if (!manifest.exists()) {
                 throw invalidEx("err.entity.manifest.required");
             }
-            models.put("manifest", manifest.getName());
+            models.put("manifest", toStringOrDie(manifest));
         }
 
         try {
-            final ApiClientBase api = getConfiguration().newApiClient();
-            final ModelSetupForOwner setup = new ModelSetupForOwner(owner);
-            return setup.setup(api, models, resolver);
+            return setupCache.computeIfAbsent(owner.getUuid(), k -> new ModelSetupForOwner(owner))
+                    .setup(api, models, resolver);
 
         } catch (Exception e) {
             throw invalidEx("err.entity.setupError", shortError(e));

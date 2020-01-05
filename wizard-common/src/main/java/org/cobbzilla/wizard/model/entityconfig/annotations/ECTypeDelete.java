@@ -7,6 +7,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE)
 public @interface ECTypeDelete {
-    String method() default "DELETE";
+    String DEFAULT_METHOD = "DELETE";
+
+    String method() default DEFAULT_METHOD;
     String uri() default "";
 }

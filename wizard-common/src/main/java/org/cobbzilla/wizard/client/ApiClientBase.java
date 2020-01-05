@@ -85,9 +85,10 @@ public class ApiClientBase implements Cloneable, Closeable {
     }
     public void removeHeaders () { headers = null; }
 
-    public void setToken(String token) {
+    public ApiClientBase setToken(String token) {
         this.token = token;
         this.tokenCtime = empty(token) ? 0 : now();
+        return this;
     }
 
     private long tokenCtime = 0;
