@@ -1,4 +1,4 @@
-package org.cobbzilla.wizard;
+package org.cobbzilla.wizard.util;
 
 import org.cobbzilla.util.io.TempDir;
 

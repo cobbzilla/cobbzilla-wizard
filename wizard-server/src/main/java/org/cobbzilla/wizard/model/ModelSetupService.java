@@ -1,4 +1,4 @@
-package org.cobbzilla.wizard;
+package org.cobbzilla.wizard.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
@@ -6,7 +6,6 @@ import lombok.Getter;
 import org.cobbzilla.util.collection.ExpirationMap;
 import org.cobbzilla.wizard.api.CrudOperation;
 import org.cobbzilla.wizard.client.ApiClientBase;
-import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.ManifestFileResolver;
 import org.cobbzilla.wizard.model.entityconfig.ModelSetup;
@@ -26,7 +25,7 @@ import static org.cobbzilla.util.io.FileUtil.extension;
 import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.json.JsonUtil.newArrayNode;
-import static org.cobbzilla.wizard.Unroll.unrollOrInvalid;
+import static org.cobbzilla.wizard.util.Unroll.unrollOrInvalid;
 import static org.cobbzilla.wizard.resources.ResourceUtil.invalidEx;
 
 public abstract class ModelSetupService {
