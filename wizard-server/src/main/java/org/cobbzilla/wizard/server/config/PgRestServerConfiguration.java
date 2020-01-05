@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.collection.NameAndValue;
+import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.jdbc.DbDumpMode;
 import org.cobbzilla.util.jdbc.ResultSetBean;
@@ -15,6 +16,7 @@ import org.cobbzilla.util.jdbc.UncheckedSqlException;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandResult;
+import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.EntityReferences;
 import org.springframework.context.annotation.Bean;
@@ -335,5 +337,9 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
                 .setPackages(getDatabase().getHibernate().getEntityPackages())
                 .generateConstraintSql(includeIndexes).toArray(new String[0]);
     }
+
+    // warning: default ApiClientBase does not have an auth header set, will not work.
+    // override in subclass
+    public ApiClientBase newApiClient() { return new ApiClientBase(new ApiConnectionInfo(getLoopbackApiBase())); }
 
 }

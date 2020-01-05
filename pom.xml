@@ -20,7 +20,6 @@ cobbzilla-wizard is available under the Apache License, version 2: http://www.ap
     <modules>
         <module>wizard-common</module>
         <module>wizard-server</module>
-        <module>wizard-client</module>
         <module>wizard-server-test</module>
     </modules>
 
