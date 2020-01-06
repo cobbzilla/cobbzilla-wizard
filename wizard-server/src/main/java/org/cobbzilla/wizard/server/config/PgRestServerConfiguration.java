@@ -34,6 +34,7 @@ import static org.cobbzilla.util.http.URIUtil.getPort;
 import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
+import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
 import static org.cobbzilla.util.system.CommandShell.exec;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 
@@ -51,6 +52,16 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
     public static String dbName(String s) { return safeDbName(camelCaseToSnakeCase(s)); }
     public static String safeDbName(String s) {
         return s.length() <= MAX_ID_LENGTH ? s : s.substring(0, MAX_ID_LENGTH-HASH_LENGTH-1) + "_" + hexToBase36(sha256_hex(s)).substring(0, HASH_LENGTH).toLowerCase();
+    }
+
+    public static boolean dbExists(String db) {
+        if (!checkSafeShellArg(db)) return die("dbExists: invalid db name: "+db);
+        return execScript("echo \"select datname from pg_database where datname='" + db + "'\" | psql -qt").trim().equals(db);
+    }
+
+    public static boolean dbUserExists(String user) {
+        if (!checkSafeShellArg(user)) return die("dbUserExists: invalid db user name: "+user);
+        return execScript("echo \"select usename from pg_user where usename='" + user + "'\" | psql -qt").trim().equals(user);
     }
 
     @Override @Bean public DatabaseConfiguration getDatabase() { return database; }
