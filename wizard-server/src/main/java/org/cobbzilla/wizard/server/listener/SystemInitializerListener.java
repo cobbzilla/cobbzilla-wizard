@@ -135,8 +135,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
         }
         if (isCheckRedis()) {
             try {
-                final RedisService redis = server.getConfiguration().getBean(RedisService.class);
-                redis.keys("_");
+                server.getConfiguration().getBean(RedisService.class).keys("_");
             } catch (Exception e) {
                 die(PREFIX + "error connecting to redis: " + shortError(e));
             }
