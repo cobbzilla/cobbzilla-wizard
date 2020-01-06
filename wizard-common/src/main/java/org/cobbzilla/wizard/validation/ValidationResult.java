@@ -52,28 +52,39 @@ public class ValidationResult {
 
     @JsonIgnore public List<ConstraintViolation> getViolations() { return violations.get(); }
 
-    public void addViolation(ConstraintViolation violation) { synchronized (violations) { violations.get().add(violation); } }
-    public void addViolation(ConstraintViolationBean violation) { synchronized (beans) { beans.get().add(violation); } }
-
-    public void addViolation(String messageTemplate) { addViolation(messageTemplate, null, null); }
-
-    public void addViolation(String messageTemplate, String message) { addViolation(messageTemplate, message, null); }
-
-    public void addViolation(String messageTemplate, String message, String invalidValue) {
-        addViolation(messageTemplate, message, invalidValue, null);
+    public ValidationResult addViolation(ConstraintViolation violation) {
+        synchronized (violations) { violations.get().add(violation); }
+        return this;
+    }
+    public ValidationResult addViolation(ConstraintViolationBean violation) {
+        synchronized (beans) { beans.get().add(violation); }
+        return this;
     }
 
-    public void addViolation(String messageTemplate, String message, String invalidValue,
-                             NameAndValue[] params) {
+    public ValidationResult addViolation(String messageTemplate) {
+        return addViolation(messageTemplate, null, null);
+    }
+
+    public ValidationResult addViolation(String messageTemplate, String message) {
+        return addViolation(messageTemplate, message, null);
+    }
+
+    public ValidationResult addViolation(String messageTemplate, String message, String invalidValue) {
+        return addViolation(messageTemplate, message, invalidValue, null);
+    }
+
+    public ValidationResult addViolation(String messageTemplate, String message, String invalidValue,
+                                         NameAndValue[] params) {
         final ConstraintViolationBean err = new ConstraintViolationBean(messageTemplate, message, invalidValue, params);
         synchronized (beans) {
             for (ConstraintViolationBean bean : beans.get()) {
                 if (bean.equals(err)) {
-                    return; // already exists
+                    return this;
                 }
             }
             beans.get().add(err);
         }
+        return this;
     }
 
     public void addAll(ConstraintViolationBean[] violations) {
