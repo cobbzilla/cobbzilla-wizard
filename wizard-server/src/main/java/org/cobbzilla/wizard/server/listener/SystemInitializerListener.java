@@ -32,7 +32,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
     // If no checkTableName is provided, use the table name for the first entity
     private String getCheckTableName(PgRestServerConfiguration config) {
         if (empty(checkTableName)) {
-            checkTableName = camelCaseToSnakeCase(config.getEntityClassesReverse().get(0).getSimpleName());
+            checkTableName = camelCaseToSnakeCase(config.getEntityClasses().get(0).getSimpleName());
         }
         return checkTableName;
     }
