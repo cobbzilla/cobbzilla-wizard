@@ -4,12 +4,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.cobbzilla.util.jdbc.ResultSetBean;
 import org.cobbzilla.wizard.cache.redis.RedisService;
 import org.cobbzilla.wizard.server.RestServer;
 import org.cobbzilla.wizard.server.RestServerLifecycleListenerBase;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.server.config.PgRestServerConfiguration.dbExists;
@@ -23,7 +25,15 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
     public static void invalidName(final String msg, String value) { die(PREFIX + msg + ": " + value + SAFE_CHARS_MESSAGE); }
 
     @Getter @Setter private boolean checkRedis = true;
-    @Getter @Setter private String checkTable = null;
+
+    @Getter @Setter private String checkTableName = null;
+    @Getter @Setter private boolean checkTable = true;
+
+    // If no checkTableName is provided, use the table name for the first entity
+    private String getCheckTableName(PgRestServerConfiguration config) {
+        if (!empty(checkTableName)) return checkTableName;
+        return camelCaseToSnakeCase(config.getEntityClassesReverse().get(0).getSimpleName());
+    }
 
     @Override public void beforeStart(RestServer server) {
 
@@ -38,11 +48,21 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
         if (!checkSafeShellArg(password)) invalidName(": invalid password for user '"+user+"'", password);
 
         try {
-            config.execSql("select 1");
-            checkTable(config);
-            log.info("database configured OK, skipping initialization");
-            return;
-
+            final boolean ok;
+            if (checkTable) {
+                ok = checkTable(config);
+                if (!ok) {
+                    // create the schema when the test table does not exist
+                    config.getDatabase().getHibernate().setHbm2ddlAuto("create");
+                }
+            } else {
+                config.execSql("select 1");
+                ok = true;
+            }
+            if (ok) {
+                log.info("database configured OK, skipping initialization");
+                return;
+            }
         } catch (Exception e) {
             log.warn(PREFIX+"database not properly configured, attempting to initialize...");
         }
@@ -68,9 +88,6 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
                 log.info("DB user '"+user+"' exists, not creating");
             }
 
-            // create the schema because the database was just created
-            config.getDatabase().getHibernate().setHbm2ddlAuto("create");
-
         } catch (Exception e) {
             die(PREFIX+"Error initializing database: "+shortError(e));
         }
@@ -79,36 +96,42 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
         try {
             config.execSql("select 1");
             log.info("database configured OK");
-            return;
 
         } catch (Exception e) {
             die(PREFIX+"database configuration failed, cannot run test query: "+shortError(e));
         }
 
-        checkTable(config);
         super.beforeStart(server);
     }
 
-    public void checkTable(PgRestServerConfiguration config) {
-        if (!empty(checkTable)) {
-            if (!checkSafeShellArg(checkTable)) invalidName("invalid table name", checkTable);
+    public boolean checkTable(PgRestServerConfiguration config) {
+        if (checkTable) {
+            final String tableName = getCheckTableName(config);
+            if (!checkSafeShellArg(tableName)) invalidName("invalid table name", tableName);
             try {
-                config.execSql("select * from " + checkTable + " limit 1");
+                return runTableCheck(config, tableName);
             } catch (Exception e) {
-                log.warn("table '"+checkTable+"' not found, will create schema: " + shortError(e));
+                log.warn("table '"+tableName+"' not found, will create schema: " + shortError(e));
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
             }
         }
+        return false;
+    }
+
+    public boolean runTableCheck(PgRestServerConfiguration config, String tableName) {
+        final ResultSetBean rs = config.execSql("select * from " + tableName + " limit 1");
+        return rs != null && rs.rowCount() <= 1;
     }
 
     @Override public void onStart(RestServer server) {
-        if (!empty(checkTable)) {
+        if (checkTable) {
             final PgRestServerConfiguration config = (PgRestServerConfiguration) server.getConfiguration();
-            if (!checkSafeShellArg(checkTable)) invalidName("invalid table name", checkTable);
+            final String tableName = getCheckTableName(config);
+            if (!checkSafeShellArg(tableName)) invalidName("invalid table name", tableName);
             try {
-                config.execSql("select * from "+checkTable+" limit 1");
+                runTableCheck(config, tableName);
             } catch (Exception e) {
-                die(PREFIX + "table '"+checkTable+"' not found: " + shortError(e));
+                die(PREFIX + "table '"+tableName+"' not found: " + shortError(e));
             }
         }
         if (isCheckRedis()) {
