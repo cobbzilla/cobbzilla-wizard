@@ -39,11 +39,12 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
 
         try {
             config.execSql("select 1");
+            checkTable(config);
             log.info("database configured OK, skipping initialization");
             return;
 
         } catch (Exception e) {
-            log.warn(PREFIX+"database not configured, attempting to initialize...");
+            log.warn(PREFIX+"database not properly configured, attempting to initialize...");
         }
 
         try {
@@ -84,7 +85,11 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             die(PREFIX+"database configuration failed, cannot run test query: "+shortError(e));
         }
 
-        // does a proper table exist?
+        checkTable(config);
+        super.beforeStart(server);
+    }
+
+    public void checkTable(PgRestServerConfiguration config) {
         if (!empty(checkTable)) {
             if (!checkSafeShellArg(checkTable)) invalidName("invalid table name", checkTable);
             try {
@@ -94,8 +99,6 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
             }
         }
-
-        super.beforeStart(server);
     }
 
     @Override public void onStart(RestServer server) {
