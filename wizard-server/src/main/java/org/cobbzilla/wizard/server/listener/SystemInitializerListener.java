@@ -107,7 +107,6 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
     public boolean checkTable(PgRestServerConfiguration config) {
         if (checkTable) {
             final String tableName = getCheckTableName(config);
-            if (!checkSafeShellArg(tableName)) invalidName("invalid table name", tableName);
             try {
                 return runTableCheck(config, tableName);
             } catch (Exception e) {
@@ -119,6 +118,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
     }
 
     public boolean runTableCheck(PgRestServerConfiguration config, String tableName) {
+        if (!checkSafeShellArg(tableName)) invalidName("invalid table name", tableName);
         final ResultSetBean rs = config.execSql("select * from " + tableName + " limit 1");
         return rs != null && rs.rowCount() <= 1;
     }
@@ -127,7 +127,6 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
         if (checkTable) {
             final PgRestServerConfiguration config = (PgRestServerConfiguration) server.getConfiguration();
             final String tableName = getCheckTableName(config);
-            if (!checkSafeShellArg(tableName)) invalidName("invalid table name", tableName);
             try {
                 runTableCheck(config, tableName);
             } catch (Exception e) {
