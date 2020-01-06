@@ -6,10 +6,7 @@ import lombok.Getter;
 import org.cobbzilla.util.collection.ExpirationMap;
 import org.cobbzilla.wizard.api.CrudOperation;
 import org.cobbzilla.wizard.client.ApiClientBase;
-import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
-import org.cobbzilla.wizard.model.entityconfig.ManifestFileResolver;
-import org.cobbzilla.wizard.model.entityconfig.ModelSetup;
-import org.cobbzilla.wizard.model.entityconfig.ModelSetupListenerBase;
+import org.cobbzilla.wizard.model.entityconfig.*;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 
 import java.io.File;
@@ -19,10 +16,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.now;
-import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
-import static org.cobbzilla.util.io.FileUtil.extension;
-import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.json.JsonUtil.newArrayNode;
 import static org.cobbzilla.wizard.util.Unroll.unrollOrInvalid;
@@ -34,7 +29,26 @@ public abstract class ModelSetupService {
     protected abstract String getEntityConfigsEndpoint();
     protected abstract void setOwner(Identifiable owner, Identifiable entity);
 
+    protected String getClasspathPrefix() { return "models/"; }
+
+    public String getRunName(Identifiable owner) { return getClass().getName() + "_" + owner.getUuid() + "_" + now(); }
+
     private Map<String, ModelSetupForOwner> setupCache = new ExpirationMap<>();
+
+    public ModelSetupForOwner getSetupObject(Identifiable owner) {
+        return setupCache.computeIfAbsent(owner.getUuid(), k -> new ModelSetupForOwner(owner));
+    }
+
+    public Map<CrudOperation, Collection<Identifiable>> setupModel(ApiClientBase api, Identifiable owner, String manifest) {
+        try {
+            final ModelSetupForOwner listener = getSetupObject(owner);
+            ModelSetup.setupModel(api, getEntityConfigsEndpoint(), getClasspathPrefix(), manifest, listener, getRunName(owner));
+            return listener.getStatus();
+
+        } catch (Exception e) {
+            return die("setupModel: "+shortError(e));
+        }
+    }
 
     public Map<CrudOperation, Collection<Identifiable>> setupModel(ApiClientBase api, Identifiable owner, File modelFile) {
         File modelDir;
@@ -83,8 +97,7 @@ public abstract class ModelSetupService {
         }
 
         try {
-            return setupCache.computeIfAbsent(owner.getUuid(), k -> new ModelSetupForOwner(owner))
-                    .setup(api, models, resolver);
+            return getSetupObject(owner).setup(api, models, resolver);
 
         } catch (Exception e) {
             throw invalidEx("err.entity.setupError", shortError(e));
@@ -119,7 +132,7 @@ public abstract class ModelSetupService {
                                                                   LinkedHashMap<String, String> models,
                                                                   ManifestFileResolver resolver) throws Exception {
             ModelSetup.setupModel(api, getEntityConfigsEndpoint(), models,
-                    resolver, this, true, getClass().getName()+"_"+ owner.getUuid()+"_"+now());
+                    resolver, this, true, getRunName(owner));
             return status;
         }
     }
