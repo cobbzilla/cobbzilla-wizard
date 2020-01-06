@@ -44,7 +44,6 @@ import java.lang.annotation.Annotation;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
@@ -66,7 +65,7 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
     @Getter private HttpServer httpServer;
     @Getter @Setter private C configuration;
 
-    @Getter private final Map<String, RestServerLifecycleListener<C>> listeners = new ConcurrentHashMap<>();
+    @Getter private final Map<String, RestServerLifecycleListener<C>> listeners = new LinkedHashMap<>();
 
     @Override public void addLifecycleListener(RestServerLifecycleListener<C> listener) {
         synchronized (listeners) { listeners.put(listenerKey(listener), listener); }
