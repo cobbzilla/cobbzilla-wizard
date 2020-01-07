@@ -84,11 +84,10 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             if (!dbUserExists(user)) {
                 execScript("createuser --createdb --no-createrole --no-superuser --no-replication "+user);
                 if (!dbUserExists(user)) die(PREFIX+"error creating '"+user+"' database user");
-
-                execScript("echo \"ALTER USER bubble WITH PASSWORD '"+ password +"'\" | psql");
             } else {
                 log.info("DB user '"+user+"' exists, not creating");
             }
+            execScript("echo \"ALTER USER bubble WITH PASSWORD '"+ password +"'\" | psql template1");
 
         } catch (Exception e) {
             die(PREFIX+"Error initializing database: "+shortError(e));

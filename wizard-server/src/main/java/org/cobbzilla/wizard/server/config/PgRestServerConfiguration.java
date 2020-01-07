@@ -56,12 +56,12 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
 
     public static boolean dbExists(String db) {
         if (!checkSafeShellArg(db)) return die("dbExists: invalid db name: "+db);
-        return execScript("echo \"select datname from pg_database where datname='" + db + "'\" | psql -qt").trim().equals(db);
+        return execScript("echo \"select datname from pg_database where datname='" + db + "'\" | psql -qt template1").trim().equals(db);
     }
 
     public static boolean dbUserExists(String user) {
         if (!checkSafeShellArg(user)) return die("dbUserExists: invalid db user name: "+user);
-        return execScript("echo \"select usename from pg_user where usename='" + user + "'\" | psql -qt").trim().equals(user);
+        return execScript("echo \"select usename from pg_user where usename='" + user + "'\" | psql -qt template1").trim().equals(user);
     }
 
     @Override @Bean public DatabaseConfiguration getDatabase() { return database; }
