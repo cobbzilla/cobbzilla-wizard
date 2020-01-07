@@ -11,6 +11,8 @@ import org.cobbzilla.wizard.server.RestServerLifecycleListenerBase;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.network.NetworkUtil.getExternalIp;
+import static org.cobbzilla.util.network.NetworkUtil.isLocalIpv4;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
 import static org.cobbzilla.util.system.CommandShell.execScript;
@@ -28,6 +30,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
 
     @Getter @Setter private String checkTableName = null;
     @Getter @Setter private boolean checkTable = true;
+    @Getter @Setter private boolean requireExternalIp = true;
 
     // If no checkTableName is provided, use the table name for the first entity
     private String getCheckTableName(PgRestServerConfiguration config) {
@@ -38,6 +41,15 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
     }
 
     @Override public void beforeStart(RestServer server) {
+        // first check external IP
+        if (requireExternalIp) {
+            final String externalIp = getExternalIp();
+            if (externalIp == null || isLocalIpv4(externalIp)) {
+                die(PREFIX+"Detected invalid external IP ("+externalIp+"), ensure DNS resolution is working properly on this system (perhaps check /etc/resolv.conf ?)");
+            } else {
+                log.info("Detected external IP: " + externalIp);
+            }
+        }
 
         final PgRestServerConfiguration config = (PgRestServerConfiguration) server.getConfiguration();
         final String db = config.getDatabase().getDatabaseName();
