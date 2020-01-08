@@ -220,10 +220,12 @@ public class RedisService {
         String lockVal = get(key);
         final long start = now();
         while ((lockVal == null || !lockVal.equals(uuid)) && (now() - start < lockTimeout)) {
-            set(key, uuid, NX, EX, deadlockTimeout);
+            set(key, uuid, NX, EX, deadlockTimeout/1000);
             lockVal = get(key);
         }
-        if (lockVal == null || !lockVal.equals(uuid)) return die("lock: timeout locking "+key);
+        if (lockVal == null || !lockVal.equals(uuid)) {
+            return die("lock: timeout locking "+key);
+        }
         log.info("lock: LOCKED "+key);
         return uuid;
     }
