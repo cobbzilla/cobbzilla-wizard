@@ -148,7 +148,7 @@ public class RestServerConfiguration {
         if (hasArgs) {
             for (Object o : args) {
                 if (o == null) {
-                    log.warn("forContext("+ ArrayUtils.toString(args)+"): null arg");
+                    log.warn("forContext("+ArrayUtils.toString(args)+"): null arg");
                     continue;
                 }
 
