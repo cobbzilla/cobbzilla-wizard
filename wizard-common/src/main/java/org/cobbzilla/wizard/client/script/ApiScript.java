@@ -138,14 +138,15 @@ public class ApiScript {
         }
     }
 
-    public boolean shouldSkip(StandardJsEngine js, Map<String, Object> ctx) {
+    public boolean shouldSkip(StandardJsEngine js, Handlebars handlebars, Map<String, Object> ctx) {
         if (hasOnlyIf()) {
             try {
-                if (js.evaluateBoolean(getOnlyIf(), ctx, false)) {
-                    log.info("onlyIf '"+getOnlyIf()+"' returned true, NOT skipping script");
+                final String onlyIf = HandlebarsUtil.apply(handlebars, getOnlyIf(), ctx);
+                if (js.evaluateBoolean(onlyIf, ctx, false)) {
+                    log.info("onlyIf '"+onlyIf+"' returned true, NOT skipping script");
                     return false;
                 } else {
-                    log.info("onlyIf '"+getOnlyIf()+"' returned false, skipping script");
+                    log.info("onlyIf '"+onlyIf+"' returned false, skipping script");
                     return true;
                 }
             } catch (Exception e) {
@@ -154,11 +155,12 @@ public class ApiScript {
         }
         if (hasUnless()) {
             try {
-                if (js.evaluateBoolean(getUnless(), ctx, false)) {
-                    log.info("unless '"+getUnless()+"' returned true, skipping script");
+                final String unless = HandlebarsUtil.apply(handlebars, getUnless(), ctx);
+                if (js.evaluateBoolean(unless, ctx, false)) {
+                    log.info("unless '"+unless+"' returned true, skipping script");
                     return true;
                 } else {
-                    log.info("unless '"+getUnless()+"' returned false, NOT skipping script");
+                    log.info("unless '"+unless+"' returned false, NOT skipping script");
                     return false;
                 }
             } catch (Exception e) {

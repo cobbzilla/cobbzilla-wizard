@@ -142,7 +142,7 @@ public class ApiRunner {
     public boolean run(ApiScript script) throws Exception {
         if (listener != null) listener.setCtxVars(ctx);
         currentApi = script.getConnection(this.api, currentApi, alternateApis, getHandlebars(), ctx);
-        if (script.shouldSkip(js, ctx)) return true;
+        if (script.shouldSkip(js, getHandlebars(), ctx)) return true;
         if (script.hasInclude()) {
             if (script.isIncludeDefaults()) return true; // skip this block. used in validation before running included script
             final String logPrefix = (script.hasComment() ? script.getComment()+"\n" : "") + ">>> ";
