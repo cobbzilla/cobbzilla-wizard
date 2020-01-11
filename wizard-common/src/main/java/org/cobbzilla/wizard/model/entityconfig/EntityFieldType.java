@@ -81,6 +81,9 @@ public enum EntityFieldType {
     /** a date or date/time value, represented as milliseconds since 1/1/1970 */
     expiration_time  (new EntityConfigFieldValidator_integer()),
 
+    /** millisecond value for a time duration */
+    time_duration (new EntityConfigFieldValidator_integer()),
+
     /** a time-zone (for example America/New York) */
     time_zone  (null),
 

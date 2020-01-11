@@ -69,7 +69,7 @@ public class SqlDefaultSearchField implements SearchField {
                 case expiration_time:
                     bounds.addAll(asList(SearchField.bindTime(name())));
                     break;
-                case integer: case money_integer:
+                case integer: case money_integer: case time_duration:
                     bounds.addAll(asList(SearchField.bindInteger(name())));
                     break;
                 case decimal: case money_decimal:
