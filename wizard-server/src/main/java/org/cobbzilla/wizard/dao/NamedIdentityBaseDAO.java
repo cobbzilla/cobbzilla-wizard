@@ -7,7 +7,7 @@ import org.cobbzilla.wizard.model.NamedIdentityBase;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.sorted;
-import static org.cobbzilla.util.daemon.ZillaRuntime.sortedList;
+import static org.cobbzilla.util.daemon.ZillaRuntime.toList;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 
 public class NamedIdentityBaseDAO<E extends NamedIdentityBase> extends AbstractCRUDDAO<E> {
@@ -29,7 +29,7 @@ public class NamedIdentityBaseDAO<E extends NamedIdentityBase> extends AbstractC
     }
 
     protected List<E> findByNames(Object names) { // names can be array or Collection, sortedList ensures we get a List back
-        final List<E> found = findByFieldIn("name", sortedList(names));
+        final List<E> found = findByFieldIn("name", toList(names));
         if (names.getClass().isArray()) names = Arrays.asList(names);
         synchronized (cachedNames) { cachedNames.addAll((Collection) names); }
         return found;
