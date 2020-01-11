@@ -19,6 +19,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.wizard.model.entityconfig.EntityFieldType.*;
+import static org.cobbzilla.wizard.model.search.SearchField.*;
 
 @EqualsAndHashCode @Slf4j
 public class SqlDefaultSearchField implements SearchField {
@@ -67,28 +68,28 @@ public class SqlDefaultSearchField implements SearchField {
                 case year: case year_and_month: case year_and_month_past:
                 case year_future: case year_past: case year_and_month_future:
                 case expiration_time:
-                    bounds.addAll(asList(SearchField.bindTime(name())));
+                    bounds.addAll(asList(bindTime(name())));
                     break;
                 case integer: case money_integer: case time_duration:
-                    bounds.addAll(asList(SearchField.bindInteger(name())));
+                    bounds.addAll(asList(bindInteger(name())));
                     break;
                 case decimal: case money_decimal:
-                    bounds.addAll(asList(SearchField.bindDecimal(name())));
+                    bounds.addAll(asList(bindDecimal(name())));
                     break;
                 case flag:
-                    bounds.addAll(asList(SearchField.bindBoolean(name())));
+                    bounds.addAll(asList(bindBoolean(name())));
                     break;
                 case string: case email: case time_zone: case locale:
                 case ip4: case ip6: case http_url:
                 case us_phone: case us_state: case us_zip:
                     if (f.getName().equals("uuid")) {
-                        bounds.addAll(asList(SearchField.bindUuid(name())));
+                        bounds.addAll(asList(bindUuid(name())));
                     } else {
-                        bounds.addAll(asList(SearchField.bindString(name())));
+                        bounds.addAll(asList(bindString(name())));
                     }
                     break;
             }
-            if (isNullable(f)) bounds.addAll(asList(SearchField.bindNullable(name())));
+            if (isNullable(f)) bounds.addAll(asList(bindNullable(name())));
         }
         if (empty(bounds)) return die("getBounds: no bounds defined for: "+ bound);
         return bounds.toArray(SearchBound[]::new);
