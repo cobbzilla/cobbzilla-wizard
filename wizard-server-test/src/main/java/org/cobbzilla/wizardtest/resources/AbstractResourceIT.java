@@ -210,6 +210,7 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
     public boolean useTestSpecificDatabase () { return false; }
 
     @Before public synchronized void startServer() throws Exception {
+        ApiRunner.resetScripts();
         synchronized (server) {
             if (getServer() == null) {
                 final String serverCacheKey = getServerCacheKey();

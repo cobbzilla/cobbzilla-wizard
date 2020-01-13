@@ -69,7 +69,8 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         if (docsEnabled) listener.addApiListener(apiDocsRunnerListener);
         return listener;
     }
-    @Before public void reset() throws Exception { setSystemTimeOffset(0); }
+
+    @Before public void resetSystemClock() { setSystemTimeOffset(0); }
 
     @Override public void onStart(RestServer<C> server) {
         super.onStart(server);

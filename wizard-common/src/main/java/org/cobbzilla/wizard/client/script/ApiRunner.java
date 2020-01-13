@@ -51,6 +51,7 @@ public class ApiRunner {
 
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection") // intended for use in debugging
     @Getter private static Map<String, ApiScript> currentScripts = new HashMap<>();
+    public static void resetScripts () { currentScripts.clear(); }
 
     public ApiRunner(ApiClientBase api, ApiRunnerListener listener) {
         this.api = api;

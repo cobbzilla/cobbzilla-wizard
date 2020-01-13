@@ -30,6 +30,7 @@ public class RedisService {
     public static final String EX = "EX";
     public static final String XX = "XX";
     public static final String NX = "NX";
+    public static final String ALL_KEYS = "*";
 
     @Autowired @Getter @Setter private HasRedisConfiguration configuration;
 
@@ -657,11 +658,6 @@ public class RedisService {
         }
     }
 
-    public void flush() {
-        final Collection<String> keys = keys(prefix("*"));
-        for (String key : keys) {
-            del(key);
-        }
-    }
+    public void flush() { keys(prefix(ALL_KEYS)).forEach(this::del); }
 
 }
