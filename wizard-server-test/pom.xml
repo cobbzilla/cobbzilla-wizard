@@ -24,12 +24,6 @@ This code is available under the Apache License, version 2: http://www.apache.or
         </dependency>
 
         <dependency>
-            <groupId>org.cobbzilla</groupId>
-            <artifactId>wizard-client</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
