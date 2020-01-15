@@ -20,6 +20,10 @@ import static org.cobbzilla.util.system.Sleep.sleep;
 public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
 
     @Override public void onStart(RestServer server) {
+        if (!server.getConfiguration().hasErrorApi()) {
+            log.warn("onStart: no error API configured, not starting ErrbitApi error sender");
+            return;
+        }
         final ErrbitApi errorApi = new ErrbitApi(server.getConfiguration());
         RestServerBase.setErrorApi(errorApi);
         ZillaRuntime.setErrorApi(errorApi);
