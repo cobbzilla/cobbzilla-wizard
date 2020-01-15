@@ -1,6 +1,5 @@
 package org.cobbzilla.wizard.server.listener;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.buffer.CircularFifoBuffer;
 import org.cobbzilla.util.daemon.ErrorApi;
@@ -28,13 +27,18 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
         log.info("onStart: "+server.getConfiguration().getErrorApi());
     }
 
-    @AllArgsConstructor @Slf4j
+    @Slf4j
     static class ErrbitApi implements ErrorApi, Runnable {
 
         private static final String SLEEP_MESSAGE = ErrbitApi.class.getName()+"waiting for more errors";
 
         private final RestServerConfiguration config;
-        private final CircularFifoBuffer fifo = new CircularFifoBuffer(config.getErrorApi().getBufferSize());
+        private final CircularFifoBuffer fifo;
+
+        ErrbitApi(RestServerConfiguration config) {
+            this.config = config;
+            this.fifo = new CircularFifoBuffer(config.getErrorApi().getBufferSize());
+        }
 
         @Override public void report(Exception e) {
             if (config.hasErrorApi()) {
