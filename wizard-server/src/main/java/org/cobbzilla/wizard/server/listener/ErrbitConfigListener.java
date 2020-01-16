@@ -69,7 +69,7 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
         public void start() {
             final Thread t = new Thread(this);
             t.setDaemon(true);
-            t.setName(getClass().getName());
+            t.setName(getClass().getSimpleName());
             t.start();
         }
 
