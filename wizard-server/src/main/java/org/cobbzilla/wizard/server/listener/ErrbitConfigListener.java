@@ -79,10 +79,10 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
                     final List reports;
                     synchronized (fifo) {
                         if (fifo.isEmpty()) {
+                            reports = null;
+                        } else {
                             reports = new ArrayList(fifo);
                             fifo.clear();
-                        } else {
-                            reports = null;
                         }
                     }
                     if (reports == null) {
