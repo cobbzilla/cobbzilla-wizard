@@ -193,10 +193,14 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         if (httpConfig.hasSelectorThreads()) {
             log.info("buildServer: using "+httpConfig.getSelectorThreads()+" selector threads");
             listener.getTransport().setSelectorRunnersCount(httpConfig.getSelectorThreads());
+        } else {
+            log.info("buildServer: using "+listener.getTransport().getSelectorRunnersCount()+" selector threads");
         }
         if (httpConfig.hasWorkerThreads()) {
             log.info("buildServer: using "+httpConfig.getWorkerThreads()+" worker threads");
             listener.getTransport().getWorkerThreadPoolConfig().setMaxPoolSize(httpConfig.getWorkerThreads());
+        } else {
+            log.info("buildServer: using "+listener.getTransport().getWorkerThreadPoolConfig().getMaxPoolSize()+" worker threads");
         }
         httpServer.addListener(listener);
 
