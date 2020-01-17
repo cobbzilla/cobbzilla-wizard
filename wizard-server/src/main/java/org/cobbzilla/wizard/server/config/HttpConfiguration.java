@@ -19,4 +19,11 @@ public class HttpConfiguration {
     public String getHost () throws URISyntaxException {
         return new URI(baseUri).getHost();
     }
+
+    @Getter @Setter private Integer selectorThreads;
+    public boolean hasSelectorThreads () { return selectorThreads != null; }
+
+    @Getter @Setter private Integer workerThreads;
+    public boolean hasWorkerThreads () { return workerThreads != null; }
+
 }

@@ -129,12 +129,15 @@ public class ApiClientBase implements Cloneable, Closeable {
                     .setSocketTimeout(socketTimeout)
                     .setConnectionRequestTimeout(requestTimeout);
 
-            httpClient = HttpClientBuilder.create()
+            httpClient = getHttpClientBuilder()
                     .setDefaultRequestConfig(requestBuilder.build())
                     .build();
         }
         return httpClient;
     }
+
+    public HttpClientBuilder getHttpClientBuilder() { return HttpClientBuilder.create(); }
+
     public void setHttpClient(HttpClient httpClient) { this.httpClient = httpClient; }
 
     public RestResponse process(HttpRequestBean requestBean) throws Exception {

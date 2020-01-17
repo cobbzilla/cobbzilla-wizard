@@ -183,12 +183,21 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         rc.property("contextConfig", applicationContext);
 
         // pick a port
-        if (!configuration.getHttp().hasPort()) {
-            configuration.getHttp().setPort(PortPicker.pick());
+        final HttpConfiguration httpConfig = configuration.getHttp();
+        if (!httpConfig.hasPort()) {
+            httpConfig.setPort(PortPicker.pick());
         }
 
         final HttpServer httpServer = new HttpServer();
-        final NetworkListener listener = new NetworkListener("grizzly-"+serverName, getListenAddress(), configuration.getHttp().getPort());
+        final NetworkListener listener = new NetworkListener("grizzly-"+serverName, getListenAddress(), httpConfig.getPort());
+        if (httpConfig.hasSelectorThreads()) {
+            log.info("buildServer: using "+httpConfig.getSelectorThreads()+" selector threads");
+            listener.getTransport().setSelectorRunnersCount(httpConfig.getSelectorThreads());
+        }
+        if (httpConfig.hasWorkerThreads()) {
+            log.info("buildServer: using "+httpConfig.getWorkerThreads()+" worker threads");
+            listener.getTransport().getWorkerThreadPoolConfig().setMaxPoolSize(httpConfig.getWorkerThreads());
+        }
         httpServer.addListener(listener);
 
         final ServerConfiguration serverConfig = httpServer.getServerConfiguration();
@@ -213,7 +222,7 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
 
         // then the REST/Jersey handler
         final HttpHandler processor = ContainerFactory.createContainer(GrizzlyHttpContainer.class, rc);
-        final String restBase = configuration.getHttp().getBaseUri();
+        final String restBase = httpConfig.getBaseUri();
         serverConfig.addHttpHandler(processor, restBase);
 
         // then optional static asset handler
