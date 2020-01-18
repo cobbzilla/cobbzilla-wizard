@@ -7,6 +7,7 @@ import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.wizard.server.RestServer;
 import org.cobbzilla.wizard.server.RestServerBase;
 import org.cobbzilla.wizard.server.RestServerLifecycleListenerBase;
+import org.cobbzilla.wizard.server.config.ErrorApiConfiguration;
 import org.cobbzilla.wizard.server.config.RestServerConfiguration;
 
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
     @Slf4j
     static class ErrbitApi implements ErrorApi, Runnable {
 
-        private static final String SLEEP_MESSAGE = ErrbitApi.class.getName()+"waiting for more errors";
+        private static final String SLEEP_MESSAGE = ErrbitApi.class.getName()+": waiting for more errors";
 
         private final RestServerConfiguration config;
         private final CircularFifoBuffer fifo;
@@ -74,30 +75,39 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
         }
 
         @Override public void run() {
+            final ErrorApiConfiguration errorApi = config.getErrorApi();
+            final long sendInterval = errorApi.getSendInterval();
             while (true) {
                 try {
-                    final List reports;
+                    final List<Object> reports;
                     synchronized (fifo) {
                         if (fifo.isEmpty()) {
                             reports = null;
                         } else {
-                            reports = new ArrayList(fifo);
+                            reports = new ArrayList<Object>(fifo);
                             fifo.clear();
                         }
                     }
                     if (reports == null) {
-                        sleep(config.getErrorApi().getSendInterval(), SLEEP_MESSAGE);
+                        sleep(sendInterval, SLEEP_MESSAGE);
                         continue;
                     }
                     for (Object o : reports) {
-                        if (o instanceof Exception) {
-                            config.getErrorApi().report((Exception) o);
+                        if (o == null) {
+                            log.error("ErrbitApi.run: NOT reporting null object");  // should never happen
+
+                        } else if (o instanceof Exception) {
+                            log.debug("ErrbitApi.run: reporting Exception: "+shortError((Exception) o));
+                            errorApi.report((Exception) o);
+
                         } else if (o instanceof String) {
-                            config.getErrorApi().report((String) o);
+                            log.debug("ErrbitApi.run: reporting String: "+o);
+                            errorApi.report((String) o);
+
                         } else {
                             final String val = o.toString();
                             log.warn("ErrbitApi.run: reporting object that is neither Exception nor String (" + o.getClass().getName() + ") as String: " + val);
-                            config.getErrorApi().report(val);
+                            errorApi.report(val);
                         }
                     }
                 } catch (Exception e) {
