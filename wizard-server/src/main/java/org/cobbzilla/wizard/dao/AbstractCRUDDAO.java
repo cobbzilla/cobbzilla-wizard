@@ -159,7 +159,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
             dao.getHibernateTemplate().flush();
         } catch (RuntimeException e) {
             if (log.isDebugEnabled()) {
-                log.error("create("+entity.getClass().getName()+"/"+json(entity)+"): "+e);
+                log.debug("create("+entity.getClass().getName()+"/"+json(entity)+"): "+e, e);
             } else {
                 log.error("create: " + e);
             }
@@ -169,7 +169,8 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     }
 
     protected static boolean isRawMode() {
-        return AbstractCRUDDAO.rawMode.get() != null && AbstractCRUDDAO.rawMode.get();
+        final Boolean raw = AbstractCRUDDAO.rawMode.get();
+        return raw != null && raw;
     }
 
     @Override public E createOrUpdate(@Valid E entity) {
