@@ -14,8 +14,8 @@ import org.cobbzilla.wizard.server.config.ErrorApiConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
-import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.fullError;
+import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
 import static org.cobbzilla.util.string.StringUtil.ellipsis;
 import static org.cobbzilla.util.system.Sleep.sleep;
 
@@ -81,9 +81,7 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
             }
         }
 
-        @Override public void report(String s, Exception e) {
-            report(s+"\nException: "+shortError(e)+"\n"+getStackTrace(e));
-        }
+        @Override public void report(String s, Exception e) { report(new Exception(s, e)); }
 
         public void start() {
             final Thread t = new Thread(this);
