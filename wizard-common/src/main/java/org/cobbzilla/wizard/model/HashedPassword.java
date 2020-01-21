@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cobbzilla.util.security.bcrypt.BCrypt;
 import org.cobbzilla.util.security.bcrypt.BCryptUtil;
@@ -20,7 +21,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.string.StringUtil.truncate;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.*;
 
-@Embeddable @NoArgsConstructor
+@Embeddable @NoArgsConstructor @Slf4j
 public class HashedPassword implements Serializable {
 
     public static final HashedPassword DISABLED = new HashedPassword(true, "disabled");
@@ -58,7 +59,12 @@ public class HashedPassword implements Serializable {
 
     @Transient
     public boolean isCorrectPassword (String password) {
-        return password != null && BCrypt.checkpw(password, hashedPassword);
+        try {
+            return password != null && BCrypt.checkpw(password, hashedPassword);
+        } catch (Exception e) {
+            log.warn("isCorrectPassword: "+shortError(e));
+            return false;
+        }
     }
 
     public void setPassword(String password) { this.hashedPassword = BCryptUtil.hash(password); }
