@@ -81,34 +81,48 @@ public class EntityReferences {
     }
 
     private List<String> constraintsForClass(Class<? extends Identifiable> clazz, boolean includeIndexes) {
-        final List<String> statements = new ArrayList<>();
-        Arrays.stream(clazz.getDeclaredFields())
-                .filter(FIELD_HAS_FK)
-                .forEach(f -> statements.addAll(fkField(clazz, f, includeIndexes)));
-        if (includeIndexes) {
-            Arrays.stream(clazz.getDeclaredFields())
-                    .filter(FIELD_HAS_INDEX)
-                    .forEach(f -> statements.add(indexField(clazz, f)));
-            final ECIndexes tableIndexes = clazz.getAnnotation(ECIndexes.class);
-            if (tableIndexes != null) {
-                if (tableIndexes.value().length == 0) {
-                    log.warn("ECIndexes(" + clazz.getName() + ") array of @ECIndex annotations was empty");
-                }
-                Arrays.stream(tableIndexes.value()).forEach(index -> statements.add(compositeIndex(clazz, index)));
-            }
+        final List<String> statements = new ArrayList<>(constraintsForClass(clazz, null, includeIndexes));
+        Class parent = clazz.getSuperclass();
+        while (!parent.equals(Object.class)) {
+            statements.addAll(constraintsForClass(clazz, parent, includeIndexes));
+            parent = parent.getSuperclass();
         }
         return statements;
     }
 
-    private String indexField(Class<? extends Identifiable> clazz, Field f) {
+    private List<String> constraintsForClass(Class<? extends Identifiable> clazz, Class parent, boolean includeIndexes) {
+        final List<String> statements = new ArrayList<>();
+        final Class c = parent == null ? clazz : parent;
+        Arrays.stream(c.getDeclaredFields())
+                .filter(FIELD_HAS_FK)
+                .forEach(f -> statements.addAll(fkField(clazz, parent, f, includeIndexes)));
+        if (includeIndexes) {
+            Arrays.stream(c.getDeclaredFields())
+                    .filter(FIELD_HAS_INDEX)
+                    .forEach(f -> statements.add(indexField(clazz, parent, f)));
+            final ECIndexes tableIndexes = (ECIndexes) c.getAnnotation(ECIndexes.class);
+            if (tableIndexes != null) {
+                if (tableIndexes.value().length == 0) {
+                    log.warn("ECIndexes(" + c.getName() + ") array of @ECIndex annotations was empty");
+                }
+                Arrays.stream(tableIndexes.value()).forEach(index -> statements.add(compositeIndex(clazz, parent, index)));
+            }
+        }
+
+        return statements;
+    }
+
+    private String indexField(Class<? extends Identifiable> clazz, Class parent, Field f) {
+        final Class c = parent == null ? clazz : parent;
         if (!fieldExists(clazz, f.getName())) {
-            return die("ECIndex("+clazz.getName()+", "+f.getName()+": field does not exist: "+f.getName());
+            return die("ECIndex("+c.getName()+", "+f.getName()+": field does not exist: "+f.getName());
         }
         final ECIndex index = f.getAnnotation(ECIndex.class);
         if (index.of().length != 0) {
-            return die("ECIndex("+clazz.getName()+", "+f.getName()+"): 'of' not allowed for single field index");
+            return die("ECIndex("+c.getName()+", "+f.getName()+"): 'of' not allowed for single field index");
         }
         final String tableName = camelCaseToSnakeCase(clazz.getSimpleName());
+        final String indexNameSuffix = (parent == null ? "" : "_"+camelCaseToSnakeCase(parent.getSimpleName()));
         final String columnName = camelCaseToSnakeCase(f.getName());
         final String statement = empty(index.statement()) ? null : index.statement();
         String name = empty(index.name()) ? null : index.name();
@@ -116,22 +130,33 @@ public class EntityReferences {
         final String where = empty(index.where()) ? "" : " WHERE "+index.where();
 
         if (name != null && statement != null) {
-            return die("ECIndex("+clazz.getName()+", "+f.getName()+"): cannot specify both name and statement");
+            return die("ECIndex("+c.getName()+", "+f.getName()+"): cannot specify both name and statement");
         }
         if (statement != null) return statement;
 
-        final String indexName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" + columnName;
+        String indexName = name != null
+                ? name + indexNameSuffix
+                : tableName + indexNameSuffix + "_" + (unique ? "uniq" : "idx") + "_" + columnName;
+        if (indexName.length() > MAX_PG_NAME_LEN) {
+            final String shortName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" + shortName(columnName);
+            if (shortName.length() > MAX_PG_NAME_LEN) {
+                log.warn("ECIndex("+c.getName()+"): index name '"+indexName+"' was shortened to '"+shortName+"' but will still be truncated");
+            }
+            indexName = shortName;
+        }
         return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" "+"ON "+tableName+"(" + columnName + ")"+where;
     }
 
-    private String compositeIndex(Class<? extends Identifiable> clazz, ECIndex index) {
+    private String compositeIndex(Class<? extends Identifiable> clazz, Class parent, ECIndex index) {
+        final Class c = parent == null ? clazz : parent;
         for (String f : index.of()) {
             if (!fieldExists(clazz, f)) {
-                return die("ECIndex("+clazz.getName()+", "+arrayToString(index.of(), ", ")+": field does not exist: "+f);
+                return die("ECIndex("+c.getName()+", "+arrayToString(index.of(), ", ")+": field does not exist: "+f);
             }
         }
 
         final String tableName = camelCaseToSnakeCase(clazz.getSimpleName());
+        final String indexNameSuffix = (parent == null ? "" : "_"+camelCaseToSnakeCase(parent.getSimpleName()));
         final List<String> columnNames = Arrays.stream(index.of())
                 .map(StringUtil::camelCaseToSnakeCase)
                 .collect(Collectors.toList());
@@ -141,36 +166,62 @@ public class EntityReferences {
         final String where = empty(index.where()) ? "" : " WHERE "+index.where();
 
         if (name != null && statement != null) {
-            return die("ECIndexes("+clazz.getName()+"): ECIndex cannot specify both name and statement");
+            return die("ECIndexes("+c.getName()+"): ECIndex cannot specify both name and statement");
         }
         if (statement != null) return statement;
-        String indexName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" + StringUtil.toString(columnNames, "_");
+        String indexName = name != null
+                ? name + indexNameSuffix
+                : tableName + indexNameSuffix + "_" + (unique ? "uniq" : "idx") + "_" + StringUtil.toString(columnNames, "_");
         if (indexName.length() > MAX_PG_NAME_LEN) {
             final String shortName = name != null ? name : tableName + "_" + (unique ? "uniq" : "idx") + "_" +shortNames(columnNames);
             if (shortName.length() > MAX_PG_NAME_LEN) {
-                log.warn("ECIndexes("+clazz.getName()+"): index name '"+indexName+"' was shortened to '"+shortName+"' but will still be truncated");
+                log.warn("ECIndexes("+c.getName()+"): index name '"+indexName+"' was shortened to '"+shortName+"' but will still be truncated");
             }
             indexName = shortName;
         }
-        return "CREATE "+(unique ? "UNIQUE" : "")+" INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+")"+where;
+        return "CREATE "+(unique ? "UNIQUE " : "")+"INDEX "+indexName+" ON "+tableName+"("+StringUtil.toString(columnNames, ", ")+")"+where;
     }
 
-    private List<String> fkField(Class<? extends Identifiable> clazz, Field f, boolean includeIndexes) {
+    private List<String> fkField(Class<? extends Identifiable> clazz, Class parent, Field f, boolean includeIndexes) {
+        final Class c = parent == null ? clazz : parent;
         final ECForeignKey fk = f.getAnnotation(ECForeignKey.class);
         if (!fieldExists(fk.entity(), fk.field())) {
-            return die("ECForeignKey("+clazz.getName()+", "+f.getName()+": referenced field does not exist: class="+fk.entity().getName()+", field="+fk.field());
+            return die("ECForeignKey("+c.getName()+", "+f.getName()+": referenced field does not exist: class="+fk.entity().getName()+", field="+fk.field());
         }
         final String tableName = camelCaseToSnakeCase(clazz.getSimpleName());
+        final String fkNameSuffix = (parent == null ? "" : "_"+camelCaseToSnakeCase(parent.getSimpleName()));
         final String columnName = camelCaseToSnakeCase(f.getName());
         final String refTable = camelCaseToSnakeCase(fk.entity().getSimpleName());
         final String refColumn = camelCaseToSnakeCase(fk.field());
         final List<String> sql = new ArrayList<>();
-        sql.add("ALTER TABLE "+ tableName + " "
-                + "ADD CONSTRAINT " + tableName + "_fk_" + columnName + " "
+        String constraintName = tableName + fkNameSuffix + "_fk_" + columnName;
+        if (constraintName.length() > MAX_PG_NAME_LEN) {
+            String shortName = tableName + fkNameSuffix + "_fk_" + shortName(columnName);
+            if (shortName.length() > MAX_PG_NAME_LEN) {
+                shortName = tableName + shortName(fkNameSuffix) + "_fk_" + shortName(columnName);
+                if (shortName.length() > MAX_PG_NAME_LEN) {
+                    log.warn("ECForeignKey(" + c.getName() + "): constraint name '" + constraintName + "' was shortened to '" + shortName + "' but will still be truncated");
+                }
+            }
+            constraintName = shortName;
+        }
+        sql.add("ALTER TABLE " + tableName + " "
+                + "ADD CONSTRAINT " + constraintName + " "
                 + "FOREIGN KEY (" + columnName + ") "
                 + "REFERENCES " + refTable + "(" + refColumn + ")");
         if (fk.index() && includeIndexes) {
-            sql.add("CREATE INDEX "+tableName +"_idx_"+columnName+" ON "+tableName+"("+columnName+")");
+            String indexName = tableName + fkNameSuffix + "_idx_" + columnName;
+            if (indexName.length() > MAX_PG_NAME_LEN) {
+                String shortName = tableName + fkNameSuffix + "_idx_" + shortName(columnName);
+                if (shortName.length() > MAX_PG_NAME_LEN) {
+                    shortName = tableName + shortName(fkNameSuffix) + "_idx_" + shortName(columnName);
+                    if (shortName.length() > MAX_PG_NAME_LEN) {
+                        log.warn("ECIndex(" + c.getName() + "): index name '" + indexName + "' was shortened to '" + shortName + "' but will still be truncated");
+                    }
+                }
+                indexName = shortName;
+            }
+            sql.add("CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName + ")");
         }
         return sql;
     }
