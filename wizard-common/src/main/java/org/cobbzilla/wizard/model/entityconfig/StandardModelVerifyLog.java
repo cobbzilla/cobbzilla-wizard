@@ -23,6 +23,9 @@ import static org.cobbzilla.util.io.FileUtil.toFileOrDie;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
+import static org.cobbzilla.wizard.model.Identifiable.CTIME;
+import static org.cobbzilla.wizard.model.Identifiable.MTIME;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.id;
 
 @Slf4j
@@ -157,7 +160,7 @@ public class StandardModelVerifyLog implements ModelVerifyLog {
         }
     }
 
-    protected static final String[] EXCLUDED = {"uuid", "children", "entity", "ctime", "ctimeAge", "mtime", "mtimeAge", "entity"};
+    protected static final String[] EXCLUDED = {UUID, "children", CTIME, "ctimeAge", MTIME, "mtimeAge", "entity"};
     protected static final Set<String> EXCLUDED_FIELDS = new HashSet<>(Arrays.asList(EXCLUDED));
     protected Set<String> getExcludedFields() { return EXCLUDED_FIELDS; }
 

@@ -59,13 +59,14 @@ public interface SearchField {
                 like.bind(name, SearchFieldType.string)
         };
     }
-    static SearchBound[] bindUuid(String name) {
+    static SearchBound[] bindNonSortableString(String name) {
         return new SearchBound[] {
                 eq.bind(name, SearchFieldType.string),
                 ne.bind(name, SearchFieldType.string),
                 like.bind(name, SearchFieldType.string)
         };
     }
+    static SearchBound[] bindUuid(String name) { return bindNonSortableString(name); }
     static SearchBound[] bindNullable(String name) { return new SearchBound[] { is_null.bind(name), not_null.bind(name) }; }
 
     String name();

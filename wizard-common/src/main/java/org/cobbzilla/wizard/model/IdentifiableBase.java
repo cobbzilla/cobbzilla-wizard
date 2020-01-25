@@ -20,14 +20,16 @@ import javax.persistence.Transient;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.UUID.randomUUID;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
+import static org.cobbzilla.util.string.StringUtil.uncapitalize;
 
 @MappedSuperclass @Slf4j
 public class IdentifiableBase implements Identifiable {
 
     public String simpleName () { return getClass().getSimpleName(); }
-    public String propName () { return StringUtil.uncapitalize(getClass().getSimpleName()); }
+    public String propName () { return uncapitalize(getClass().getSimpleName()); }
 
     public String tableName () { return ImprovedNamingStrategy.INSTANCE.classToTableName(getClass().getName()); }
     public String tableName (String className) { return ImprovedNamingStrategy.INSTANCE.classToTableName(className); }
@@ -74,7 +76,7 @@ public class IdentifiableBase implements Identifiable {
 
     @Override public void beforeUpdate() { setMtime(); }
 
-    public void initUuid() { setUuid(java.util.UUID.randomUUID().toString()); }
+    public void initUuid() { setUuid(randomUUID().toString()); }
 
     @Override public Identifiable update(Identifiable thing) { return update(thing, null); }
 
@@ -120,12 +122,12 @@ public class IdentifiableBase implements Identifiable {
     public static String[] toUuidArray(List<? extends Identifiable> entities) {
         return empty(entities)
                 ? StringUtil.EMPTY_ARRAY
-                : (String[]) collectArray(entities, "uuid");
+                : (String[]) collectArray(entities, UUID);
     }
 
     public static List<String> toUuidList(Collection<? extends Identifiable> entities) {
         if (empty(entities)) return Collections.emptyList();
-        return collectList(entities, "uuid");
+        return collectList(entities, UUID);
     }
 
     private static final Map<String, FieldTransformer> fieldTransformerCache = new ConcurrentHashMap<>();

@@ -19,6 +19,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 import static org.cobbzilla.wizard.model.entityconfig.EntityFieldType.*;
 import static org.cobbzilla.wizard.model.search.SearchField.*;
 
@@ -64,7 +65,7 @@ public class SqlDefaultSearchField implements SearchField {
                 if (ecForeignKey != null) {
                     fieldType = reference;
                 } else {
-                    fieldType = ecField != null ? ecField.type() : guessFieldType(f);
+                    fieldType = ecField != null && ecField.type() != none_set ? ecField.type() : guessFieldType(f);
                 }
             }
         }
@@ -88,10 +89,12 @@ public class SqlDefaultSearchField implements SearchField {
                 case reference:
                     bounds.addAll(asList(bindUuid(name())));
                     break;
-                case string: case email: case time_zone: case locale:
-                case ip4: case ip6: case http_url:
-                case us_phone: case us_state: case us_zip:
-                    if (f.getName().equals("uuid")) {
+                case http_url: case us_phone: case us_state: case us_zip:
+                case email: case time_zone: case locale: case ip4: case ip6:
+                    bounds.addAll(asList(bindNonSortableString(name())));
+                    break;
+                case string:
+                    if (f.getName().equals(UUID)) {
                         bounds.addAll(asList(bindUuid(name())));
                     } else {
                         bounds.addAll(asList(bindString(name())));

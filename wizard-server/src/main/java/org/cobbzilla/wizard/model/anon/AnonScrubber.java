@@ -21,6 +21,7 @@ import java.util.Set;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.jdbc.ResultSetBean.row2map;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 import static org.cobbzilla.wizard.model.ModelCryptUtil.getCryptor;
 
 @Accessors(chain=true) @Slf4j
@@ -91,7 +92,7 @@ public class AnonScrubber {
                                 die("anonymize: error handling table.column: " + errColumn, e);
                             }
                         }
-                        update.setString(columns.length + 1, row.get("uuid").toString());
+                        update.setString(columns.length + 1, row.get(UUID).toString());
                         if (update.executeUpdate() != 1) {
                             die("anonymize: error updating");
                         }

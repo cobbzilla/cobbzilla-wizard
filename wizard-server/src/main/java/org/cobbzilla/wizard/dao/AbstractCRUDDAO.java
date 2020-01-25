@@ -39,6 +39,7 @@ import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.time.TimeUtil.formatDuration;
+import static org.cobbzilla.wizard.model.Identifiable.MTIME;
 import static org.hibernate.criterion.Restrictions.*;
 
 @Transactional @Slf4j
@@ -57,19 +58,19 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     @Override public List<E> findAll() { return list(criteria()); }
 
     @Transactional(readOnly=true)
-    @Override public E findByUuid(String uuid) { return findByUniqueField("uuid", uuid); }
+    @Override public E findByUuid(String uuid) { return findByUniqueField(Identifiable.UUID, uuid); }
 
     @Transactional(readOnly=true)
     public List<E> findByUuids(Collection<String> uuids) {
-        return empty(uuids) ? new ArrayList<E>() : findByFieldIn("uuid", uuids);
+        return empty(uuids) ? new ArrayList<E>() : findByFieldIn(Identifiable.UUID, uuids);
     }
     @Transactional(readOnly=true)
     public List<E> findByUuids(Object[] uuids) {
-        return empty(uuids) ? new ArrayList<E>() : findByFieldIn("uuid", uuids);
+        return empty(uuids) ? new ArrayList<E>() : findByFieldIn(Identifiable.UUID, uuids);
     }
 
     @Transactional(readOnly=true)
-    public E findFirstByUuids(Collection<String> uuids) { return findFirstByFieldIn("uuid", uuids); }
+    public E findFirstByUuids(Collection<String> uuids) { return findFirstByFieldIn(Identifiable.UUID, uuids); }
 
     @Transactional(readOnly=true)
     @Override public boolean exists(String uuid) { return findByUuid(uuid) != null; }
@@ -337,7 +338,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         DetachedCriteria criteria = criteria().add(and(
                 ilike(likeField, likeValue)
         ));
-        if (mtime != null) criteria = criteria.add(gt("mtime", mtime));
+        if (mtime != null) criteria = criteria.add(gt(MTIME, mtime));
         return list(criteria, 0, getFinderMaxResults());
     }
 

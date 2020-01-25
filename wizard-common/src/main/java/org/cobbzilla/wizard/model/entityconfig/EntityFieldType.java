@@ -9,9 +9,13 @@ import org.cobbzilla.wizard.validation.Validator;
 
 import javax.persistence.Column;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Locale;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.wizard.model.Identifiable.CTIME;
+import static org.cobbzilla.wizard.model.Identifiable.MTIME;
+import static org.cobbzilla.wizard.model.entityconfig.EntityConfig.fieldNameFromAccessor;
 
 @AllArgsConstructor @Slf4j
 public enum EntityFieldType {
@@ -149,13 +153,21 @@ public enum EntityFieldType {
     }
 
     public static EntityFieldType guessFieldType(Field f) {
-        switch (f.getType().getName()) {
+        return guessFieldType(f.getName(), f.getType());
+    }
+
+    public static EntityFieldType guessFieldType(Method m) {
+        return guessFieldType(fieldNameFromAccessor(m), m.getReturnType());
+    }
+
+    public static EntityFieldType guessFieldType(String name, Class<?> type) {
+        switch (type.getName()) {
             case "boolean":
             case "java.lang.Boolean":
                 return flag;
             case "long":
             case "java.lang.Long":
-                if (f.getName().equals("ctime") || f.getName().equals("mtime")) return epoch_time;
+                if (name.equals(CTIME) || name.equals(MTIME)) return epoch_time;
             case "byte":
             case "short":
             case "int":
@@ -175,8 +187,8 @@ public enum EntityFieldType {
             case "java.math.BigDecimal":
                 return decimal;
             default:
-                if (f.getType().isEnum()) return string;
-                log.warn("guessFieldType: unrecognized type ("+f.getType().getName()+") for field: "+f.getName());
+                if (type.isEnum()) return string;
+                log.warn("guessFieldType: unrecognized type ("+type.getName()+") for field: "+name);
                 return null;
         }
     }

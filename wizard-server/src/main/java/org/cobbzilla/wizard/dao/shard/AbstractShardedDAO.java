@@ -36,12 +36,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.cobbzilla.util.daemon.Await.awaitAndCollect;
+import static org.cobbzilla.util.daemon.Await.awaitFirst;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 import static org.cobbzilla.wizard.resources.ResourceUtil.timeoutEx;
-import static org.cobbzilla.util.daemon.Await.awaitAndCollect;
-import static org.cobbzilla.util.daemon.Await.awaitFirst;
 import static org.cobbzilla.wizard.util.SpringUtil.autowire;
 
 @Transactional @Slf4j
@@ -299,10 +300,10 @@ public abstract class AbstractShardedDAO<E extends Shardable, D extends SingleSh
     }
 
     @Transactional(readOnly=true)
-    @Override public E findByUuid(final String uuid) { return findByUniqueField("uuid", uuid); }
+    @Override public E findByUuid(final String uuid) { return findByUniqueField(UUID, uuid); }
 
     @Transactional(readOnly=true)
-    public E findByUuid(final String uuid, boolean useCache) { return findByUniqueField("uuid", uuid, useCache); }
+    public E findByUuid(final String uuid, boolean useCache) { return findByUniqueField(UUID, uuid, useCache); }
 
     @Transactional(readOnly=true)
     @Override public E findByUniqueField(String field, Object value) { return findByUniqueField(field, value, true); }
@@ -523,7 +524,7 @@ public abstract class AbstractShardedDAO<E extends Shardable, D extends SingleSh
     }
 
     @Override public void delete(String uuid) {
-        final List<D> daos = hashOn.equals("uuid") ? getAllDAOs(uuid) : getAllDAOs();
+        final List<D> daos = hashOn.equals(UUID) ? getAllDAOs(uuid) : getAllDAOs();
         for (D dao : daos) dao.delete(uuid);
         flushShardCache(uuid);
     }

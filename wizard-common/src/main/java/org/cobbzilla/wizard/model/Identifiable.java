@@ -16,9 +16,13 @@ public interface Identifiable extends Serializable {
 
     int UUID_MAXLEN = BasicConstraintConstants.UUID_MAXLEN;
 
+    String CTIME = "ctime";
+    String MTIME = "mtime";
+
     String ENTITY_TYPE_HEADER_NAME = "ZZ-TYPE";
 
-    String[] IGNORABLE_UPDATE_FIELDS = { "uuid", "name", "children", "ctime", "mtime" };
+    String[] IGNORABLE_UPDATE_FIELDS = { UUID, "name", "children", CTIME, MTIME };
+
     default String[] excludeUpdateFields(boolean strict) { return StringUtil.EMPTY_ARRAY; }
 
     String getUuid();

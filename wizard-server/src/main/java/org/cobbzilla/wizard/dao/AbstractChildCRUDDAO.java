@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 
 public abstract class AbstractChildCRUDDAO<C extends ChildEntity, P> extends AbstractDAO<C> {
 
@@ -23,7 +24,7 @@ public abstract class AbstractChildCRUDDAO<C extends ChildEntity, P> extends Abs
     }
 
     @Override public C findByUuid(String uuid) {
-        return uniqueResult(Restrictions.eq("uuid", uuid));
+        return uniqueResult(Restrictions.eq(UUID, uuid));
     }
 
     @Override public C findByUniqueField(String field, Object value) {
@@ -48,7 +49,7 @@ public abstract class AbstractChildCRUDDAO<C extends ChildEntity, P> extends Abs
     }
 
     private P findParentByUuid(String parentId) {
-        return (P) uniqueResult(criteria(parentEntityClass).add(Restrictions.eq("uuid", parentId)));
+        return (P) uniqueResult(criteria(parentEntityClass).add(Restrictions.eq(UUID, parentId)));
     }
 
     public C create(String parentUuid, @Valid C child) {

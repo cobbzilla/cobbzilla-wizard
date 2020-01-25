@@ -26,6 +26,8 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.hashOf;
 import static org.cobbzilla.util.reflect.ReflectionUtil.fieldsWithAnnotation;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.sqlFilter;
+import static org.cobbzilla.wizard.model.Identifiable.CTIME;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 
 public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
 
@@ -76,7 +78,7 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
         return die("buildBound: no bound defined for: "+bound);
     }
 
-    default String getDefaultSort() { return "ctime"; }
+    default String getDefaultSort() { return CTIME; }
 
     String getSelectClause(SearchQuery searchQuery);
 
@@ -104,7 +106,7 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
         @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             switch (method.getName()) {
                 case "getRelated":
-                    final Object uuid = ReflectionUtil.get(proxy, "uuid");
+                    final Object uuid = ReflectionUtil.get(proxy, UUID);
                     if (uuid == null) return die("getRelated: no uuid found: "+proxy);
                     return this.getRelatedByUuid().get().computeIfAbsent(uuid.toString(), k -> new RelatedEntities());
             }

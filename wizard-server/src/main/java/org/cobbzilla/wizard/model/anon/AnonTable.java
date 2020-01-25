@@ -12,12 +12,13 @@ import java.util.List;
 import java.util.Set;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.wizard.model.Identifiable.UUID;
 
 @Accessors(chain=true) @ToString(of="table")
 public class AnonTable {
 
     @Getter @Setter private String table;
-    @Getter @Setter private String id = "uuid";
+    @Getter @Setter private String id = UUID;
     @Getter @Setter private AnonColumn[] columns;
     @Getter @Setter private boolean truncate = false;
 

@@ -374,7 +374,7 @@ public class EntityConfig {
         return this;
     }
 
-    private String fieldNameFromAccessor(AccessibleObject accessor) throws IllegalArgumentException {
+    public static String fieldNameFromAccessor(AccessibleObject accessor) throws IllegalArgumentException {
         if (accessor instanceof Field) return ((Field) accessor).getName();
 
         if (accessor instanceof Method) {
@@ -451,7 +451,7 @@ public class EntityConfig {
         if (ecToUpdate == null) return this;
 
         final String fieldName = fieldPathParts.get(fieldPathParts.size() - 1);
-        ecToUpdate.fields.put(fieldName, buildFieldCfgFromAnnotation(fieldName, annotation.fieldDef(), fieldIndexes));
+        ecToUpdate.fields.put(fieldName, buildFieldCfgFromAnnotation(fieldName, annotation.fieldDef(), null, null, fieldIndexes));
         return this;
     }
 
@@ -524,8 +524,14 @@ public class EntityConfig {
         }
     }
 
-    private EntityFieldConfig buildFieldCfgFromAnnotation(String fieldName, ECField fieldAnnotation, Map<String, Integer> fieldIndexes) {
-        EntityFieldConfig cfg = new EntityFieldConfig().setMode(fieldAnnotation.mode()).setType(fieldAnnotation.type());
+    private EntityFieldConfig buildFieldCfgFromAnnotation(String fieldName,
+                                                          ECField fieldAnnotation,
+                                                          AccessibleObject accessor,
+                                                          ECForeignKey fkAnnotation,
+                                                          Map<String, Integer> fieldIndexes) {
+        final EntityFieldConfig cfg = new EntityFieldConfig()
+                .setMode(fieldAnnotation.mode())
+                .setType(getFieldType(fieldName, fieldAnnotation, accessor, fkAnnotation));
         if (!empty(fieldAnnotation.name())) cfg.setName(fieldAnnotation.name());
         if (!empty(fieldAnnotation.displayName())) cfg.setDisplayName(fieldAnnotation.displayName());
         if (fieldAnnotation.length() > 0) cfg.setLength(fieldAnnotation.length());
@@ -540,13 +546,30 @@ public class EntityConfig {
         return cfg;
     }
 
+    private EntityFieldType getFieldType(String fieldName, ECField fieldAnnotation, AccessibleObject accessor, ECForeignKey fkAnnotation) {
+        if (fieldAnnotation.type() != EntityFieldType.none_set) return fieldAnnotation.type();
+        if (fkAnnotation != null) return EntityFieldType.reference;
+        if (accessor != null) {
+            if (accessor instanceof Field) {
+                return EntityFieldType.guessFieldType((Field) accessor);
+            } else if (accessor instanceof Method) {
+                return EntityFieldType.guessFieldType((Method) accessor);
+            } else {
+                log.warn("getFieldType("+fieldName+"): accessor is neither Field nor Method: "+accessor.getClass().getName());
+            }
+        }
+        log.warn("getFieldType("+fieldName+"): error detecting type, defaulting to 'string'");
+        return EntityFieldType.string;
+    }
+
     private EntityFieldConfig buildFieldConfig(AccessibleObject accessor, Map<String, Integer> fieldIndexes) {
         final String fieldName = fieldNameFromAccessor(accessor);
         final EntityFieldConfig cfg = EntityFieldConfig.field(fieldName);
 
         final ECField fieldAnnotation = annotationFromAccessor(accessor, ECField.class);
+        final ECForeignKey fkAnnotation = annotationFromAccessor(accessor, ECForeignKey.class);
         if (fieldAnnotation != null) {
-            return buildFieldCfgFromAnnotation(fieldName, fieldAnnotation, fieldIndexes);
+            return buildFieldCfgFromAnnotation(fieldName, fieldAnnotation, accessor, fkAnnotation, fieldIndexes);
         }
 
         if (!(accessor instanceof Field) && !(accessor instanceof Method)) {

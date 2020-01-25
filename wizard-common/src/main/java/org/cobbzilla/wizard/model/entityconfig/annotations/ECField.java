@@ -17,7 +17,7 @@ public @interface ECField {
     String name() default "";
     String displayName() default "";
     EntityFieldMode mode() default EntityFieldMode.standard;
-    EntityFieldType type() default EntityFieldType.string;
+    EntityFieldType type() default EntityFieldType.none_set;
     int length() default -1;
     EntityFieldControl control() default EntityFieldControl.unset;
     String options() default "";

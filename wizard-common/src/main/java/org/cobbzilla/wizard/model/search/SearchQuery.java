@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.wizard.model.Identifiable.CTIME;
 
 @NoArgsConstructor @Accessors(chain=true) @ToString
 public class SearchQuery {
@@ -35,7 +36,7 @@ public class SearchQuery {
 
     public static final int MAX_FILTER_LENGTH = 50;
     public static final int MAX_SORTFIELD_LENGTH = 50;
-    public static final String DEFAULT_SORT_FIELD = "ctime";
+    public static final String DEFAULT_SORT_FIELD = CTIME;
 
     public enum SortOrder {
         ASC, DESC;
