@@ -90,7 +90,9 @@ public class SqlDefaultSearchField implements SearchField {
                     bounds.addAll(asList(bindUuid(name())));
                     break;
                 case http_url: case us_phone: case us_state: case us_zip:
-                case email: case time_zone: case locale: case ip4: case ip6:
+                case email: case time_zone: case locale: case currency:
+                case ip4: case ip6: case hostname: case fqdn:
+                case error: case opaque_string:
                     bounds.addAll(asList(bindNonSortableString(name())));
                     break;
                 case string:

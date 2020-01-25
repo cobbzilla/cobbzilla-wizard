@@ -33,6 +33,9 @@ public enum EntityFieldType {
     /** a string of characters where comparisons like lt/le/gt/ge are not useful */
     opaque_string (new EntityConfigFieldValidator_string()),
 
+    /** an error/exception string */
+    error (new EntityConfigFieldValidator_string()),
+
     /** a string containing an email address */
     email (new EntityConfigFieldValidator_email()),
 
@@ -96,11 +99,20 @@ public enum EntityFieldType {
     /** a locale (for example en_US) */
     locale  (null),
 
+    /** a 3-letter currency code (for example USD) */
+    currency  (null),
+
     /** an IPv4 address */
     ip4  (null),
 
     /** an IPv6 address */
     ip6  (null),
+
+    /** a hostname */
+    hostname  (null),
+
+    /** a fully-qualified domain name */
+    fqdn  (null),
 
     /** a 2-letter US state abbreviation */
     us_state  (null),
@@ -180,14 +192,18 @@ public enum EntityFieldType {
                 return integer;
             case "char":
             case "java.lang.Character":
+                return string;
             case "java.lang.String":
                 if (name.equals(UUID)
                         || name.equals("description")
                         || name.endsWith("Class") || name.endsWith("ClassName")
-                        || name.equals("host") || name.endsWith("Host") || name.equals("fqdn")
                         || name.equals("json") || name.endsWith("Json")) return opaque_string;
+                if (name.equals(currency.name())) return currency;
                 if (name.equals(locale.name())) return locale;
-                if (name.equals(time_zone.name()) || name.equals("timezone")) return time_zone;
+                if (name.equals(fqdn.name())) return fqdn;
+                if (name.equals(hostname.name()) || name.equals("host") || name.endsWith("Host")) return hostname;
+                if (name.equals(time_zone.name()) || name.toLowerCase().equals("timezone")) return time_zone;
+                if (name.equals(error.name()) || name.equals("exception")) return error;
                 if (name.equals("url")) return http_url;
                 return string;
             case "float":
