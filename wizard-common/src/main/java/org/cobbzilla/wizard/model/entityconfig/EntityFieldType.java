@@ -13,8 +13,7 @@ import java.lang.reflect.Method;
 import java.util.Locale;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.wizard.model.Identifiable.CTIME;
-import static org.cobbzilla.wizard.model.Identifiable.MTIME;
+import static org.cobbzilla.wizard.model.Identifiable.*;
 import static org.cobbzilla.wizard.model.entityconfig.EntityConfig.fieldNameFromAccessor;
 
 @AllArgsConstructor @Slf4j
@@ -30,6 +29,9 @@ public enum EntityFieldType {
 
     /** a string of characters */
     string (new EntityConfigFieldValidator_string()),
+
+    /** a string of characters where comparisons like lt/le/gt/ge are not useful */
+    opaque_string (new EntityConfigFieldValidator_string()),
 
     /** a string containing an email address */
     email (new EntityConfigFieldValidator_email()),
@@ -179,6 +181,14 @@ public enum EntityFieldType {
             case "char":
             case "java.lang.Character":
             case "java.lang.String":
+                if (name.equals(UUID)
+                        || name.equals("description")
+                        || name.endsWith("Class") || name.endsWith("ClassName")
+                        || name.equals("host") || name.endsWith("Host") || name.equals("fqdn")
+                        || name.equals("json") || name.endsWith("Json")) return opaque_string;
+                if (name.equals(locale.name())) return locale;
+                if (name.equals(time_zone.name()) || name.equals("timezone")) return time_zone;
+                if (name.equals("url")) return http_url;
                 return string;
             case "float":
             case "double":
