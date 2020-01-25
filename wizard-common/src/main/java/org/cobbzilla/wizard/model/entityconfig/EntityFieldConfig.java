@@ -142,7 +142,7 @@ public class EntityFieldConfig implements VerifyLogAware<EntityFieldConfig> {
      */
     @Getter @Setter private EntityFieldReference reference = null;
     @JsonIgnore public boolean isParentReference () {
-        return getType() == EntityFieldType.reference && getReference().getEntity().equals(EntityFieldReference.REF_PARENT);
+        return getType() == EntityFieldType.reference && getReference() != null && getReference().getEntity().equals(EntityFieldReference.REF_PARENT);
     }
 
     /**
