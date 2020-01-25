@@ -4,6 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
+import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKey;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
 import org.cobbzilla.wizard.model.search.SearchBound;
 import org.cobbzilla.wizard.model.search.SearchBoundBuilder;
@@ -59,7 +60,12 @@ public class SqlDefaultSearchField implements SearchField {
                 }
             } else {
                 final ECField ecField = f.getAnnotation(ECField.class);
-                fieldType = ecField != null ? ecField.type() : guessFieldType(f);
+                final ECForeignKey ecForeignKey = f.getAnnotation(ECForeignKey.class);
+                if (ecForeignKey != null) {
+                    fieldType = reference;
+                } else {
+                    fieldType = ecField != null ? ecField.type() : guessFieldType(f);
+                }
             }
         }
         if (fieldType != null) {
@@ -78,6 +84,9 @@ public class SqlDefaultSearchField implements SearchField {
                     break;
                 case flag:
                     bounds.addAll(asList(bindBoolean(name())));
+                    break;
+                case reference:
+                    bounds.addAll(asList(bindUuid(name())));
                     break;
                 case string: case email: case time_zone: case locale:
                 case ip4: case ip6: case http_url:
