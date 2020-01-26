@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.NameAndValue;
-import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.IdentifiableBase;
@@ -34,7 +33,9 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.reflect.ReflectionUtil.getTypeParameter;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
+import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 
 /**
  * An abstract base class for Hibernate DAO classes.
@@ -53,7 +54,9 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
     /**
      * Creates a new DAO with a given session provider.
      */
-    public AbstractDAO() { this.entityClass = ReflectionUtil.getTypeParameter(getClass()); }
+    public AbstractDAO() { this.entityClass = getTypeParameter(getClass()); }
+
+    public String tableName() { return camelCaseToSnakeCase(getEntityClass().getSimpleName()); }
 
     /**
      * Creates a new {@link Criteria} query for {@code <E>}.
@@ -105,9 +108,7 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
         return (E) DAOUtil.uniqueResult(getHibernateTemplate().findByCriteria(criteria));
     }
 
-    protected E uniqueResult(Criterion expression) {
-        return uniqueResult(criteria().add(expression));
-    }
+    protected E uniqueResult(Criterion expression) { return uniqueResult(criteria().add(expression)); }
 
     /**
      * Get the results of a {@link Criteria} query.
@@ -235,9 +236,7 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
         return proxy;
     }
 
-    public void delete(Collection<E> entities) {
-        for (E entity : entities) delete(entity.getUuid());
-    }
+    public void delete(Collection<E> entities) { for (E entity : entities) delete(entity.getUuid()); }
 
     public static final String entityAlias = "x";
     public static final String FILTER_PARAM = "filter";
