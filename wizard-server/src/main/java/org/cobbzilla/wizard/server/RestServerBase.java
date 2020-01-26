@@ -29,6 +29,7 @@ import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.message.internal.StreamingOutputProvider;
 import org.glassfish.jersey.server.ContainerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
@@ -48,8 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.network.NetworkUtil.IPv4_ALL_ADDRS;
-import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
-import static org.cobbzilla.util.reflect.ReflectionUtil.forNames;
+import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.string.StringUtil.EMPTY_ARRAY;
 import static org.cobbzilla.util.system.Sleep.sleep;
 
@@ -276,6 +276,14 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         }
         if (jerseyConfiguration.hasProviderPackages()) {
             for (Class c : findClassesWithAnnotation(jerseyConfiguration.getProviderPackages(), Provider.class)) rc.register(c);
+        }
+        if (jerseyConfiguration.hasServerProperties()) {
+            final Map<String, Object> props = new HashMap<>();
+            for (Map.Entry<String, Object> entry : jerseyConfiguration.getServerProperties().entrySet()) {
+                final String realKey = constValue(ServerProperties.class, entry.getKey());
+                props.put(realKey != null ? realKey : entry.getKey(), entry.getValue());
+            }
+            rc.setProperties(props);
         }
 
         configuration.setValidator(new Validator());

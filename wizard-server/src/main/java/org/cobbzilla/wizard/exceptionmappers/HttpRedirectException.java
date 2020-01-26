@@ -13,4 +13,6 @@ public class HttpRedirectException extends RuntimeException {
     @Getter @Setter private int status = HttpStatusCodes.FOUND;
     @Getter @Setter private String location = "/";
 
+    public HttpRedirectException (String location) { this.location = location; }
+
 }

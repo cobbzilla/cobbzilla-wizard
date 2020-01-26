@@ -8,6 +8,7 @@ import org.cobbzilla.wizard.api.ApiException;
 import org.cobbzilla.wizard.api.ForbiddenException;
 import org.cobbzilla.wizard.api.NotFoundException;
 import org.cobbzilla.wizard.api.ValidationException;
+import org.cobbzilla.wizard.exceptionmappers.HttpRedirectException;
 import org.cobbzilla.wizard.stream.ByteStreamingOutput;
 import org.cobbzilla.wizard.stream.FileStreamingOutput;
 import org.cobbzilla.wizard.stream.SendableResource;
@@ -121,6 +122,11 @@ public class ResourceUtil {
     public static Response redirect (String location) { return redirect(FOUND, location); }
     public static Response redirect (int status, String location) {
         return Response.status(status).header(LOCATION, location).build();
+    }
+
+    public static Response forceRedirect (String location) { return forceRedirect(FOUND, location); }
+    public static Response forceRedirect (int status, String location) {
+        throw new HttpRedirectException(status, location);
     }
 
     public static Response forbidden() { return status(FORBIDDEN); }
