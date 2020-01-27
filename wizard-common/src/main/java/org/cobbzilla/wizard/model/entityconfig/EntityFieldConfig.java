@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToString;
@@ -34,6 +33,9 @@ public class EntityFieldConfig implements VerifyLogAware<EntityFieldConfig> {
      * used in the EntityConfig's `fields` map.
      */
     @Getter @Setter private String name;
+
+    @Getter @Setter private Boolean required;
+    public boolean required() { return bool(getRequired()); }
 
     /**
      * The order the field should appear in when viewing a single object. Lower indexes are shown first.
