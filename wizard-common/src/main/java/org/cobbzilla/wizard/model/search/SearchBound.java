@@ -14,13 +14,12 @@ import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
 public class SearchBound {
 
+    public SearchBound(SearchBound bound) { copy(this, bound); }
+
     @Getter @Setter private String name;
     @Getter @Setter private SearchBoundComparison comparison;
 
     @Getter @Setter private SearchFieldType type;
-
-    public SearchBound(SearchBound bound) { copy(this, bound); }
-
     public boolean hasType () { return type != null; }
 
     @Getter @Setter private String[] params;
