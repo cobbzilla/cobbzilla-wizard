@@ -65,7 +65,7 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
 
         @Override public void report(Exception e) {
             if (key != null) {
-                log.error(e.toString());
+                log.error(e.toString(), e);
                 synchronized (fifo) { fifo.add(e); }
             } else {
                 if (log.isWarnEnabled()) log.warn("report: could not send exception to error reporting API: "+e, e);
