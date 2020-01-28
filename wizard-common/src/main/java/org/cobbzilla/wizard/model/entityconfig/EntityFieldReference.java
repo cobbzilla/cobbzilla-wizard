@@ -1,6 +1,8 @@
 package org.cobbzilla.wizard.model.entityconfig;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
@@ -9,7 +11,13 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
  * When the EntityFieldType of a field is 'reference', this object is also attached to the field to describe
  * how to reach the reference.
  */
+@NoArgsConstructor @EqualsAndHashCode(of={"entity", "field"})
 public class EntityFieldReference {
+
+    public EntityFieldReference (String entity, String field) {
+        this.entity = entity;
+        this.field = field;
+    }
 
     /** A special value that can be used by child entities to indicate that the lexically enclosing entity is their parent. */
     public static final String REF_PARENT = ":parent";

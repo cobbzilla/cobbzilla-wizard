@@ -16,6 +16,7 @@ import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.entityconfig.EntityFieldReference;
 import org.cobbzilla.wizard.model.entityconfig.EntityReferences;
 import org.springframework.context.annotation.Bean;
 
@@ -23,6 +24,7 @@ import javax.persistence.Transient;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,8 @@ import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
 import static org.cobbzilla.util.system.CommandShell.exec;
 import static org.cobbzilla.util.system.CommandShell.execScript;
+import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependencyRefs;
+import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependentEntities;
 
 @Slf4j
 public class PgRestServerConfiguration extends RestServerConfiguration implements HasDatabaseConfiguration {
@@ -322,6 +326,23 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         final ArrayList<Class<? extends Identifiable>> reversed = new ArrayList<>(getEntityClasses());
         Collections.reverse(reversed);
         return reversed;
+    }
+
+    private Map<Class<? extends Identifiable>, List<Class<? extends Identifiable>>> dependencyCache = new ConcurrentHashMap<>();
+    public List<Class<? extends Identifiable>> getDependencies (Class<? extends Identifiable> entityClass) {
+        return dependencyCache.computeIfAbsent(entityClass, c -> getDependentEntities(entityClass, getEntityClassesReverse()));
+    }
+
+    private Map<Class<? extends Identifiable>, Collection<EntityFieldReference>> dependencyDAOCache = new ConcurrentHashMap<>();
+    public Collection<EntityFieldReference> dependencyRefs(Class<? extends Identifiable> entityClass) {
+        return dependencyDAOCache.computeIfAbsent(entityClass, c -> getDependencyRefs(c, getDependencies(c)));
+    }
+
+    public void deleteDependencies (Identifiable thing) {
+        final String[] uuidArg = {thing.getUuid()};
+        dependencyRefs(thing.getClass()).forEach(
+                dep -> execSql("DELETE FROM " + camelCaseToSnakeCase(dep.getEntity()) + " WHERE " + camelCaseToSnakeCase(dep.getField()) + " = ?", uuidArg)
+        );
     }
 
     @Getter(lazy=true) private final List<NameAndValue> sortedSimpleEntityClassMap = initSortedSimpleEntityClassMap();

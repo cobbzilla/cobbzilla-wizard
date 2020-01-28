@@ -14,9 +14,7 @@ import org.cobbzilla.wizard.model.entityconfig.annotations.ECIndexes;
 import org.cobbzilla.wizard.util.ClasspathScanner;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -54,6 +52,42 @@ public class EntityReferences {
         final Topology<Class<? extends Identifiable>> topology = new Topology<>();
         classes.forEach(c -> topology.addNode(c, getReferencedEntities(c)));
         return topology.sortReversed();
+    }
+
+    public static boolean hasForeignKey(Class candidate, Class<? extends Identifiable> entityClass) {
+        if (candidate.equals(Object.class)) return false;
+        if (Arrays.stream(candidate.getDeclaredFields())
+                .filter(EntityReferences.FIELD_HAS_FK)
+                .anyMatch(f -> f.getAnnotation(ECForeignKey.class).entity().equals(entityClass))) {
+            return true;
+        }
+        return hasForeignKey(candidate.getSuperclass(), entityClass);
+    }
+
+    public static List<Class<? extends Identifiable>> getDependentEntities(Class<? extends Identifiable> entityClass, List<Class<? extends Identifiable>> candidates) {
+        return candidates.stream()
+                .filter(candidate -> hasForeignKey(candidate, entityClass))
+                .collect(Collectors.toList());
+    }
+
+    public static Collection<EntityFieldReference> getDependencyRefs(Class<? extends Identifiable> entityClass,
+                                                                     List<Class<? extends Identifiable>> candidates) {
+        final Set<EntityFieldReference> refs = new LinkedHashSet<>();
+        candidates.forEach(dep -> refs.addAll(getDependencyRefs(entityClass, dep, dep, refs)));
+        return refs;
+    }
+
+    private static Set<EntityFieldReference> getDependencyRefs(Class<? extends Identifiable> entityClass,
+                                                               Class dependency,
+                                                               Class dependencyOrParent,
+                                                               Set<EntityFieldReference> refs) {
+        if (dependencyOrParent.equals(Object.class)) return refs;
+        Arrays.stream(dependencyOrParent.getDeclaredFields())
+                .filter(FIELD_HAS_FK)
+                .filter(f -> f.getAnnotation(ECForeignKey.class).entity().equals(entityClass))
+                .forEach(f -> refs.add(new EntityFieldReference(dependency.getSimpleName(), f.getName())));
+        refs.addAll(getDependencyRefs(entityClass, dependency, dependencyOrParent.getSuperclass(), refs));
+        return refs;
     }
 
     public List<String> generateConstraintSql() { return generateConstraintSql(true); }
