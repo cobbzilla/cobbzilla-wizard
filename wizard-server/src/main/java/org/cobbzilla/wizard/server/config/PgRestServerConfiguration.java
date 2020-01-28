@@ -15,6 +15,7 @@ import org.cobbzilla.util.jdbc.UncheckedSqlException;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandResult;
+import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldReference;
 import org.cobbzilla.wizard.model.entityconfig.EntityReferences;
@@ -339,9 +340,11 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
     }
 
     public void deleteDependencies (Identifiable thing) {
-        final String[] uuidArg = {thing.getUuid()};
         dependencyRefs(thing.getClass()).forEach(
-                dep -> execSql("DELETE FROM " + camelCaseToSnakeCase(dep.getEntity()) + " WHERE " + camelCaseToSnakeCase(dep.getField()) + " = ?", uuidArg)
+                dep -> {
+                    final DAO dao = getDaoForEntityClass(dep.getEntity());
+                    dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                }
         );
     }
 
