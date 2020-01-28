@@ -2,8 +2,10 @@ package org.cobbzilla.wizard.model.entityconfig;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.wizard.model.entityconfig.validation.*;
+import org.cobbzilla.wizard.model.search.SearchFieldType;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
 
@@ -40,94 +42,94 @@ public enum EntityFieldType {
     email (new EntityConfigFieldValidator_email()),
 
     /** an integer-valued number */
-    integer (new EntityConfigFieldValidator_integer()),
+    integer (SearchFieldType.integer, new EntityConfigFieldValidator_integer()),
 
     /** a real number */
-    decimal  (new EntityConfigFieldValidator_decimal()),
+    decimal  (SearchFieldType.decimal, new EntityConfigFieldValidator_decimal()),
 
     /** an integer-valued monetary amount */
-    money_integer  (null),
+    money_integer  (SearchFieldType.integer),
 
     /** a real-valued monetary amount */
-    money_decimal  (null),
+    money_decimal  (SearchFieldType.decimal),
 
     /** a boolean value */
-    flag  (new EntityConfigFieldValidator_boolean()),
+    flag  (SearchFieldType.flag, new EntityConfigFieldValidator_boolean()),
 
     /** a date value */
-    date  (null),
+    date  (SearchFieldType.integer),
 
     /** a date value in the past (before current date) */
-    date_past  (null),
+    date_past  (SearchFieldType.integer),
 
     /** a date value in the future (or current date) */
-    date_future  (null),
+    date_future  (SearchFieldType.integer),
 
     /** a field for age */
-    age  (null),
+    age  (SearchFieldType.integer),
 
     /** a 4-digit year field */
-    year  (null),
+    year  (SearchFieldType.integer),
 
     /** a 4-digit year field that starts with the current year and goes into the past */
-    year_past  (null),
+    year_past  (SearchFieldType.integer),
 
     /** a 4-digit year field that starts with the current year and goes into the future */
-    year_future  (null),
+    year_future  (SearchFieldType.integer),
 
     /** a 4-digit year and 2-digit month field (YYYY-MM) */
-    year_and_month  (null),
+    year_and_month  (SearchFieldType.integer),
 
     /** a 4-digit year and 2-digit month field (YYYY-MM) field that starts with the current year and goes into the past */
-    year_and_month_past  (null),
+    year_and_month_past  (SearchFieldType.integer),
 
     /** a 4-digit year and 2-digit month field (YYYY-MM) field that starts with the current year and goes into the future */
-    year_and_month_future  (null),
+    year_and_month_future  (SearchFieldType.integer),
 
     /** a date or date/time value, represented as milliseconds since 1/1/1970 */
-    epoch_time  (new EntityConfigFieldValidator_integer()),
+    epoch_time  (SearchFieldType.integer, new EntityConfigFieldValidator_integer()),
 
     /** a date or date/time value, represented as milliseconds since 1/1/1970 */
-    expiration_time  (new EntityConfigFieldValidator_integer()),
+    expiration_time  (SearchFieldType.integer, new EntityConfigFieldValidator_integer()),
 
     /** millisecond value for a time duration */
-    time_duration (new EntityConfigFieldValidator_integer()),
+    time_duration (SearchFieldType.integer, new EntityConfigFieldValidator_integer()),
 
     /** a time-zone (for example America/New York) */
-    time_zone  (null),
+    time_zone  (),
 
     /** a locale (for example en_US) */
-    locale  (null),
+    locale  (),
 
     /** a 3-letter currency code (for example USD) */
-    currency  (null),
+    currency  (),
 
     /** an IPv4 address */
-    ip4  (null),
+    ip4  (),
 
     /** an IPv6 address */
-    ip6  (null),
+    ip6  (),
 
     /** a hostname */
-    hostname  (null),
+    hostname  (),
 
     /** a fully-qualified domain name */
-    fqdn  (null),
+    fqdn  (),
 
     /** a 2-letter US state abbreviation */
-    us_state  (null),
+    us_state  (),
 
     /** a US ZIP code */
-    us_zip  (null),
+    us_zip  (),
 
     /** HTTP URL */
     http_url (new EntityConfigFieldValidator_httpUrl()),
 
     /** a reference to another EntityConfig instance */
-    reference  (null),
+    reference  (),
 
     /** a base64-encoded PNG image  */
-    base64_png  (null),
+    base64_png  (),
 
     /** an embedded sub-object */
     embedded  (new EntityConfigFieldValidator_embedded()),
@@ -135,7 +137,23 @@ public enum EntityFieldType {
     /** a US phone number */
     us_phone (new EntityConfigFieldValidator_USPhone());
 
+    @Getter private SearchFieldType searchFieldType;
     private EntityConfigFieldValidator fieldValidator;
+
+    EntityFieldType (EntityConfigFieldValidator validator) {
+        this.searchFieldType = SearchFieldType.string;
+        this.fieldValidator = validator;
+    }
+
+    EntityFieldType (SearchFieldType searchFieldType) {
+        this.searchFieldType = searchFieldType;
+        this.fieldValidator = null;
+    }
+
+    EntityFieldType () {
+        this.searchFieldType = SearchFieldType.string;
+        this.fieldValidator = null;
+    }
 
     /** Jackson-hook to create a new instance based on a string, case-insensitively */
     @JsonCreator public static EntityFieldType fromString(String val) { return valueOf(val.toLowerCase()); }

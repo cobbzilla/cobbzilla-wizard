@@ -1,6 +1,7 @@
 package org.cobbzilla.wizard.model.entityconfig.annotations;
 
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
+import org.cobbzilla.wizard.model.search.SearchBoundComparison;
 import org.cobbzilla.wizard.model.search.SqlViewFieldSetter;
 import org.jasypt.hibernate4.encryptor.HibernatePBEStringEncryptor;
 
@@ -20,6 +21,7 @@ public @interface ECSearchable {
     String sortField() default "";
     EntityFieldType type() default EntityFieldType.none_set;
     String bounds() default "";
+    SearchBoundComparison[] operators() default {};
     String entity() default "";
     ECForeignKeySearchDepth fkDepth() default ECForeignKeySearchDepth.inherit;
 

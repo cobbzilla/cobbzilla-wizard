@@ -6,6 +6,8 @@ import org.cobbzilla.util.collection.ComparisonOperator;
 import org.cobbzilla.util.time.TimePeriodType;
 import org.cobbzilla.util.time.TimeUtil;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,7 +29,20 @@ public enum SearchBoundComparison {
     lt      (sqlCompare(ComparisonOperator.lt.sql, SearchBoundComparison::parseCompareArgument)),
     le      (sqlCompare(ComparisonOperator.le.sql, SearchBoundComparison::parseCompareArgument)),
 
-    like    (sqlCompare( "ilike", SearchBoundComparison::parseLikeArgument)),
+    like    (sqlCompare(Constants.ILIKE, SearchBoundComparison::parseLikeArgument)),
+
+    like_any((bound, params, value, locale) -> {
+        final String[] values = value.split(Constants.ILIKE_SEP);
+        final List<Object> valueList = Arrays.asList(values);
+        final String[] operators = new String[values.length];
+        Arrays.fill(operators, Constants.ILIKE);
+        final SearchBoundValueFunction[] valueFuncs = new SearchBoundValueFunction[values.length];
+        Arrays.fill(valueFuncs, (SearchBoundValueFunction) (bound1, value1, locale1) -> value1);
+        for (int i=0; i<values.length; i++) {
+            params.add(valueFuncs[i].paramValue(bound, values[i], locale));
+        }
+        return sqlOrCompare(operators, valueFuncs, values).generateSqlAndAddParams(bound, new ArrayList<>(valueList), null, locale);
+    }),
 
     is_null (sqlNullCompare(true)),
     not_null(sqlNullCompare(false)),
@@ -126,4 +141,8 @@ public enum SearchBoundComparison {
 
     public static String customPrefix(String op) { return SearchBoundComparison.custom.name() + OP_SEP + op + OP_SEP; }
 
+    public static class Constants {
+        public static final String ILIKE = "ilike";
+        public static final String ILIKE_SEP = ",";
+    }
 }

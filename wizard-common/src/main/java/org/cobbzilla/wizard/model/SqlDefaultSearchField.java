@@ -6,9 +6,7 @@ import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKey;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
-import org.cobbzilla.wizard.model.search.SearchBound;
-import org.cobbzilla.wizard.model.search.SearchBoundBuilder;
-import org.cobbzilla.wizard.model.search.SearchField;
+import org.cobbzilla.wizard.model.search.*;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -51,22 +49,26 @@ public class SqlDefaultSearchField implements SearchField {
     @Override public SearchBound[] getBounds() {
         final List<SearchBound> bounds = new ArrayList<>();
         EntityFieldType fieldType = search.type();
-        if (fieldType == none_set) {
-            if (!empty(search.bounds())) {
-                try {
-                    final SearchBoundBuilder builder = instantiate(search.bounds());
-                    return builder.build(bound, value, params, locale);
-                } catch (Exception e) {
-                    return die("getBounds(" + bound + "): error invoking  custom SearchBoundBuilder: " + search.bounds() + ": " + e);
-                }
+        if (!empty(search.bounds())) {
+            try {
+                final SearchBoundBuilder builder = instantiate(search.bounds());
+                return builder.build(bound, value, params, locale);
+            } catch (Exception e) {
+                return die("getBounds(" + bound + "): error invoking  custom SearchBoundBuilder: " + search.bounds() + ": " + e);
+            }
+
+        } else if (!empty(search.operators())) {
+            for (SearchBoundComparison op : search.operators()) {
+                bounds.add(op.bind(name(), SearchFieldType.string));
+            }
+
+        } else if (fieldType == none_set) {
+            final ECField ecField = f.getAnnotation(ECField.class);
+            final ECForeignKey ecForeignKey = f.getAnnotation(ECForeignKey.class);
+            if (ecForeignKey != null) {
+                fieldType = reference;
             } else {
-                final ECField ecField = f.getAnnotation(ECField.class);
-                final ECForeignKey ecForeignKey = f.getAnnotation(ECForeignKey.class);
-                if (ecForeignKey != null) {
-                    fieldType = reference;
-                } else {
-                    fieldType = ecField != null && ecField.type() != none_set ? ecField.type() : guessFieldType(f);
-                }
+                fieldType = ecField != null && ecField.type() != none_set ? ecField.type() : guessFieldType(f);
             }
         }
         if (fieldType != null) {

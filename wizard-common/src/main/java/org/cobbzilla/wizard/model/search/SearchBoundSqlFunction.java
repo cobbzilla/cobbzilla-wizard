@@ -38,6 +38,18 @@ public interface SearchBoundSqlFunction {
         };
     }
 
+    static SearchBoundSqlFunction sqlOrCompare(String[] operators, SearchBoundValueFunction[] valueFunctions, String[] values) {
+        return (bound, params, value, locale) -> {
+            final StringBuilder b = new StringBuilder();
+            for (int i = 0; i < operators.length; i++) {
+                if (b.length() > 0) b.append(") OR (");
+                b.append(bound.getName()).append(" ").append(operators[i]).append(" ?");
+                params.add(valueFunctions[i].paramValue(bound, values[i], locale));
+            }
+            return b.insert(0, "(").append(")").toString();
+        };
+    }
+
     static SearchBoundSqlFunction sqlNullCompare(boolean isNull) {
         return (bound, params, value, locale) -> bound.getName() + " IS " + (!isNull ? "NOT " : "") + " NULL";
     }
