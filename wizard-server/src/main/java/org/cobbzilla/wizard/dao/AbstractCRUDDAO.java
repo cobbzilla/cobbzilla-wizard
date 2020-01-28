@@ -247,7 +247,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     }
 
     public void bulkDelete(String field, String value) {
-        getHibernateTemplate().getSessionFactory().openStatelessSession()
+        getHibernateTemplate().getSessionFactory().getCurrentSession()
                 .createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
                 .setString(field, value)
                 .executeUpdate();
