@@ -246,6 +246,13 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         }
     }
 
+    public void bulkDelete(String field, String value) {
+        getHibernateTemplate().getSessionFactory().openStatelessSession()
+                .createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
+                .setString(field, value)
+                .executeUpdate();
+    }
+
     @Transactional(readOnly=true)
     @Override public E findByUniqueField(String field, Object value) {
         return uniqueResult(value == null ? isNull(field) : eq(field, value));

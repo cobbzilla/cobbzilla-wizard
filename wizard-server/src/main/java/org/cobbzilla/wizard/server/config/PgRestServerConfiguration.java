@@ -15,6 +15,7 @@ import org.cobbzilla.util.jdbc.UncheckedSqlException;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandResult;
+import org.cobbzilla.wizard.dao.AbstractCRUDDAO;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldReference;
@@ -343,7 +344,11 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         dependencyRefs(thing.getClass()).forEach(
                 dep -> {
                     final DAO dao = getDaoForEntityClass(dep.getEntity());
-                    dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                    if (dao instanceof AbstractCRUDDAO) {
+                        ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
+                    } else {
+                        dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                    }
                 }
         );
     }
