@@ -52,8 +52,8 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
 
     public static final String NO_SUB_KEY = "__no_subkey";
 
-    public static final Order CTIME_ASC = Order.asc(CTIME);
-    public static final Order CTIME_DESC = Order.desc(CTIME);
+    public static final Order ORDER_CTIME_ASC = Order.asc(CTIME);
+    public static final Order ORDER_CTIME_DESC = Order.desc(CTIME);
 
     public <A extends AuditLog> AuditLogDAO<A> getAuditLogDAO() { return null; }
     public boolean auditingEnabled () { return getAuditLogDAO() != null; }
