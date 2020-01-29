@@ -5,12 +5,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.wizard.model.Identifiable;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKey;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECForeignKeySearchDepth;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchDepth;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECSearchable;
+import org.cobbzilla.wizard.model.entityconfig.annotations.*;
 import org.cobbzilla.wizard.model.search.*;
 
+import javax.persistence.Column;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -40,7 +38,9 @@ public class SearchViewContext {
     @Getter private final List<String> viewColumns = new ArrayList<>();
     @Getter private final List<String> selectColumns = new ArrayList<>();
     @Getter private final Map<String, String> fromTables = new LinkedHashMap<>();
-    @Getter private final List<String> whereClauses = new ArrayList<>();
+    @Getter private final Map<String, String> joins = new LinkedHashMap<>();
+    public boolean getHasJoins() { return !joins.isEmpty(); }
+
     @Getter private final String rendered;
 
     public List<String> getFromClauses () {
@@ -63,7 +63,7 @@ public class SearchViewContext {
         final String tableName = dbName(this.clazz);
         fromTables.put(tableName, tableName);
         searchFields = initSearchFields();
-        viewName = safeDbName(dbName(clazz) + "_search_" + hashOf(viewColumns, selectColumns, fromTables.entrySet(), whereClauses));
+        viewName = safeDbName(dbName(clazz) + "_search_" + hashOf(viewColumns, selectColumns, fromTables.entrySet(), joins.entrySet()));
         rendered = HandlebarsUtil.apply(getHandlebars(), getDefaultViewTemplate(), toMap(this));
     }
 
@@ -85,13 +85,13 @@ public class SearchViewContext {
                                                  ECForeignKeySearchDepth mainDepth,
                                                  ECForeignKeySearchDepth currentDepth) {
         Class c = entityClass;
+        final String entityTable = dbName(entityClass);
         while (!c.equals(Object.class)) {
             final ECSearchDepth classSearchDepth = (ECSearchDepth) c.getAnnotation(ECSearchDepth.class);
             for (Field f : fieldsWithAnnotation(entityClass, ECSearchable.class)) {
                 final ECSearchable search = f.getAnnotation(ECSearchable.class);
                 final ECForeignKey fk = f.getAnnotation(ECForeignKey.class);
 
-                final String entityTable = dbName(entityClass);
                 final String fieldName = dbName(f.getName());
                 final String viewFieldName = safeDbName(empty(prefix) ? fieldName : prefix+"_"+fieldName);
 
@@ -128,6 +128,9 @@ public class SearchViewContext {
                     if (mainDepth == none) continue;
                     if (currentDepth == none) continue;
 
+                    final Column column = f.getAnnotation(Column.class);
+                    final boolean outerJoin = column != null && column.nullable();
+
                     final ECForeignKeySearchDepth classDepth = classSearchDepth == null ? inherit : classSearchDepth.fkDepth();
                     if (classDepth == none && !(mainDepth == deep || currentDepth == deep)) continue;
 
@@ -137,10 +140,18 @@ public class SearchViewContext {
                     final String fkTableName = dbName(fk.entity());
                     final String tableAlias = viewFieldName;
 
-                    fromTables.putIfAbsent(tableAlias, fkTableName);
-                    final String whereClause = tableAlias+".uuid = "+(empty(prefix) ? entityTable : prefix)+"."+fieldName;
-                    if (!whereClauses.contains(whereClause)) {
-                        whereClauses.add(whereClause);
+                    if (outerJoin) {
+                        if (fkTableName.equals(tableAlias)) {
+                            joins.putIfAbsent(tableAlias, "LEFT OUTER JOIN " + fkTableName + " ON " + (empty(prefix) ? entityTable : prefix) + "." + fieldName + " = " + tableAlias + ".uuid");
+                        } else {
+                            joins.putIfAbsent(tableAlias, "LEFT OUTER JOIN " + fkTableName + " AS " + tableAlias + " ON " + (empty(prefix) ? entityTable : prefix) + "." + fieldName + " = " + tableAlias + ".uuid");
+                        }
+                    } else {
+                        if (fkTableName.equals(tableAlias)) {
+                            joins.putIfAbsent(tableAlias, "INNER JOIN " + fkTableName + " ON " + (empty(prefix) ? entityTable : prefix) + "." + fieldName + " = " + tableAlias + ".uuid");
+                        } else {
+                            joins.putIfAbsent(tableAlias, "INNER JOIN " + fkTableName + " AS " + tableAlias + " ON " + (empty(prefix) ? entityTable : prefix) + "." + fieldName + " = " + tableAlias + ".uuid");
+                        }
                     }
                     if (mainDepth == deep || currentDepth == deep || classDepth == deep || fieldDepth == deep) {
                         fields.putAll(initFields(fk.entity(), tableAlias, fields, mainDepth, deep));
