@@ -7,12 +7,12 @@ import static org.cobbzilla.util.string.StringUtil.uncapitalize;
 
 public class RelatedEntities extends ConcurrentHashMap<String, Identifiable> {
 
-    public Identifiable entity(Class<? extends Identifiable> clazz) {
+    public <T extends Identifiable> T entity(Class<T> clazz) {
         return entity(clazz, uncapitalize(clazz.getSimpleName()));
     }
 
-    public Identifiable entity(final Class<? extends Identifiable> clazz, String name) {
-        return computeIfAbsent(name, k -> instantiate(clazz));
+    public <T extends Identifiable> T entity(final Class<T> clazz, String name) {
+        return (T) computeIfAbsent(name, k -> instantiate(clazz));
     }
 
 }
