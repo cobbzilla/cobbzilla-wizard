@@ -132,6 +132,7 @@ public class SearchQuery {
 
     @Getter @Setter private NameAndValue[] bounds;
     @JsonIgnore public boolean getHasBounds() { return !empty(bounds); }
+    public boolean hasBound(String name) { return !empty(bounds) && Arrays.stream(bounds).anyMatch(b -> b.getName().equals(name)); }
 
     public SearchQuery setBound(String name, String value) {
         if (bounds == null) bounds = NameAndValue.EMPTY_ARRAY;
