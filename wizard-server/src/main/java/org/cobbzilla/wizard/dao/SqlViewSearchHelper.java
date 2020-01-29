@@ -98,7 +98,10 @@ public class SqlViewSearchHelper {
 
         try {
             final Object[] args = params.toArray();
-
+            if (query.contains(";")) {
+                log.warn("search: query contained ';' returning empty results");
+                return new SearchResults<>();
+            }
             final ResultSetBean rs = configuration.execSql(query, args);
             final List<Future<?>> results = new ArrayList<>(rs.rowCount());
             final ExecutorService exec = searchByEncryptedField ? fixedPool(Math.min(16, rs.rowCount())) : null;
@@ -124,7 +127,12 @@ public class SqlViewSearchHelper {
             }
 
             if (!searchByEncryptedField) {
-                totalCount = configuration.execSql("select count(*) "+sql.toString(), args).countOrZero();
+                final String fromAndWhereClauses = sql.toString();
+                if (fromAndWhereClauses.contains(";")) {
+                    log.warn("search: query contained ';' returning empty results");
+                    return new SearchResults<>();
+                }
+                totalCount = configuration.execSql("select count(*) "+fromAndWhereClauses, args).countOrZero();
                 return new SearchResults<>(thingsList, totalCount);
             }
 
