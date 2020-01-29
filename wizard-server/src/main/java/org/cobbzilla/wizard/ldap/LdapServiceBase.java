@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.ldap;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.system.Command;
@@ -7,6 +8,7 @@ import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.model.ldap.LdapBindException;
 import org.cobbzilla.wizard.model.search.SearchQuery;
+import org.cobbzilla.wizard.model.search.SortOrder;
 import org.cobbzilla.wizard.server.config.LdapConfiguration;
 
 import java.util.Map;
@@ -15,6 +17,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.system.CommandShell.okResult;
 
+@Slf4j
 public abstract class LdapServiceBase implements LdapService {
 
     private LdapConfiguration config() { return getConfiguration(); }
@@ -62,13 +65,12 @@ public abstract class LdapServiceBase implements LdapService {
             command.addArgument("-b").addArgument(dn, false);
         } else {
             if (!empty(filter) || !empty(bounds)) command.addArgument(ldapFilter(base, filter, bounds));
-            if (page.getHasSortField()) {
-                final SearchQuery.SortOrder sortOrder = page.getSortType();
-                final String sort = page.getSortField();
-                if (sort != null) {
-                    final String sortArg = ((sortOrder != null && sortOrder == SearchQuery.SortOrder.DESC) ? "-" : "");
-                    command.addArgument("-E").addArgument("!sss=" + sortArg + sort);
-                }
+            if (page.hasSorts()) {
+                if (page.getSorts().length > 1) log.warn("ldapsearch: only one sort order is supported");
+                final SortOrder sortOrder = page.getSorts()[0].getSortOrder();
+                final String sort = page.getSorts()[0].getSortField();
+                final String sortArg = ((sortOrder != null && sortOrder == SortOrder.DESC) ? "-" : "");
+                command.addArgument("-E").addArgument("!sss=" + sortArg + sort);
             }
         }
         final CommandResult result = exec(command);

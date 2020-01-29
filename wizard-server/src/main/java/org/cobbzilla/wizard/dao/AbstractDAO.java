@@ -303,7 +303,8 @@ public abstract class AbstractDAO<E extends Identifiable> implements DAO<E> {
                 .append(filterClause);
 
         final String countQuery = "select count(*) " + qBuilder.toString();
-        final String query = qBuilder.append(" order by ").append(entityAlias).append(".").append(searchQuery.getSortField()).append(" ").append(searchQuery.getSortType().name()).toString();
+        if (searchQuery.hasSorts()) qBuilder.append(searchQuery.hsqlSortClause(entityAlias));
+        final String query = qBuilder.toString();
 
         List<E> results = query(query, searchQuery, params, values);
         final int totalCount = Integer.valueOf(""+query(countQuery, SearchQuery.INFINITE_PAGE, params, values).get(0));

@@ -1,6 +1,5 @@
 package org.cobbzilla.wizard.model.search;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,12 +10,9 @@ import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.string.StringUtil;
-import org.cobbzilla.wizard.model.BasicConstraintConstants;
-import org.cobbzilla.wizard.validation.ValidEnum;
 
 import java.util.Arrays;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.wizard.model.Identifiable.CTIME;
 
@@ -38,14 +34,6 @@ public class SearchQuery {
     public static final int MAX_SORTFIELD_LENGTH = 50;
     public static final String DEFAULT_SORT_FIELD = CTIME;
 
-    public enum SortOrder {
-        ASC, DESC;
-        @JsonCreator public static SortOrder create(String val) { return valueOf(val.toUpperCase()); }
-        public boolean isAscending () { return this == ASC; }
-        public boolean isDescending () { return this == DESC; }
-    }
-    public static final String DEFAULT_SORT = SortOrder.DESC.name();
-
     public static final SearchQuery DEFAULT_PAGE = new SearchQuery();
     public static final SearchQuery FIRST_RESULT = new SearchQuery(1, 1);
     public static final int INFINITE = Integer.MAX_VALUE;
@@ -63,16 +51,16 @@ public class SearchQuery {
         this.setPageNumber(other.getPageNumber());
         this.setPageSize(other.getPageSize());
         this.setFilter(other.getFilter());
-        this.setSortField(other.getSortField());
-        this.setSortOrder(other.getSortOrder());
+        this.setSorts(other.getSorts());
         this.setBounds(other.getBounds());
     }
 
     public SearchQuery(Integer pageNumber, Integer pageSize, String sortField, String sortOrder, String filter, NameAndValue[] bounds) {
         if (pageNumber != null) setPageNumber(pageNumber);
         if (pageSize != null) setPageSize(pageSize);
-        if (sortField != null) this.sortField = sortField;
-        if (sortOrder != null) this.sortOrder = SortOrder.valueOf(sortOrder).name();
+        if (sortField != null) {
+            addSort(new SearchSort(sortField, SortOrder.fromString(sortOrder)));
+        }
         if (filter != null) this.filter = filter;
         this.bounds = bounds;
     }
@@ -94,7 +82,7 @@ public class SearchQuery {
     }
 
     private static String normalizeSortOrder(SortOrder sortOrder) {
-        return (sortOrder == null) ? SearchQuery.DEFAULT_SORT : sortOrder.name();
+        return (sortOrder == null) ? SortOrder.DEFAULT_SORT : sortOrder.name();
     }
 
     public static SearchQuery singleResult (String sortField, SortOrder sortOrder) {
@@ -126,35 +114,17 @@ public class SearchQuery {
         return isInfinitePage() || pageSize > MAX_PAGE_BUFFER ? MAX_PAGE_BUFFER : pageSize;
     }
 
-    @Setter private String sortField;
-    public String getSortField() {
-        if (empty(sortField)) return null;
-        if (sortField.contains(";")) die("invalid sort: "+sortField);
-
-        // only return the first several chars, to thwart a hypothetical injection attack
-        // more sophisticated than the classic 'add a semi-colon then do something nefarious'
-        final String sort = empty(sortField) ? DEFAULT_SORT_FIELD : sortField;
-        return StringUtil.prefix(sort, MAX_SORTFIELD_LENGTH);
-    }
-    @JsonIgnore public boolean getHasSortField () { return sortField != null; }
-
-    @ValidEnum(type=SortOrder.class, emptyOk=true, message= BasicConstraintConstants.ERR_SORT_ORDER_INVALID)
-    @Getter private String sortOrder = SearchQuery.DEFAULT_SORT;
-    public SearchQuery setSortOrder(Object thing) {
-        if (thing == null) {
-            sortOrder = null;
-        } else if (thing instanceof SortOrder) {
-            sortOrder = ((SortOrder) thing).name();
+    @Getter @Setter private SearchSort[] sorts;
+    @JsonIgnore public boolean hasSorts() { return !empty(sorts); }
+    public boolean hasSort(String field) { return !empty(sorts) && Arrays.stream(sorts).anyMatch(s -> s.getSortField().equals(field)); }
+    public SearchQuery addSort(SearchSort sort) {
+        if (sorts == null) {
+            sorts = new SearchSort[] {sort};
         } else {
-            sortOrder = thing.toString();
+            sorts = ArrayUtil.append(sorts, sort);
         }
         return this;
     }
-
-    @JsonIgnore public SortOrder getSortType () { return sortOrder == null ? null : SortOrder.valueOf(sortOrder); }
-
-    public SearchQuery sortAscending () { sortOrder = SortOrder.ASC.name(); return this; }
-    public SearchQuery sortDescending () { sortOrder = SortOrder.DESC.name(); return this; }
 
     @Setter private String filter = null;
     public String getFilter() {
@@ -194,8 +164,7 @@ public class SearchQuery {
         if (getPageSize() != that.getPageSize()) return false;
         if (!Arrays.equals(that.bounds, bounds)) return false;
         if (filter != null ? !filter.equals(that.filter) : that.filter != null) return false;
-        if (sortField != null ? !sortField.equals(that.sortField) : that.sortField != null) return false;
-        if (sortOrder != null ? !sortOrder.equals(that.sortOrder) : that.sortOrder != null) return false;
+        if (!Arrays.equals(that.sorts, sorts)) return false;
         if (!Arrays.equals(that.fields, fields)) return false;
         return true;
     }
@@ -203,11 +172,20 @@ public class SearchQuery {
     @Override public int hashCode() {
         int result = getPageNumber();
         result = 31 * result + getPageSize();
-        result = 31 * result + (sortField != null ? sortField.hashCode() : 0);
-        result = 31 * result + (sortOrder != null ? sortOrder.hashCode() : 0);
+        result = 31 * result + (hasSorts() ? Arrays.deepHashCode(this.sorts) : 0);
         result = 31 * result + (filter != null ? filter.hashCode() : 0);
         result = 31 * result + (bounds != null ? Arrays.hashCode(bounds) : 0);
         result = 31 * result + (fields != null ? Arrays.hashCode(fields) : 0);
         return result;
+    }
+
+    public String hsqlSortClause(String entityAlias) {
+        if (!hasSorts()) return null;
+        final StringBuilder b = new StringBuilder();
+        for (SearchSort s : sorts) {
+            if (b.length() > 0) b.append(", ");
+            b.append(entityAlias).append(".").append(s.getSortField()).append(" ").append(s.getSortOrder().name());
+        }
+        return b.toString();
     }
 }

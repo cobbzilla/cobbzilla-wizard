@@ -4,8 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.jdbc.ResultSetBean;
 import org.cobbzilla.util.reflect.ReflectionUtil;
+import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
+import org.cobbzilla.wizard.model.search.SearchSort;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.model.search.SqlViewSearchResult;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
@@ -23,7 +25,7 @@ import static org.cobbzilla.util.daemon.DaemonThreadFactory.fixedPool;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
-import static org.cobbzilla.wizard.model.search.SearchQuery.DEFAULT_SORT;
+import static org.cobbzilla.wizard.model.search.SortOrder.ASC;
 import static org.cobbzilla.wizard.resources.ResourceUtil.invalidEx;
 
 @Slf4j
@@ -57,14 +59,19 @@ public class SqlViewSearchHelper {
             }
         }
 
-        final String sort;
-        final String sortedField;
-        if (searchQuery.getHasSortField()) {
-            sortedField = dao.getSortField(searchQuery.getSortField());
-            sort = sortedField + " " + searchQuery.getSortOrder();
+        final StringBuilder sort = new StringBuilder();
+        final List<String> sortedFields = new ArrayList<>();
+        if (searchQuery.hasSorts()) {
+            for (SearchSort s : searchQuery.getSorts()) {
+                final String sortField = dao.getSortField(s.getSortField());
+                sortedFields.add(sortField);
+                if (sort.length() > 0) sort.append(", ");
+                sort.append(sortField).append(" ").append(s.getSortOrder().name());
+            }
         } else {
-            sort = dao.getDefaultSort();
-            sortedField = sort.split(" ")[0];
+            final String defaultSort = dao.getDefaultSort();
+            sort.append(defaultSort);
+            sortedFields.add(defaultSort.split("\\s+")[0]);
         }
 
         final String offset;
@@ -81,7 +88,7 @@ public class SqlViewSearchHelper {
         }
 
         final String query = "select " + dao.getSelectClause(searchQuery) + " " + sql.toString() + sortClause + limit + offset;
-        log.debug("search: SQL = "+query);
+        log.debug("search: SQL = "+query+" with params: "+StringUtil.toString(params));
 
         Integer totalCount = null;
         final ArrayList<E> thingsList = new ArrayList<>();
@@ -149,15 +156,18 @@ public class SqlViewSearchHelper {
             });
 
             // manually sort and apply offset + limit
-            final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortedField)).findFirst().orElse(null);
-            if (sqlViewField == null) return die("search: sort field not defined/mapped: "+sortedField);
+            for (int i=0; i<sortedFields.size(); i++) {
+                final String sortField = sortedFields.get(i);
+                final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortField)).findFirst().orElse(null);
+                if (sqlViewField == null) return die("search: sort field not defined/mapped: " + sortField);
 
-            final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField);
+                final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField);
 
-            if (!searchQuery.getSortOrder().equals(DEFAULT_SORT)) {
-                matched.sort(comparator);
-            } else {
-                matched.sort(comparator.reversed());
+                if (searchQuery.getSorts()[i].getSortOrder() == ASC) {
+                    matched.sort(comparator);
+                } else {
+                    matched.sort(comparator.reversed());
+                }
             }
 
             totalCount = matched.size();
