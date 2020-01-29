@@ -126,8 +126,9 @@ public class SearchQuery {
         return isInfinitePage() || pageSize > MAX_PAGE_BUFFER ? MAX_PAGE_BUFFER : pageSize;
     }
 
-    @Setter private String sortField = DEFAULT_SORT_FIELD;
+    @Setter private String sortField;
     public String getSortField() {
+        if (empty(sortField)) return null;
         if (sortField.contains(";")) die("invalid sort: "+sortField);
 
         // only return the first several chars, to thwart a hypothetical injection attack
