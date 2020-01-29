@@ -81,6 +81,7 @@ public class SqlViewSearchHelper {
         }
 
         final String query = "select " + dao.getSelectClause(searchQuery) + " " + sql.toString() + sortClause + limit + offset;
+        log.debug("search: SQL = "+query);
 
         Integer totalCount = null;
         final ArrayList<E> thingsList = new ArrayList<>();
