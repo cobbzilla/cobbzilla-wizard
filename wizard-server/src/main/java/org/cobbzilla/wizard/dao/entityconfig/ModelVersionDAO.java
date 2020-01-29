@@ -11,7 +11,9 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 public class ModelVersionDAO<V extends ModelVersion> extends AbstractCRUDDAO<V> {
 
-    @Override public Order getDefaultSortOrder() { return Order.asc("version"); }
+    public static final Order VERSION_ASC = Order.asc("version");
+
+    @Override public Order getDefaultSortOrder() { return VERSION_ASC; }
 
     @Override protected int getFinderMaxResults() { return Integer.MAX_VALUE; }
 

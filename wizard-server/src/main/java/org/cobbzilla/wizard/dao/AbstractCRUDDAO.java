@@ -39,6 +39,7 @@ import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.time.TimeUtil.formatDuration;
+import static org.cobbzilla.wizard.model.Identifiable.CTIME;
 import static org.cobbzilla.wizard.model.Identifiable.MTIME;
 import static org.hibernate.criterion.Restrictions.*;
 
@@ -50,6 +51,9 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     @Autowired private RestServerConfiguration serverConfiguration;
 
     public static final String NO_SUB_KEY = "__no_subkey";
+
+    public static final Order CTIME_ASC = Order.asc(CTIME);
+    public static final Order CTIME_DESC = Order.desc(CTIME);
 
     public <A extends AuditLog> AuditLogDAO<A> getAuditLogDAO() { return null; }
     public boolean auditingEnabled () { return getAuditLogDAO() != null; }
