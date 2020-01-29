@@ -66,7 +66,10 @@ public class SqlViewSearchHelper {
                 final String sortField = dao.getSortField(s.getSortField());
                 sortedFields.add(sortField);
                 if (sort.length() > 0) sort.append(", ");
-                sort.append(sortField).append(" ").append(s.getSortOrder().name());
+                sort.append(s.hasFunc() ? s.getFunc()+"(" : "")
+                        .append(sortField)
+                        .append(s.hasFunc() ? ")" : "")
+                        .append(" ").append(s.getSortOrder().name());
             }
         } else {
             final String defaultSort = dao.getDefaultSort();
@@ -161,7 +164,8 @@ public class SqlViewSearchHelper {
                 final SqlViewField sqlViewField = Arrays.stream(fields).filter(a -> a.getName().equals(sortField)).findFirst().orElse(null);
                 if (sqlViewField == null) return die("search: sort field not defined/mapped: " + sortField);
 
-                final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField);
+                final String func = searchQuery.getSorts()[i].getFunc();
+                final Comparator<E> comparator = (E o1, E o2) -> compareSelectedItems(o1, o2, sqlViewField, func);
 
                 if (searchQuery.getSorts()[i].getSortOrder() == ASC) {
                     matched.sort(comparator);
@@ -185,7 +189,7 @@ public class SqlViewSearchHelper {
         }
     }
 
-    private static <E extends Identifiable> int compareSelectedItems(E o1, E o2, SqlViewField field) {
+    private static <E extends Identifiable> int compareSelectedItems(E o1, E o2, SqlViewField field, String func) {
         Object fieldObject1;
         Object fieldObject2;
 
@@ -202,6 +206,21 @@ public class SqlViewSearchHelper {
         if (fieldObject1 == null && fieldObject2 == null) return 0;
         if (fieldObject1 == null && fieldObject2 != null) return 1;
         if (fieldObject1 != null && fieldObject2 == null) return -1;
+
+        if (func != null) {
+            switch (func) {
+                case "lower":
+                    fieldObject1 = fieldObject1.toString().toLowerCase();
+                    fieldObject2 = fieldObject2.toString().toLowerCase();
+                    break;
+                case "upper":
+                    fieldObject1 = fieldObject1.toString().toUpperCase();
+                    fieldObject2 = fieldObject2.toString().toUpperCase();
+                    break;
+                default:
+                    return die("compareSelectedItems: unsupported function: "+func);
+            }
+        }
 
         Class sortedFieldClass = ReflectionUtil.getSimpleClass(fieldObject1);
         if (sortedFieldClass.equals(String.class)) {

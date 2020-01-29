@@ -19,9 +19,6 @@ import static org.cobbzilla.wizard.model.Identifiable.CTIME;
 @NoArgsConstructor @Accessors(chain=true) @ToString
 public class SearchQuery {
 
-    public static final String ASC = SortOrder.ASC.toString();
-    public static final String DESC = SortOrder.DESC.toString();
-
     public static final String PARAM_USE_PAGINATION = "page";
     public static final String PARAM_PAGE_NUMBER    = "pn";
     public static final String PARAM_PAGE_SIZE      = "ps";
@@ -184,7 +181,10 @@ public class SearchQuery {
         final StringBuilder b = new StringBuilder();
         for (SearchSort s : sorts) {
             if (b.length() > 0) b.append(", ");
-            b.append(entityAlias).append(".").append(s.getSortField()).append(" ").append(s.getSortOrder().name());
+            b.append(s.hasFunc() ? s.getFunc()+"(" : "")
+                    .append(entityAlias).append(".").append(s.getSortField())
+                    .append(s.hasFunc() ? ")" : "")
+                    .append(" ").append(s.getSortOrder().name());
         }
         return b.toString();
     }

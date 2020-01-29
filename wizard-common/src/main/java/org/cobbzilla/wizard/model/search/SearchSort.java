@@ -2,11 +2,20 @@ package org.cobbzilla.wizard.model.search;
 
 import lombok.*;
 
-@NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode(of={"sortField", "sortOrder"})
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+
+@NoArgsConstructor @AllArgsConstructor @EqualsAndHashCode(of={"sortField", "sortOrder", "func"})
 public class SearchSort {
 
     @Getter @Setter private String sortField;
     @Getter @Setter private SortOrder sortOrder = SortOrder.ASC;
+    @Getter @Setter private String func;
+    public boolean hasFunc () { return !empty(func); }
+
+    public SearchSort(String sortField, SortOrder sortOrder) {
+        this.sortField = sortField;
+        this.sortOrder = sortOrder;
+    }
 
     public SearchSort(String sort) {
         if (sort.startsWith("+") || sort.startsWith(" ")) {
