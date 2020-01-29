@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.hashOf;
 import static org.cobbzilla.util.reflect.ReflectionUtil.fieldsWithAnnotation;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.sqlFilter;
@@ -62,18 +61,12 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
         return b.toString();
     }
 
-    Map<String, String> _fieldCache = new ExpirationMap<>();
-
     default String buildBound(String bound, String value, List<Object> params, String locale) {
         for (Field f : fieldsWithAnnotation(getEntityClass(), ECSearchable.class)) {
             if (!f.getName().equalsIgnoreCase(bound)) continue;
             final ECSearchable search = f.getAnnotation(ECSearchable.class);
-
-            final String hash = hashOf(f, search, bound, value, params, locale);
-            return _fieldCache.computeIfAbsent(hash, k -> {
-                final SearchField field = new SqlDefaultSearchField(f, search, bound, value, params, locale);
-                return SearchField.buildBound(field, value, params, locale);
-            });
+            final SearchField field = new SqlDefaultSearchField(f, search, bound, value, params, locale);
+            return SearchField.buildBound(field, value, params, locale);
         }
         return die("buildBound: no bound defined for: "+bound);
     }
