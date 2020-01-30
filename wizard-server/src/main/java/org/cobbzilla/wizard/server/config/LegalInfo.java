@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.CLASSPATH_PREFIX;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.http.HttpSchemes.isHttpOrHttps;
 import static org.cobbzilla.util.string.StringUtil.chop;
 import static org.cobbzilla.util.string.StringUtil.trimQuotes;
 
@@ -62,7 +63,7 @@ public class LegalInfo {
         if (empty(value)) return "";
         if (!empty(getBase())) value = chop(getBase(), "/") + "/" + value;
 
-        if (value.startsWith("http://") || value.startsWith("https://")) {
+        if (isHttpOrHttps(value)) {
             try {
                 return HttpUtil.getResponse(value).getEntityString();
             } catch (IOException e) {

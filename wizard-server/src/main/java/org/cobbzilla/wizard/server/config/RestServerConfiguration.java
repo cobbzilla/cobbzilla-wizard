@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.http.HttpSchemes.SCHEME_HTTP;
 import static org.cobbzilla.util.network.NetworkUtil.getLocalhostIpv4;
 import static org.cobbzilla.util.reflect.ReflectionUtil.forName;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
@@ -55,7 +56,7 @@ public class RestServerConfiguration {
 
     @Setter private String publicUriBase;
     public String getPublicUriBase () {
-        if (empty(publicUriBase)) return "http://"+getLocalhostIpv4()+":"+getHttp().getPort();
+        if (empty(publicUriBase)) return SCHEME_HTTP+getLocalhostIpv4()+":"+getHttp().getPort();
         return !empty(publicUriBase) && publicUriBase.endsWith("/") ? publicUriBase.substring(0, publicUriBase.length()-1) : publicUriBase;
     }
 

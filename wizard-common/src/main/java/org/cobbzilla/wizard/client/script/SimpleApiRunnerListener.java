@@ -21,6 +21,7 @@ import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
+import static org.cobbzilla.util.http.HttpSchemes.isHttpOrHttps;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.system.Sleep.sleep;
 import static org.cobbzilla.util.time.TimeUtil.parseDuration;
@@ -156,7 +157,7 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
 
     private String formatUrl(String url) {
         final ApiClientBase currentApi = currentApi();
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        if (!isHttpOrHttps(url)) {
             if (!url.startsWith("/") && !currentApi.getBaseUri().endsWith("/")) url = "/" + url;
             url = currentApi.getBaseUri() + url;
         }

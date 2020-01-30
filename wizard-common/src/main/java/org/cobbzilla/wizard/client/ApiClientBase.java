@@ -43,6 +43,7 @@ import static org.apache.http.HttpHeaders.LOCATION;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.HttpContentTypes.APPLICATION_OCTET_STREAM;
 import static org.cobbzilla.util.http.HttpMethods.*;
+import static org.cobbzilla.util.http.HttpSchemes.isHttpOrHttps;
 import static org.cobbzilla.util.http.HttpStatusCodes.*;
 import static org.cobbzilla.util.io.FileUtil.getDefaultTempDir;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
@@ -341,7 +342,7 @@ public class ApiClientBase implements Cloneable, Closeable {
     }
 
     private String getUrl(String path, String clientUri) {
-        if (path.startsWith("http://") || path.startsWith("https://")) {
+        if (isHttpOrHttps(path)) {
             return path; // caller has supplied an absolute path
 
         } else if (path.startsWith("/") && clientUri.endsWith("/")) {
