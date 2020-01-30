@@ -45,7 +45,7 @@ public class SqlViewSearchHelper {
                                                     + " where (").append(dao.fixedFilters()).append(") ");
 
         final List<Object> params = new ArrayList<>();
-        final boolean searchByEncryptedField = searchQuery.getHasFilter() && Arrays.stream(fields).anyMatch(a -> a.isFilter() && a.isEncrypted());
+        final boolean searchByEncryptedField = dao.encryptedSearchEnabled() && searchQuery.getHasFilter() && Arrays.stream(fields).anyMatch(a -> a.isFilter() && a.isEncrypted());
 
         if (searchQuery.getHasFilter() && !searchByEncryptedField) {
             final String filter = dao.buildFilter(searchQuery, params);

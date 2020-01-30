@@ -89,6 +89,8 @@ public interface SqlViewSearchableDAO<T extends Identifiable> extends DAO<T> {
         });
     }
 
+    default boolean encryptedSearchEnabled() { return false; }
+
     @AllArgsConstructor
     class SimpleSearchResultHandler implements InvocationHandler  {
 
