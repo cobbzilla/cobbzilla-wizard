@@ -1,10 +1,9 @@
 package org.cobbzilla.wizard.util;
 
-import org.apache.commons.lang3.RandomStringUtils;
-
 import java.util.Random;
 
 import static java.lang.Math.abs;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.safeFunctionName;
 
@@ -55,7 +54,7 @@ public class TestNames {
         "Paraguayan", "Peruvian", "Philippine", "Polish", "Portuguese", "Qatari", "Romanian", "Russian", "Rwandan", "Saudi",
         "Scottish", "Senegalese", "Serbian", "Seychellois", "Sierra", "Leonian", "Singaporean", "Slovak", "Slovenian",
         "Somali", "South", "African", "South", "Korean", "Spanish", "Sri", "Lankan", "Sudanese", "Surinamese", "Swazi",
-        "Swedish", "Swiss", "Syrian", "Taiwanese", "Tadjik", "Tanzanian", "Thai", "Togolese", "Trinidadian<br>", "Tunisian",
+        "Swedish", "Swiss", "Syrian", "Taiwanese", "Tadjik", "Tanzanian", "Thai", "Togolese", "Trinidadian", "Tunisian",
         "Turkish", "Turkmen", "Tuvaluan", "Ugandan", "Ukrainian", "British", "American", "Uruguayan", "Uzbek", "Vanuatuan",
         "Venezuelan", "Vietnamese", "Welsh", "Western", "Samoan", "Yemeni", "Yugoslav", "Zaïrean", "Zambian", "Zimbabwean"
     };
@@ -77,7 +76,7 @@ public class TestNames {
     private static final Random rand = new Random();
 
     public static String safeName () {
-        return safeFunctionName(nationality())+"-"+safeFunctionName(fruit())+"-"+RandomStringUtils.randomAlphanumeric(10);
+        return safeFunctionName(nationality())+"-"+safeFunctionName(fruit())+"-"+ randomAlphanumeric(10);
     }
 
     public static String name() { return nationality() + " " + fruit(); }
@@ -92,10 +91,10 @@ public class TestNames {
     public static String nationality(String val) { return NATIONALITIES[abs(val.hashCode()) % NATIONALITIES.length]; }
     public static String animal(String val) { return ANIMALS[abs(val.hashCode()) % ANIMALS.length]; }
 
-    public static String safeColor() { return color()+"-"+RandomStringUtils.randomAlphanumeric(10); }
-    public static String safeAnimal() { return animal()+"-"+RandomStringUtils.randomAlphanumeric(10); }
-    public static String safeFruit() { return fruit()+"-"+RandomStringUtils.randomAlphanumeric(10); }
-    public static String safeNationality() { return nationality()+"-"+RandomStringUtils.randomAlphanumeric(10); }
+    public static String safeColor() { return color()+"-"+randomAlphanumeric(10); }
+    public static String safeAnimal() { return animal()+"-"+randomAlphanumeric(10); }
+    public static String safeFruit() { return fruit()+"-"+randomAlphanumeric(10); }
+    public static String safeNationality() { return nationality()+"-"+randomAlphanumeric(10); }
 
     public static String safeColor(String val) { return color(val)+"-"+sha256_hex(val).substring(0, 8); }
     public static String safeAnimal(String val) { return animal(val)+"-"+sha256_hex(val).substring(0, 8); }
