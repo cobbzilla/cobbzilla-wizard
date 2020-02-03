@@ -555,10 +555,10 @@ public class EntityConfig {
         HasValue hasValueAnnotation = accessor.getAnnotation(HasValue.class);
         if (hasValueAnnotation != null) return true;
         Column columnAnnotation = accessor.getAnnotation(Column.class);
-        if (columnAnnotation == null) return true;
-        if (columnAnnotation.nullable()) return false;
-        if (!empty(columnAnnotation.columnDefinition()) && columnAnnotation.columnDefinition().matches("\\s+NOT\\s+NULL\\s*")) {
-            return true;
+        if (columnAnnotation == null) return false;
+        if (!columnAnnotation.nullable()) return true;
+        if (!empty(columnAnnotation.columnDefinition())) {
+            return columnAnnotation.columnDefinition().matches("\\s+NOT\\s+NULL\\s*");
         }
         return false;
     }
