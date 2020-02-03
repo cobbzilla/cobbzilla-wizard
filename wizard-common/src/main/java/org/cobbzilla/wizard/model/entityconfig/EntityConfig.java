@@ -530,6 +530,7 @@ public class EntityConfig {
                                                           ECForeignKey fkAnnotation,
                                                           Map<String, Integer> fieldIndexes) {
         final EntityFieldConfig cfg = new EntityFieldConfig()
+                .setRequired(fieldAnnotation.required())
                 .setMode(fieldAnnotation.mode())
                 .setType(getFieldType(fieldName, fieldAnnotation, accessor, fkAnnotation));
         if (!empty(fieldAnnotation.name())) cfg.setName(fieldAnnotation.name());
@@ -665,7 +666,12 @@ public class EntityConfig {
         final Locale locale = (o instanceof HasLocale) ? ((HasLocale) o).getLocale() : Locale.getDefault();
         for (EntityFieldConfig field : getFields().values()) {
             final Object value = ReflectionUtil.get(o, field.getName());
-            if (value != null) {
+            if (empty(value)) {
+                if (field.required()) {
+                    if (validation == null) validation = new ValidationResult();
+                    validation.addViolation("err."+field.getName()+".required");
+                }
+            } else {
                 ValidationResult fieldValidation = field.validate(locale, validator, value);
                 if (fieldValidation != null) {
                     if (validation == null) validation = new ValidationResult();
