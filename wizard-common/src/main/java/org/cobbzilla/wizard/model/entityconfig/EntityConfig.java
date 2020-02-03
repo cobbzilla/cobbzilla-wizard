@@ -665,9 +665,10 @@ public class EntityConfig {
         ValidationResult validation = null;
         final Locale locale = (o instanceof HasLocale) ? ((HasLocale) o).getLocale() : Locale.getDefault();
         for (EntityFieldConfig field : getFields().values()) {
+            if (field.readOnly()) continue;
             final Object value = ReflectionUtil.get(o, field.getName());
             if (empty(value)) {
-                if (field.required()) {
+                if (field.required() && !field.readOnly()) {
                     if (validation == null) validation = new ValidationResult();
                     validation.addViolation("err."+field.getName()+".required");
                 }

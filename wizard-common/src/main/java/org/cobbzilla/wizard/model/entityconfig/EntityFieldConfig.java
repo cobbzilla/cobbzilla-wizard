@@ -54,6 +54,7 @@ public class EntityFieldConfig implements VerifyLogAware<EntityFieldConfig> {
      * The mode of the field. Allowed modes are 'standard', 'createOnly', 'readOnly'
      */
     @Getter @Setter private EntityFieldMode mode = EntityFieldMode.standard;
+    public boolean readOnly () { return mode != null && mode == EntityFieldMode.readOnly; }
 
     /**
      * The data type of the field.
