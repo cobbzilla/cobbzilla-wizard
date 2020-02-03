@@ -9,6 +9,7 @@ import org.cobbzilla.util.string.HasLocale;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.entityconfig.annotations.*;
 import org.cobbzilla.wizard.model.search.SqlViewField;
+import org.cobbzilla.wizard.validation.HasValue;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -530,7 +531,7 @@ public class EntityConfig {
                                                           ECForeignKey fkAnnotation,
                                                           Map<String, Integer> fieldIndexes) {
         final EntityFieldConfig cfg = new EntityFieldConfig()
-                .setRequired(fieldAnnotation.required())
+                .setRequired(fieldIsRequired(accessor, fieldAnnotation))
                 .setMode(fieldAnnotation.mode())
                 .setType(getFieldType(fieldName, fieldAnnotation, accessor, fkAnnotation));
         if (!empty(fieldAnnotation.name())) cfg.setName(fieldAnnotation.name());
@@ -545,6 +546,21 @@ public class EntityConfig {
             fieldIndexes.put(fieldName, fieldAnnotation.index());
         }
         return cfg;
+    }
+
+    private boolean fieldIsRequired(AccessibleObject accessor, ECField fieldAnnotation) {
+        if (fieldAnnotation.required() != EntityFieldRequired.unset) {
+            return fieldAnnotation.required().bool();
+        }
+        HasValue hasValueAnnotation = accessor.getAnnotation(HasValue.class);
+        if (hasValueAnnotation != null) return true;
+        Column columnAnnotation = accessor.getAnnotation(Column.class);
+        if (columnAnnotation == null) return true;
+        if (columnAnnotation.nullable()) return false;
+        if (!empty(columnAnnotation.columnDefinition()) && columnAnnotation.columnDefinition().matches("\\s+NOT\\s+NULL\\s*")) {
+            return true;
+        }
+        return false;
     }
 
     private EntityFieldType getFieldType(String fieldName, ECField fieldAnnotation, AccessibleObject accessor, ECForeignKey fkAnnotation) {
