@@ -161,7 +161,8 @@ public class RedisService {
     public Set<String> hkeys(String key) { return __hkeys(key, 0, MAX_RETRIES); }
     public Long hlen(String key) { return __hlen(key, 0, MAX_RETRIES); }
 
-    public void del(String key) { __del(key, 0, MAX_RETRIES); }
+    public Long del(String key) { return __del(key, 0, MAX_RETRIES); }
+    public Long del_withPrefix(String prefixedKey) { return __del(prefixedKey, 0, MAX_RETRIES, false); }
 
     public void set_plaintext(String key, String value, String nxxx, String expx, long time) {
         __set(key, value, nxxx, expx, time, 0, MAX_RETRIES);
@@ -493,6 +494,10 @@ public class RedisService {
     }
 
     private Long __del(String key, int attempt, int maxRetries) {
+        return __del(key, attempt, maxRetries, true);
+    }
+
+    private Long __del(String key, int attempt, int maxRetries, boolean applyPrefix) {
         try {
             synchronized (redis) {
                 return getRedis().del(prefix(key));
@@ -500,7 +505,7 @@ public class RedisService {
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__del");
-            return __del(key, attempt+1, maxRetries);
+            return __del(key, attempt+1, maxRetries, applyPrefix);
         }
     }
 
