@@ -383,15 +383,15 @@ public class RedisService {
         }
     }
 
-    private String __lpop(String data, int attempt, int maxRetries) {
+    private String __lpop(String key, int attempt, int maxRetries) {
         try {
             synchronized (redis) {
-                return getRedis().lpop(data);
+                return getRedis().lpop(prefix(key));
             }
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__lpop");
-            return __lpop(data, attempt+1, maxRetries);
+            return __lpop(key, attempt+1, maxRetries);
         }
     }
 
