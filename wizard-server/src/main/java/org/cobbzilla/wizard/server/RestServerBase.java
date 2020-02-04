@@ -12,7 +12,6 @@ import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.network.NetworkUtil;
 import org.cobbzilla.util.network.PortPicker;
 import org.cobbzilla.util.reflect.ReflectionUtil;
-import org.cobbzilla.util.security.bcrypt.BCryptUtil;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigValidator;
 import org.cobbzilla.wizard.server.config.*;
@@ -50,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.network.NetworkUtil.IPv4_ALL_ADDRS;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
+import static org.cobbzilla.util.security.bcrypt.BCryptUtil.setBcryptRounds;
 import static org.cobbzilla.util.string.StringUtil.EMPTY_ARRAY;
 import static org.cobbzilla.util.system.Sleep.sleep;
 
@@ -174,7 +174,7 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
 
         final ResourceConfig rc = getJerseyResourceConfig(configuration.getJersey());
 
-        BCryptUtil.setBcryptRounds(configuration.getBcryptRounds());
+        setBcryptRounds(configuration.getBcryptRounds());
 
         applicationContext = buildSpringApplicationContext();
         configuration.setApplicationContext(applicationContext);

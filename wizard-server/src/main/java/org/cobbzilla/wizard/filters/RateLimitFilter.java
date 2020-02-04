@@ -16,7 +16,6 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
@@ -25,8 +24,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.http.HttpStatusCodes.TOO_MANY_REQUESTS;
 import static org.cobbzilla.util.io.StreamUtil.stream2string;
 import static org.cobbzilla.util.string.StringUtil.getPackagePath;
+import static org.cobbzilla.wizard.resources.ResourceUtil.status;
 
 @NoArgsConstructor @Slf4j
 public abstract class RateLimitFilter implements ContainerRequestFilter {
@@ -108,7 +109,7 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
             } else {
                 log.warn("filter: limit ("+limits.get(i.intValue())+") exceeded for keys: "+StringUtil.toString(keys));
             }
-            throw new WebApplicationException(Response.status(429).build());
+            throw new WebApplicationException(status(TOO_MANY_REQUESTS));
         }
     }
 
