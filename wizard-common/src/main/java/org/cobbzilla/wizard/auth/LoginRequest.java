@@ -41,7 +41,7 @@ public class LoginRequest {
     @JsonIgnore @Getter @Setter private String userAgent;
 
     public String toString () {
-        return "{name="+getName()+", password="+mask(password)+", secondFactor="+mask(totpToken)+", device="+getDevice()+"}";
+        return "{name="+getName()+", password="+mask(password)+", totpToken="+mask(totpToken)+", device="+getDevice()+"}";
     }
 
     @JsonIgnore public String getDevice() { return hasDevice() ? deviceId + " ("+deviceName+")" : "NOT-SET"; }
