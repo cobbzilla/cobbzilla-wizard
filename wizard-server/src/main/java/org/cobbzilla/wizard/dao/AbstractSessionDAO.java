@@ -29,6 +29,7 @@ public abstract class AbstractSessionDAO<T extends Identifiable> {
         if (!canStartSession(thing)) throw forbiddenEx();
         final String sessionId = randomUUID().toString();
         set(sessionId, thing, false);
+        if (log.isDebugEnabled()) log.debug("create: creating session "+sessionId+" for thing="+thing.getUuid());
         return sessionId;
     }
 
@@ -52,6 +53,7 @@ public abstract class AbstractSessionDAO<T extends Identifiable> {
     public void invalidateAllSessions(String uuid) {
         String sessionId;
         while ((sessionId = getSessionRedis().lpop(uuid)) != null) {
+            if (log.isDebugEnabled()) log.debug("invalidateAllSessions: invalidating session "+sessionId+" for thing="+uuid);
             invalidate(sessionId);
         }
         invalidate(uuid);
