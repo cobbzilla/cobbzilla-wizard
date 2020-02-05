@@ -303,7 +303,10 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         } else {
             query = queryBase;
         }
-        return query.executeUpdate();
+        final int count = query.executeUpdate();
+        session.setFlushMode(FlushMode.COMMIT);
+        session.flush();
+        return count;
     }
 
     public int bulkDelete(String field, Object value) {
@@ -315,7 +318,10 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
             query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
                     .setParameter(field, value);
         }
-        return query.executeUpdate();
+        final int count = query.executeUpdate();
+        session.setFlushMode(FlushMode.COMMIT);
+        session.flush();
+        return count;
     }
 
     @Transactional(readOnly=true)
