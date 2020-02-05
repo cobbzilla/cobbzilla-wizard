@@ -17,6 +17,8 @@ import org.cobbzilla.wizard.validation.MultiViolationException;
 import org.cobbzilla.wizard.validation.SimpleViolationException;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.hibernate.FlushMode;
+import org.hibernate.Query;
+import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.DetachedCriteria;
 import org.hibernate.criterion.Order;
@@ -250,11 +252,70 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         }
     }
 
-    public void bulkDelete(String field, String value) {
-        getHibernateTemplate().getSessionFactory().getCurrentSession()
-                .createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
-                .setString(field, value)
-                .executeUpdate();
+    public int bulkUpdate(String setField, Object setValue) {
+        return bulkUpdate(setField, setValue, (String[]) null, null);
+    }
+
+    public int bulkUpdate(String setField, Object setValue, String whereField, Object whereValue) {
+        return bulkUpdate(setField, setValue, new String[] {whereField}, new Object[] {whereValue});
+    }
+
+    public int bulkUpdate(String setField, Object setValue, String[] whereFields, Object[] whereValues) {
+        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final String whereClause;
+        final boolean hasWhereClause = empty(whereFields);
+        if (!hasWhereClause) {
+            if (!empty(whereValues)) return die("bulkUpdate: number of whereFields did not match number of whereValues");
+            whereClause = "";
+        } else {
+            final StringBuilder b = new StringBuilder();
+            for (int i=0; i<whereFields.length; i++) {
+                final String field = whereFields[i];
+                final Object value = whereValues[i];
+                if (b.length() > 0) b.append(" AND ");
+                b.append(field);
+                if (value == null) {
+                    b.append(" IS NULL");
+                } else {
+                    b.append(" = :").append(field);
+                }
+            }
+            whereClause = b.insert(0, " ").toString();
+        }
+        final Query queryBase;
+        if (setValue == null) {
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = NULL"+whereClause);
+        } else {
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = :" + setField+whereClause)
+                    .setParameter(setField, setValue);
+        }
+        final Query query;
+        if (hasWhereClause) {
+            Query q = queryBase;
+            for (int i=0; i<whereFields.length; i++) {
+                final String field = whereFields[i];
+                final Object value = whereValues[i];
+                if (value != null) {
+                    q = q.setParameter(field, value);
+                }
+            }
+            query = q;
+        } else {
+            query = queryBase;
+        }
+        return query.executeUpdate();
+    }
+
+    public int bulkDelete(String field, Object value) {
+        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final Query query;
+        if (value == null) {
+            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" IS NULL");
+        } else {
+            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
+                    .setParameter(field, value);
+        }
+        return query.executeUpdate();
     }
 
     @Transactional(readOnly=true)
