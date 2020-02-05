@@ -263,11 +263,8 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     public int bulkUpdate(String setField, Object setValue, String[] whereFields, Object[] whereValues) {
         final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
         final String whereClause;
-        final boolean hasWhereClause = empty(whereFields);
-        if (!hasWhereClause) {
-            if (!empty(whereValues)) return die("bulkUpdate: number of whereFields did not match number of whereValues");
-            whereClause = "";
-        } else {
+        final boolean hasWhereClause = !empty(whereFields);
+        if (hasWhereClause) {
             final StringBuilder b = new StringBuilder();
             for (int i=0; i<whereFields.length; i++) {
                 final String field = whereFields[i];
@@ -281,6 +278,9 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
                 }
             }
             whereClause = b.insert(0, " ").toString();
+        } else {
+            if (!empty(whereValues)) return die("bulkUpdate: number of whereFields did not match number of whereValues");
+            whereClause = "";
         }
         final Query queryBase;
         if (setValue == null) {
