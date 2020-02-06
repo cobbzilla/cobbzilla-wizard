@@ -15,6 +15,8 @@ public class StreamStreamingOutput implements StreamingOutput {
 
     private InputStream in;
 
-    @Override public void write(OutputStream out) throws IOException, WebApplicationException { copyLarge(in, out); }
+    @Override public void write(OutputStream out) throws IOException, WebApplicationException {
+        if (in != null) copyLarge(in, out);
+    }
 
 }
