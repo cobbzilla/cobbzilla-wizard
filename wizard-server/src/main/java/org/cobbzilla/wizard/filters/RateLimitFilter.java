@@ -59,7 +59,7 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
         String key;
         final Principal user = empty(request.getSecurityContext()) ? null : request.getSecurityContext().getUserPrincipal();
         if (!empty(user)) {
-            if (allowUnlimitedUse(user)) return null;
+            if (allowUnlimitedUse(user, request)) return null;
             key = user.getName();
         }
         else {
@@ -77,7 +77,7 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
         }
     }
 
-    protected boolean allowUnlimitedUse(Principal user) { return false; }
+    protected boolean allowUnlimitedUse(Principal user, ContainerRequestContext request) { return false; }
 
     @Getter(lazy=true) private final List<ApiRateLimit> limits = initLimits();
     private List<ApiRateLimit> initLimits() {
