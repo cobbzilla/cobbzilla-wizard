@@ -105,9 +105,9 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
         if (i != null) {
             final List<ApiRateLimit> limits = getLimits();
             if (i < 0 || i >= limits.size()) {
-                log.warn("filter: unknown limit ("+i+") exceeded for keys: "+StringUtil.toString(keys));
+                log.warn("filter: unknown limit ("+i+") exceeded for keys: "+StringUtil.toString(keys)+" with url="+request.getUriInfo().getRequestUri().toString());
             } else {
-                log.warn("filter: limit ("+limits.get(i.intValue())+") exceeded for keys: "+StringUtil.toString(keys));
+                log.warn("filter: limit ("+limits.get(i.intValue())+") exceeded for keys: "+StringUtil.toString(keys)+" with url="+request.getUriInfo().getRequestUri().toString());
             }
             throw new WebApplicationException(status(TOO_MANY_REQUESTS));
         }
