@@ -59,10 +59,17 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
         String key;
         final Principal user = empty(request.getSecurityContext()) ? null : request.getSecurityContext().getUserPrincipal();
         if (!empty(user)) {
-            if (allowUnlimitedUse(user, request)) return null;
+            if (allowUnlimitedUse(user, request)) {
+                if (log.isTraceEnabled()) log.trace("getKeys: unlimited use permitted (user="+user+", request.uri=" + request.getUriInfo().getRequestUri().toString() + "), returning null (no keys)");
+                return null;
+            }
             key = user.getName();
-        }
-        else {
+
+        } else if (allowUnlimitedUse(null, request)) {
+            if (log.isTraceEnabled()) log.trace("getKeys: (empty user) unlimited use permitted (request.uri=" + request.getUriInfo().getRequestUri().toString() + "), returning null (no keys)");
+            return null;
+
+        } else {
             final String token = getToken(request);
             if (!empty(token)) key = token;
             else {
@@ -110,6 +117,9 @@ public abstract class RateLimitFilter implements ContainerRequestFilter {
                 log.warn("filter: limit ("+limits.get(i.intValue())+") exceeded for keys: "+StringUtil.toString(keys)+" with url="+request.getUriInfo().getRequestUri().toString());
             }
             throw new WebApplicationException(status(TOO_MANY_REQUESTS));
+
+        } else if (log.isTraceEnabled()) {
+            log.trace("filter: incrementing counter for keys: "+StringUtil.toString(keys)+" with url="+request.getUriInfo().getRequestUri().toString());
         }
     }
 
