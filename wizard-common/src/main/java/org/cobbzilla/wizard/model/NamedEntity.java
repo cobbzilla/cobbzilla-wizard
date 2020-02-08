@@ -18,7 +18,7 @@ public interface NamedEntity {
             = (Comparator<NamedEntity>) (o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName());
 
     static String names (Collection<? extends NamedEntity> c) {
-        return c == null ? null : c.stream().map(NamedEntity::getName).collect(Collectors.joining(", "));
+        return empty(c) ? "(empty)" : c.stream().map(NamedEntity::getName).collect(Collectors.joining(", "));
     }
 
 }
