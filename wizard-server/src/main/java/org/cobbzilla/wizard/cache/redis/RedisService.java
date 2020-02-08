@@ -500,7 +500,7 @@ public class RedisService {
     private Long __del(String key, int attempt, int maxRetries, boolean applyPrefix) {
         try {
             synchronized (redis) {
-                return getRedis().del(prefix(key));
+                return getRedis().del(applyPrefix ? prefix(key) : key);
             }
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
