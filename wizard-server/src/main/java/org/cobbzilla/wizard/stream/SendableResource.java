@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.collection.NameAndValue;
+import org.cobbzilla.util.io.FixedSizeInputStream;
 
 import javax.ws.rs.core.StreamingOutput;
 
@@ -13,7 +14,15 @@ import static org.cobbzilla.util.http.HttpStatusCodes.OK;
 @Accessors(chain=true)
 public class SendableResource {
 
-    public SendableResource (StreamingOutput out) { setOut(out); }
+    public SendableResource (StreamingOutput out) {
+        setOut(out);
+        if (out instanceof StreamStreamingOutput) {
+            final StreamStreamingOutput sso = (StreamStreamingOutput) out;
+            if (sso.getIn() instanceof FixedSizeInputStream) {
+                setContentLength(((FixedSizeInputStream) sso.getIn()).size());
+            }
+        }
+    }
 
     @Getter @Setter private int status = OK;
     @Getter @Setter private String statusReason;
