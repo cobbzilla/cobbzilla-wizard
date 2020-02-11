@@ -68,7 +68,7 @@ public class DataUrlStreamingOutput implements StreamingOutput {
                 // data url was base64, and base64 was not requested -- decode and send
                 data = new Base64InputStream(new ByteArrayInputStream(dataBytes), false);
                 contentType = mediaSpecifier.substring(0, b64pos);
-                contentLength = (long) dataBytes.length;
+                contentLength = null;
             }
         }
     }
