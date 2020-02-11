@@ -15,6 +15,7 @@ import java.io.OutputStream;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
+import static org.cobbzilla.wizard.stream.DataUrlStreamingOutput.dataUrlBytes;
 
 public class UrlStreamingOutput implements StreamingOutput {
 
@@ -29,7 +30,7 @@ public class UrlStreamingOutput implements StreamingOutput {
             response = HttpUtil.getResponse(new HttpRequestBean(url));
             if (base64) {
                 final String b64data = Base64.encodeBytes(response.getEntity());
-                final byte[] b64bytes = b64data.getBytes();
+                final byte[] b64bytes = dataUrlBytes(response.getContentType(), true, b64data);
                 this.in = new ByteArrayInputStream(b64bytes);
                 this.contentLength = b64bytes.length;
             } else {
