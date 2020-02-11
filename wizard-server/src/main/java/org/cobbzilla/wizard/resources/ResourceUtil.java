@@ -70,7 +70,17 @@ public class ResourceUtil {
         if (contentLength != null) builder = builder.header(CONTENT_LENGTH, contentLength);
         if (headers != null) {
             for (NameAndValue h : headers) {
-                builder = builder.header(h.getName(), h.getValue());
+                if (h.getName().equalsIgnoreCase(CONTENT_TYPE) && contentType != null) {
+                    // we already added a Content-Type header, don't add a second one
+                    if (log.isDebugEnabled()) log.debug("send: already added "+CONTENT_TYPE+" ("+contentType+"), not adding "+CONTENT_TYPE+" from headers: "+h.getValue());
+
+                } else if (h.getName().equalsIgnoreCase(CONTENT_LENGTH) && contentLength != null) {
+                    // we already added a Content-Length header, don't add a second one
+                    if (log.isDebugEnabled()) log.debug("send: already added "+CONTENT_LENGTH+" header ("+contentLength+"), not adding "+CONTENT_LENGTH+" from headers: "+h.getValue());
+
+                } else {
+                    builder = builder.header(h.getName(), h.getValue());
+                }
             }
         }
         return builder.build();
