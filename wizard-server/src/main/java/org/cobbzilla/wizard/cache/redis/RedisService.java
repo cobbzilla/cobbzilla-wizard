@@ -663,6 +663,6 @@ public class RedisService {
         }
     }
 
-    public void flush() { keys(prefix(ALL_KEYS)).forEach(this::del_withPrefix); }
+    public void flush() { keys(ALL_KEYS).forEach(this::del_withPrefix); }
 
 }
