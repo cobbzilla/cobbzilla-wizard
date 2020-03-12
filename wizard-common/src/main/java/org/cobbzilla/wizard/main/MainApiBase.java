@@ -7,6 +7,7 @@ import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.util.RestResponse;
 
 import static lombok.AccessLevel.PROTECTED;
+import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
 import static org.cobbzilla.util.io.StreamUtil.readLineFromStdin;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
 
@@ -31,7 +32,7 @@ public abstract class MainApiBase<OPT extends MainApiOptionsBase> extends MainBa
 
     protected abstract String getSessionId(RestResponse response) throws Exception;
 
-    protected abstract void setSecondFactor(Object loginRequest, String token);
+    protected void setSecondFactor(Object loginRequest, String token) { notSupported("setSecondFactor"); }
 
     protected void login () {
         final OPT options = getOptions();

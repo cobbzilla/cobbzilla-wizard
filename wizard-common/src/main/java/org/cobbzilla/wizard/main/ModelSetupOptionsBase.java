@@ -54,4 +54,10 @@ public abstract class ModelSetupOptionsBase extends MainApiOptionsBase {
     @Option(name=OPT_UPDATE, aliases=LONGOPT_UPDATE, usage=USAGE_UPDATE)
     @Getter @Setter private boolean update = false;
 
+    public static final String USAGE_NUM_RETRIES = "number of times to try a request (failure triggers retry). default is one try, no retries";
+    public static final String OPT_NUM_RETRIES = "-R";
+    public static final String LONGOPT_NUM_RETRIES= "--num-request-attempts";
+    @Option(name=OPT_NUM_RETRIES, aliases=LONGOPT_NUM_RETRIES, usage=USAGE_NUM_RETRIES)
+    @Getter @Setter private int numRetries = 1;
+
 }

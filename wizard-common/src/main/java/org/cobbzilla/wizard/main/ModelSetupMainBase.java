@@ -11,21 +11,16 @@ import org.cobbzilla.wizard.model.entityconfig.ModelSetupListener;
 import java.io.File;
 import java.util.LinkedHashMap;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.notSupported;
-
 public abstract class ModelSetupMainBase<OPT extends ModelSetupOptionsBase> extends MainApiBase<OPT> {
 
     @Override protected Object buildLoginRequest(OPT options) {
         return new LoginRequest(options.getAccount(), options.getPassword());
     }
 
-    @Override protected void setSecondFactor(Object loginRequest, String token) {
-        notSupported("setSecondFactor");
-    }
-
     @Override protected void run() throws Exception {
         final OPT options = getOptions();
         final ApiClientBase api = getApiClient();
+        api.setNumTries(options.getNumRetries());
 
         final LinkedHashMap<String, String> models;
         final ModelManifestResolver resolver;
