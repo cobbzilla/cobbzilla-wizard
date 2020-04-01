@@ -508,11 +508,21 @@ public class ApiClientBase implements Cloneable, Closeable {
         if (request.getMethod().equals(GET)) {
             return HttpUtil.get(getBaseUri() + request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
         } else if (request.getMethod().equals(POST)) {
-            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, new SingletonMap<>(getTokenHeader(), getToken()), headers);
         } else if (request.getMethod().equals(PUT)) {
-            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, new SingletonMap<>(getTokenHeader(), getToken()), headers);
         } else {
             throw new IOException("getStream: unsupported HTTP request method: "+request.getMethod());
+        }
+    }
+
+    public InputStream uploadMultipartStream(HttpRequestBean request, String name) throws IOException {
+        if (request.getMethod().equals(POST)) {
+            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        } else if (request.getMethod().equals(PUT)) {
+            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        } else {
+            throw new IOException("uploadMultipartStream: unsupported HTTP request method: "+request.getMethod());
         }
     }
 
