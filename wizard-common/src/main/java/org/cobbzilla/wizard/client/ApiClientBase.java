@@ -505,7 +505,7 @@ public class ApiClientBase implements Cloneable, Closeable {
     }
 
     public InputStream getStream(HttpRequestBean request) throws IOException {
-        return HttpUtil.get(getBaseUri()+request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()));
+        return HttpUtil.get(getBaseUri()+request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
     }
 
     public String getStreamedString(HttpRequestBean request) throws IOException {
