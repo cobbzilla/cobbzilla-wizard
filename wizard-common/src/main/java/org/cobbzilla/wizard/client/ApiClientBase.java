@@ -505,7 +505,15 @@ public class ApiClientBase implements Cloneable, Closeable {
     }
 
     public InputStream getStream(HttpRequestBean request) throws IOException {
-        return HttpUtil.get(getBaseUri()+request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        if (request.getMethod().equals(GET)) {
+            return HttpUtil.get(getBaseUri() + request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        } else if (request.getMethod().equals(POST)) {
+            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        } else if (request.getMethod().equals(PUT)) {
+            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+        } else {
+            throw new IOException("getStream: unsupported HTTP request method: "+request.getMethod());
+        }
     }
 
     public String getStreamedString(HttpRequestBean request) throws IOException {
