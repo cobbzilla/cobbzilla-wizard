@@ -33,6 +33,7 @@ import org.cobbzilla.wizard.model.entityconfig.ModelEntity;
 import org.cobbzilla.wizard.util.RestResponse;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.TimeUnit;
@@ -83,6 +84,10 @@ public class ApiClientBase implements Cloneable, Closeable {
     public void setHeaders(JsonNode jsonNode) {
         final ObjectMapper mapper = new ObjectMapper();
         headers = mapper.convertValue(jsonNode, Map.class);
+    }
+    public void setHeader (String name, String value) {
+        if (headers == null) headers = new HashMap<>();
+        headers.put(name, value);
     }
     public void removeHeaders () { headers = null; }
 
