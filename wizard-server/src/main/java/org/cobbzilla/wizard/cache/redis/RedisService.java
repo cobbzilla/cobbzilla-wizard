@@ -130,6 +130,17 @@ public class RedisService {
 
     public void set(String key, String value) { __set(key, value, 0, MAX_RETRIES); }
 
+    public void set_plaintext(String key, String value, String nxxx, String expx, long time) {
+        __set_plaintext(key, value, nxxx, expx, time, 0, MAX_RETRIES);
+    }
+
+    public void set_plaintext(String key, String value, String expx, long time) {
+        __set_plaintext(key, value, XX, expx, time, 0, MAX_RETRIES);
+        __set_plaintext(key, value, NX, expx, time, 0, MAX_RETRIES);
+    }
+
+    public void set_plaintext(String key, String value) { __set_plaintext(key, value, 0, MAX_RETRIES); }
+
     public void setAll(Collection<String> keys, String value, String expx, long time) {
         for (String k : keys) set(k, value, expx, time);
     }
@@ -163,14 +174,6 @@ public class RedisService {
 
     public Long del(String key) { return __del(key, 0, MAX_RETRIES); }
     public Long del_withPrefix(String prefixedKey) { return __del(prefixedKey, 0, MAX_RETRIES, false); }
-
-    public void set_plaintext(String key, String value, String nxxx, String expx, long time) {
-        __set(key, value, nxxx, expx, time, 0, MAX_RETRIES);
-    }
-
-    public void set_plaintext(String key, String value) {
-        __set(key, value, 0, MAX_RETRIES);
-    }
 
     public Long sadd(String key, String value) { return sadd(key, new String[]{value}); }
     public Long sadd(String key, String[] values) { return __sadd(key, values, 0, MAX_RETRIES); }
@@ -369,6 +372,30 @@ public class RedisService {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__set");
             return __set(key, value, attempt+1, maxRetries);
+        }
+    }
+
+    private String __set_plaintext(String key, String value, String nxxx, String expx, long time, int attempt, int maxRetries) {
+        try {
+            synchronized (redis) {
+                return getRedis().set(prefix(key), value, nxxx, expx, time);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > maxRetries) throw e;
+            resetForRetry(attempt, "retrying RedisService.__set_plaintext");
+            return __set_plaintext(key, value, nxxx, expx, time, attempt + 1, maxRetries);
+        }
+    }
+
+    private String __set_plaintext(String key, String value, int attempt, int maxRetries) {
+        try {
+            synchronized (redis) {
+                return getRedis().set(prefix(key), value);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > maxRetries) throw e;
+            resetForRetry(attempt, "retrying RedisService.__set_plaintext");
+            return __set_plaintext(key, value, attempt+1, maxRetries);
         }
     }
 
