@@ -273,6 +273,16 @@ public class ApiClientBase implements Cloneable, Closeable {
         return new RestResponse(response);
     }
 
+    public RestResponse uploadStream(String path, InputStream in, String name, String method) throws Exception {
+        final String url = getUrl(path, getBaseUri());
+        final NameAndValue[] headers = { new NameAndValue(getTokenHeader(), token) };
+
+        final HttpRequestBean request = new HttpRequestBean(method, url, in, name, headers);
+        final HttpResponseBean response = HttpUtil.getStreamResponse(request);
+
+        return new RestResponse(response);
+    }
+
     public <T> T post(String path, T request) throws Exception {
         if (request instanceof ModelEntity) {
             return (T) post(path, ((ModelEntity) request).getEntity(), ((ModelEntity) request).getEntity().getClass());
@@ -352,6 +362,9 @@ public class ApiClientBase implements Cloneable, Closeable {
 
         } else if (path.startsWith("/") && clientUri.endsWith("/")) {
             path = path.substring(1); // caller has supplied a relative path
+        }
+        if (!path.startsWith("/") && !clientUri.endsWith("/")) {
+            clientUri = clientUri + "/"; // client URI does not end with a slash, add one
         }
         return clientUri + path;
     }
