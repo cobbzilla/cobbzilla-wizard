@@ -73,7 +73,7 @@ public class RedisService {
     }
 
     public void reconnect () {
-        log.debug("marking redis for reconnection...");
+        if (log.isDebugEnabled()) log.debug("marking redis for reconnection...");
         synchronized (redis) {
             if (redis.get() != null) {
                 try { redis.get().disconnect(); } catch (Exception e) {
@@ -87,7 +87,7 @@ public class RedisService {
     private Jedis getRedis () {
         synchronized (redis) {
             if (redis.get() == null) {
-                log.debug("connecting to redis...");
+                if (log.isDebugEnabled()) log.debug("connecting to redis...");
                 redis.set(newJedis());
             }
         }
@@ -220,21 +220,21 @@ public class RedisService {
     }
 
     public String lock(String key, long lockTimeout, long deadlockTimeout) {
-        log.debug("lock("+key+") starting");
+        if (log.isDebugEnabled()) log.debug("lock("+key+") starting");
         key = key + LOCK_SUFFIX;
         final String uuid = UUID.randomUUID().toString();
         String lockVal = get(key);
         final long start = now();
         while ((lockVal == null || !lockVal.equals(uuid)) && (now() - start < lockTimeout)) {
             set(key, uuid, NX, EX, deadlockTimeout/1000);
-            log.debug("lock("+key+") locked with uuid="+uuid);
+            if (log.isDebugEnabled()) log.debug("lock("+key+") locked with uuid="+uuid);
             lockVal = get(key);
-            log.debug("lock("+key+") after locking with uuid="+uuid+", lockVal="+lockVal);
+            if (log.isDebugEnabled()) log.debug("lock("+key+") after locking with uuid="+uuid+", lockVal="+lockVal);
         }
         if (lockVal == null || !lockVal.equals(uuid)) {
             return die("lock: timeout locking "+key);
         }
-        log.debug("lock: LOCKED "+key+" = "+lockVal);
+        if (log.isDebugEnabled()) log.debug("lock: LOCKED "+key+" = "+lockVal);
         return uuid;
     }
 
