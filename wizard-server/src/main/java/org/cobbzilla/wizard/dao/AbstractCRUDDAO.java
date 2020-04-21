@@ -6,6 +6,7 @@ package org.cobbzilla.wizard.dao;
  */
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.api.CrudOperation;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate4.HibernateTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nullable;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.*;
@@ -34,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
@@ -252,15 +255,22 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         }
     }
 
-    public int bulkUpdate(String setField, Object setValue) {
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue) {
         return bulkUpdate(setField, setValue, (String[]) null, null);
     }
 
-    public int bulkUpdate(String setField, Object setValue, String whereField, Object whereValue) {
-        return bulkUpdate(setField, setValue, new String[] {whereField}, new Object[] {whereValue});
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue,
+                          @NonNull final String whereField, @Nullable final Object whereValue) {
+        return bulkUpdate(setField, setValue, new String[] { whereField }, new Object[] { whereValue });
     }
 
-    public int bulkUpdate(String setField, Object setValue, String[] whereFields, Object[] whereValues) {
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue,
+                          @Nullable final String[] whereFields, @Nullable final Object[] whereValues) {
+        return bulkUpdate(new String[] { setField }, new Object[] { setValue }, whereFields, whereValues);
+    }
+
+    public int bulkUpdate(@NonNull final String[] setFields, @Nullable final Object[] setValues,
+                          @Nullable final String[] whereFields, @Nullable final Object[] whereValues) {
         final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
         final String whereClause;
         final boolean hasWhereClause = !empty(whereFields);
@@ -282,13 +292,24 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
             if (!empty(whereValues)) return die("bulkUpdate: number of whereFields did not match number of whereValues");
             whereClause = "";
         }
+
         final Query queryBase;
-        if (setValue == null) {
-            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = NULL"+whereClause);
+        if (empty(setValues)) {
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName()
+                                            + " SET " + String.join(" IS NULL, ", setFields) + " IS NULL"
+                                            + whereClause);
         } else {
-            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = :" + setField+whereClause)
-                    .setParameter(setField, setValue);
+            final var setFieldsSQLPart = Arrays.stream(setFields)
+                                               .map(s -> s + (s == null ? " IS NULL" : " = :" + s))
+                                               .collect(Collectors.joining(", "));
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName()
+                                            + " SET " + setFieldsSQLPart
+                                            + whereClause);
+            for (var i = 0; i < setValues.length; i++) {
+                if (setValues[i] != null) queryBase.setParameter(setFields[i], setValues[i]);
+            }
         }
+
         final Query query;
         if (hasWhereClause) {
             Query q = queryBase;
