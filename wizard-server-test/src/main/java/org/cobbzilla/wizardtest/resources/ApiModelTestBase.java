@@ -1,6 +1,7 @@
 package org.cobbzilla.wizardtest.resources;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.SingletonList;
 import org.cobbzilla.util.io.FileUtil;
@@ -271,13 +272,14 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         getConfiguration().pgDump(file);
     }
 
-    protected void modelTest(final String name) throws Exception {
-        modelTest(name, getApiRunner());
+    @NonNull protected Map<String, Object> modelTest(final String name) throws Exception {
+        return modelTest(name, getApiRunner());
     }
 
-    protected void modelTest(final String name, ApiRunner apiRunner) throws Exception {
+    @NonNull protected Map<String, Object> modelTest(final String name, ApiRunner apiRunner) throws Exception {
         logout();
         apiRunner.run(include(name));
+        return apiRunner.getContext();
     }
 
     @Override public List<String> getIncludePaths() {
