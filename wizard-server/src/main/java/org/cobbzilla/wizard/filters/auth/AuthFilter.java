@@ -5,7 +5,7 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import java.io.IOException;
 import java.util.Set;
 
-import static org.cobbzilla.wizard.resources.ResourceUtil.forbidden;
+import static org.cobbzilla.wizard.resources.ResourceUtil.unauthorized;
 
 public abstract class AuthFilter<T extends TokenPrincipal> implements ContainerRequestFilter {
 
@@ -23,18 +23,18 @@ public abstract class AuthFilter<T extends TokenPrincipal> implements ContainerR
 
         final String token = request.getHeaderString(getAuthTokenHeader());
         if (token == null) {
-            if (!canSkip) request.abortWith(forbidden());
+            if (!canSkip) request.abortWith(unauthorized());
             return;
         }
 
         final T principal = getAuthProvider().find(token);
         if (principal == null) {
-            if (!canSkip) request.abortWith(forbidden());
+            if (!canSkip) request.abortWith(unauthorized());
             return;
         }
 
         if (!isPermitted(principal, request)) {
-            request.abortWith(forbidden());
+            request.abortWith(unauthorized());
             return;
         }
 
