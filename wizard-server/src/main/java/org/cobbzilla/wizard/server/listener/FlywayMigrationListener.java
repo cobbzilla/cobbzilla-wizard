@@ -21,6 +21,7 @@ import static org.cobbzilla.util.time.TimeUtil.DATE_FORMAT_YYYYMMDD;
 @Slf4j
 public class FlywayMigrationListener<C extends RestServerConfiguration> extends RestServerLifecycleListenerBase<C> {
 
+    public static final String FLYWAY_TABLE_NAME = "flyway_schema_history";
     protected RestServer server;
 
     @Override public void beforeStart(RestServer server) {
@@ -40,10 +41,10 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
         // check to see if flyway tables exist
         boolean baseline = false;
         try {
-            configuration.execSql("SELECT * from flyway_schema_history");
+            configuration.execSql("SELECT * from " + FLYWAY_TABLE_NAME);
         } catch (UncheckedSqlException e) {
             if (e.getSqlException() != null && e.getSqlException() instanceof PSQLException && e.getMessage().contains(" does not exist")) {
-                log.warn("flyway_schema_history table does not exist, will baseline DB");
+                log.warn(FLYWAY_TABLE_NAME + " table does not exist, will baseline DB");
                 baseline = true;
             } else {
                 throw e;
