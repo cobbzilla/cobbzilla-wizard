@@ -43,7 +43,7 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
             configuration.execSql("SELECT * from flyway_schema_history");
         } catch (UncheckedSqlException e) {
             if (e.getSqlException() != null && e.getSqlException() instanceof PSQLException && e.getMessage().contains(" does not exist")) {
-                log.warn("schema_version table does not exist, will baseline DB");
+                log.warn("flyway_schema_history table does not exist, will baseline DB");
                 baseline = true;
             } else {
                 throw e;
