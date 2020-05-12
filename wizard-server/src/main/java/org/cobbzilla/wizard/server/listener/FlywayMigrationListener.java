@@ -22,6 +22,7 @@ import static org.cobbzilla.util.time.TimeUtil.DATE_FORMAT_YYYYMMDD;
 public class FlywayMigrationListener<C extends RestServerConfiguration> extends RestServerLifecycleListenerBase<C> {
 
     public static final String FLYWAY_TABLE_NAME = "flyway_schema_history";
+    public static final MigrationResolver[] EMPTY_MIGRATION_RESOLVERS = new MigrationResolver[0];
     protected RestServer server;
 
     @Override public void beforeStart(RestServer server) {
@@ -35,6 +36,8 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
 
     protected boolean skipDefaultResolvers() { return false; }
     protected MigrationResolver[] getResolvers() { return null; }
+
+    public String getBaselineVersion() { return DATE_FORMAT_YYYYMMDD.print(now())+"99"; }
 
     public void migrate(PgRestServerConfiguration configuration) {
 
@@ -59,7 +62,7 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
                 .skipDefaultResolvers(skipDefaultResolvers())
                 .resolvers(resolvers != null ? resolvers : new MigrationResolver[0])
                 .baselineOnMigrate(baseline)
-                .baselineVersion(MigrationVersion.fromVersion(DATE_FORMAT_YYYYMMDD.print(now()))));
+                .baselineVersion(MigrationVersion.fromVersion(getBaselineVersion())));
 
         int applied;
         try {
