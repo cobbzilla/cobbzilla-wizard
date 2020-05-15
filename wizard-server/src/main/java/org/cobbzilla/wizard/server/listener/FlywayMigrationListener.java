@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.server.listener;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.jdbc.UncheckedSqlException;
 import org.cobbzilla.wizard.server.RestServer;
@@ -21,7 +22,8 @@ import static org.cobbzilla.util.time.TimeUtil.DATE_FORMAT_YYYYMMDD;
 @Slf4j
 public class FlywayMigrationListener<C extends RestServerConfiguration> extends RestServerLifecycleListenerBase<C> {
 
-    public static final MigrationResolver[] EMPTY_MIGRATION_RESOLVERS = new MigrationResolver[0];
+    @Getter(lazy=true) private static final String flywayTableName = Flyway.configure().getTable();
+
     protected RestServer server;
 
     @Override public void beforeStart(RestServer server) {
@@ -41,13 +43,13 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
     public void migrate(PgRestServerConfiguration configuration) {
 
         // check to see if flyway tables exist
-        final var flywayTableName = Flyway.configure().getTable();
         boolean baseline = false;
+        final String flywayTable = getFlywayTableName();
         try {
-            configuration.execSql("SELECT * from " + flywayTableName);
+            configuration.execSql("SELECT * from " + flywayTable);
         } catch (UncheckedSqlException e) {
             if (e.getSqlException() != null && e.getSqlException() instanceof PSQLException && e.getMessage().contains(" does not exist")) {
-                log.warn(flywayTableName + " table does not exist, will baseline DB");
+                log.warn(flywayTable + " table does not exist, will baseline DB");
                 baseline = true;
             } else {
                 throw e;
