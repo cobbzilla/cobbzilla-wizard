@@ -3,6 +3,7 @@ package org.cobbzilla.wizard.server.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Cleanup;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
@@ -22,6 +23,7 @@ import org.cobbzilla.wizard.model.entityconfig.EntityFieldReference;
 import org.cobbzilla.wizard.model.entityconfig.EntityReferences;
 import org.springframework.context.annotation.Bean;
 
+import javax.annotation.Nullable;
 import javax.persistence.Transient;
 import java.io.File;
 import java.sql.*;
@@ -283,20 +285,34 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
 
     public File pgDump(File file, DbDumpMode dumpMode) { return pgDump(file, dumpMode, file.getName().endsWith(".gz")); }
 
-    public File pgDump(File file, DbDumpMode dumpMode, boolean gzip) {
-        final File temp = temp("pgRestore-out", ".sql" + (gzip ? ".gz" : ""));
-        final String dumpOptions;
-        if (dumpMode == null) dumpMode = DbDumpMode.all;
+    public File pgDumpDataOnly(@NonNull final File file, @NonNull final String tableName) {
+        var options = buildPGDumpOptions(DbDumpMode.data) + " --table " + tableName;
+        return pgDump(file, options, file.getName().endsWith(".gz"));
+    }
+
+    @NonNull private String buildPGDumpOptions(@Nullable final DbDumpMode dumpMode) {
+        if (dumpMode == null) return "--inserts"; // same as 'all'
+
         switch (dumpMode) {
-            case all: dumpOptions = "--inserts"; break;
-            case schema: dumpOptions = "--schema-only"; break;
-            case data: dumpOptions = "--data-only --inserts"; break;
-            case pre_data: dumpOptions = "--section=pre-data"; break;
-            case post_data: dumpOptions = "--section=post-data"; break;
+            case all: return "--inserts";
+            case schema: return "--schema-only";
+            case data: return "--data-only --inserts";
+            case pre_data: return "--section=pre-data";
+            case post_data: return "--section=post-data";
             default: return die("pgDump: invalid dumpMode: "+dumpMode);
         }
+    }
+
+    public File pgDump(@NonNull final File file, @Nullable final DbDumpMode dumpMode, final boolean gzip) {
+        return pgDump(file, buildPGDumpOptions(dumpMode), gzip);
+    }
+
+    @NonNull public File pgDump(@NonNull final File file, @NonNull final String dumpOptions, final boolean gzip) {
+        final File temp = temp("pgRestore-out", ".sql" + (gzip ? ".gz" : ""));
         return retry(() -> {
-            final String output = execScript(pgCommandString("pg_dump") + " " + dumpOptions + (gzip ? " | gzip" : "") + " > " + abs(temp) + " || exit 1", pgEnv());
+            final String output = execScript(pgCommandString("pg_dump") + " " + dumpOptions + (gzip ? " | gzip" : "")
+                                             + " > " + abs(temp) + " || exit 1",
+                                             pgEnv());
             if (output.contains("ERROR")) die("pgDump: error dumping DB:\n" + output);
             if (!temp.renameTo(file)) {
                 log.warn("pgDump: error renaming file, trying copy");
