@@ -23,7 +23,7 @@ import java.util.Map;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.HttpSchemes.isHttpOrHttps;
-import static org.cobbzilla.util.json.JsonUtil.json;
+import static org.cobbzilla.util.json.JsonUtil.*;
 import static org.cobbzilla.util.system.Sleep.sleep;
 import static org.cobbzilla.util.time.TimeUtil.parseDuration;
 import static org.cobbzilla.wizard.client.script.ApiRunner.standardHandlebars;
@@ -38,6 +38,8 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
     public static final String AWAIT_URL = "await_url";
     public static final String VERIFY_UNREACHABLE = "verify_unreachable";
     public static final String RESPONSE_VAR = "await_json";
+    public static final String ECHO_IN_LOG = "echo_in_log ";
+    public static final String ADD_TO_CTX = "add_to_ctx ";
 
     public static final long DEFAULT_AWAIT_URL_CHECK_INTERVAL = SECONDS.toMillis(10);
     public static final long DEFAULT_VERIFY_UNAVAILABLE_TIMEOUT = SECONDS.toMillis(10);
@@ -65,6 +67,10 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             handleAwaitUrl(before, ctx);
         } else if (before.startsWith(VERIFY_UNREACHABLE)) {
             handleVerifyUnreachable(before, ctx);
+        } else if (before.startsWith(ECHO_IN_LOG)) {
+            handleEcho(before, ctx);
+        } else if (before.startsWith(ADD_TO_CTX)) {
+            handleAddToCtx(before, ctx);
         } else {
             super.beforeScript(before, ctx);
         }
@@ -83,6 +89,10 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             handleAwaitUrl(after, ctx);
         } else if (after.startsWith(VERIFY_UNREACHABLE)) {
             handleVerifyUnreachable(after, ctx);
+        } else if (after.startsWith(ECHO_IN_LOG)) {
+            handleEcho(after, ctx);
+        } else if (after.startsWith(ADD_TO_CTX)) {
+            handleAddToCtx(after, ctx);
         } else {
             super.afterScript(after, ctx);
         }
@@ -117,12 +127,12 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
                                  + jsCondition + "): " + url);
                         return true;
                     } else {
-                        log.debug(AWAIT_URL + ": received HTTP status OK but JS condition was false ("
+                        log.info(AWAIT_URL + ": received HTTP status OK but JS condition was false ("
                                   + jsCondition + "): (will retry): " + url);
                     }
                 }
             } catch (Exception e) {
-                log.debug(AWAIT_URL+": error, will retry: "+e);
+                log.warn(AWAIT_URL+": error, will retry: "+e);
             }
             sleep(checkInterval, AWAIT_URL+" "+url);
         }
@@ -135,7 +145,9 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         final var separatorPosition = values.indexOf(GRACE_AND_TIMEOUT_SEPARATOR);
         if (separatorPosition < 0) return parseDuration(values);
 
-        final var grace = parseDuration(values.substring(0, separatorPosition));
+        final var graceStr = values.substring(0, separatorPosition);
+        final var grace = parseDuration(graceStr);
+        log.info(AWAIT_URL + ": sleeping for grace period before checking next awaiting URL: " + graceStr);
         sleep(grace, AWAIT_URL + " -grace-");
 
         return parseDuration(values.substring(separatorPosition + 1));
@@ -173,6 +185,22 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             log.info(VERIFY_UNREACHABLE+": unreachable? "+e);
             return true;
         }
+    }
+
+    @NonNull private String handleEcho(@NonNull final String arg, @NonNull final Map<String, Object> ctx) {
+        final var parts = arg.split("\\s+", 2);
+        if (parts.length != 2) return die(ECHO_IN_LOG + ": no variables specified");
+        final var output = HandlebarsUtil.apply(getHandlebars(), parts[1], ctx);
+        log.info("ECHO:\n" + output);
+        return output;
+    }
+
+    @NonNull private Map<String, Object> handleAddToCtx(@NonNull final String arg,
+                                                        @NonNull final Map<String, Object> ctx) {
+        final var parts = arg.split("\\s+", 2);
+        if (parts.length != 2) return die(ADD_TO_CTX + ": no variables specified");
+        ctx.putAll(fromJsonOrDie(parts[1], Map.class));
+        return ctx;
     }
 
     private String formatUrl(String url) {
