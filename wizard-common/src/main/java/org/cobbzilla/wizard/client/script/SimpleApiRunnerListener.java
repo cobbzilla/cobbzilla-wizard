@@ -3,6 +3,7 @@ package org.cobbzilla.wizard.client.script;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.jknack.handlebars.Handlebars;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -40,6 +41,8 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
 
     public static final long DEFAULT_AWAIT_URL_CHECK_INTERVAL = SECONDS.toMillis(10);
     public static final long DEFAULT_VERIFY_UNAVAILABLE_TIMEOUT = SECONDS.toMillis(10);
+
+    private static final char GRACE_AND_TIMEOUT_SEPARATOR = ':';
 
     public SimpleApiRunnerListener(String name) { super(name); }
 
@@ -93,25 +96,30 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         final String[] parts = HandlebarsUtil.apply(getHandlebars(), arg, ctx).split("\\s+");
         if (parts.length < 3) return die(AWAIT_URL+": no URL and/or timeout specified");
         final String url = formatUrl(parts[1]);
-        final long timeout = parseDuration(parts[2]);
+        final long timeout = waitAndParseTimeout(parts[2]);
         final long checkInterval = (parts.length >= 4) ? parseDuration(parts[3]) : DEFAULT_AWAIT_URL_CHECK_INTERVAL;
-        final String jsCondition = (parts.length >= 5) ? parseJs(parts, 4) : "true";
+        final String jsCondition = (parts.length >= 5) ? parseJs(parts, 4) : null;
 
         final long start = now();
         final HttpRequestBean request = formatRequest(new HttpRequestBean(url));
         while (now() - start < timeout) {
             try {
                 final HttpResponseBean response = HttpUtil.getResponse(request);
-                if (response.isOk()) {
+                if (!response.isOk()) {
+                    log.info(AWAIT_URL + ": received HTTP status " + response.getStatus() + " (will retry): " + url);
+                } else if (empty(jsCondition)) {
+                    log.info(AWAIT_URL + ": received HTTP status OK and there's no JS condition: " + url);
+                    return true;
+                } else {
                     ctx.put(RESPONSE_VAR, toResponseObject(response));
                     if (js.evaluateBoolean(jsCondition, ctx, false)) {
-                        log.info(AWAIT_URL + ": received HTTP status OK and JS condition was true ("+jsCondition+"): " + url);
+                        log.info(AWAIT_URL + ": received HTTP status OK and JS condition was true ("
+                                 + jsCondition + "): " + url);
                         return true;
                     } else {
-                        log.debug(AWAIT_URL + ": received HTTP status OK but JS condition was false ("+jsCondition+"): " + url);
+                        log.debug(AWAIT_URL + ": received HTTP status OK but JS condition was false ("
+                                  + jsCondition + "): (will retry): " + url);
                     }
-                } else {
-                    log.info(AWAIT_URL+": received HTTP status "+response.getStatus()+" (will retry): "+url);
                 }
             } catch (Exception e) {
                 log.debug(AWAIT_URL+": error, will retry: "+e);
@@ -119,6 +127,18 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             sleep(checkInterval, AWAIT_URL+" "+url);
         }
         return die(AWAIT_URL+": timeout waiting for "+url);
+    }
+
+    private long waitAndParseTimeout(@NonNull final String values) {
+        // grace period of not doing anything may be set up within this option as <grace>.<timeout>. If there's no dot
+        // there, then only <timeout> is given, and there's not waiting on grace period to do here.
+        final var separatorPosition = values.indexOf(GRACE_AND_TIMEOUT_SEPARATOR);
+        if (separatorPosition < 0) return parseDuration(values);
+
+        final var grace = parseDuration(values.substring(0, separatorPosition));
+        sleep(grace, AWAIT_URL + " -grace-");
+
+        return parseDuration(values.substring(separatorPosition + 1));
     }
 
     private boolean handleVerifyUnreachable(String arg, Map<String, Object> ctx) {
