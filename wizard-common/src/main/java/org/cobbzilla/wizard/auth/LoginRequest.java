@@ -20,7 +20,7 @@ public class LoginRequest {
     public boolean forceLowercase () { return true; }
 
     @Setter private String name;
-    public String getName () { return name == null ? null : forceLowercase() ? name.toLowerCase() : name; }
+    public String getName () { return name == null ? null : (forceLowercase() ? name.toLowerCase() : name).trim(); }
     public boolean hasName () { return !empty(name); }
 
     public String getUsername () { return getName(); }
