@@ -2,18 +2,17 @@ package org.cobbzilla.wizard.server.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections4.map.DefaultedMap;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SupportInfo extends BasicSupportInfo {
 
-    private SupportInfo self;
+    @Getter @Setter private Map<String, BasicSupportInfo> locale = new HashMap<>();
 
-    public SupportInfo () { self = this; }
-
-    @Getter @Setter private Map<String, BasicSupportInfo> locale = new DefaultedMap<>(k -> self);
-
-    public BasicSupportInfo forLocale (String loc) { return locale.get(loc); }
+    public BasicSupportInfo forLocale (String loc) {
+        final BasicSupportInfo info = locale.get(loc);
+        return info == null ? this : info;
+    }
 
 }
