@@ -2,11 +2,9 @@ package org.cobbzilla.wizard.server.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
-@Accessors(chain=true)
 public class SupportInfo {
 
     @Getter @Setter private String email;
