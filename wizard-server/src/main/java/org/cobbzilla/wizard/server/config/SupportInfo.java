@@ -2,18 +2,18 @@ package org.cobbzilla.wizard.server.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections4.map.DefaultedMap;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import java.util.Map;
 
-public class SupportInfo {
+public class SupportInfo extends BasicSupportInfo {
 
-    @Getter @Setter private String email;
-    public boolean getHasEmail () { return !empty(email); }
+    private SupportInfo self;
 
-    @Getter @Setter private String site;
-    public boolean getHasSite () { return !empty(site); }
+    public SupportInfo () { self = this; }
 
-    public boolean getHasInfo() { return !empty(email) || !empty(site); }
-    public boolean getHasEmailAndSite() { return !empty(email) && !empty(site); }
+    @Getter @Setter private Map<String, BasicSupportInfo> locale = new DefaultedMap<>(k -> self);
+
+    public BasicSupportInfo forLocale (String loc) { return locale.get(loc); }
 
 }
