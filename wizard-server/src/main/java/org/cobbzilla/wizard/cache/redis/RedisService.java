@@ -176,6 +176,14 @@ public class RedisService {
     public Long del(String key) { return __del(key, 0, MAX_RETRIES); }
     public Long del_withPrefix(String prefixedKey) { return __del(prefixedKey, 0, MAX_RETRIES, false); }
 
+    public Long del_matching(String keyMatch) {
+        Long count = 0L;
+        for (String key : keys(keyMatch)) {
+            count += del_withPrefix(key);
+        }
+        return count;
+    }
+
     public Long sadd(String key, String value) { return sadd(key, new String[]{value}); }
     public Long sadd(String key, String[] values) { return __sadd(key, values, 0, MAX_RETRIES); }
 
@@ -753,6 +761,6 @@ public class RedisService {
         }
     }
 
-    public void flush() { keys(ALL_KEYS).forEach(this::del_withPrefix); }
+    public void flush() { del_matching(ALL_KEYS); }
 
 }
