@@ -8,6 +8,7 @@ import org.cobbzilla.util.collection.SingletonSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,9 +29,12 @@ public class RedisService {
 
     public static final int MAX_RETRIES = 5;
 
-    public static final String EX = "EX";
-    public static final String XX = "XX";
     public static final String NX = "NX";
+    public static final String XX = "XX";
+
+    public static final String EX = "EX";
+    public static final String PX = "PX";
+
     public static final String ALL_KEYS = "*";
 
     @Autowired @Getter @Setter private HasRedisConfiguration configuration;
@@ -148,6 +152,8 @@ public class RedisService {
 
     public <T> void setObject(String key, T thing) { __set(key, toJsonOrDie(thing), 0, MAX_RETRIES); }
 
+    public Long touch(String key) { return __touch(key, 0, MAX_RETRIES); }
+
     public List<String> list(String key) { return lrange(key, 0, -1); }
     public Long llen(String key) { return __llen(key, 0, MAX_RETRIES); }
     public List<String> lrange(String key, int start, int end) { return __lrange(key, start, end, 0, MAX_RETRIES); }
@@ -235,7 +241,11 @@ public class RedisService {
     public boolean confirmLock(String key, String lock) {
         key = key + LOCK_SUFFIX;
         final String lockVal = get(key);
-        return lockVal != null && lockVal.equals(lock);
+        if (lockVal != null && lockVal.equals(lock)) {
+            touch(key);
+            return true;
+        }
+        return false;
     }
 
     public String lock(String key, long lockTimeout, long deadlockTimeout) {
@@ -373,10 +383,23 @@ public class RedisService {
         }
     }
 
+    private SetParams getSetParams(String nxxx, String expx, long time) {
+        SetParams setParams = new SetParams();
+        switch (nxxx) {
+            case NX: setParams.nx(); break;
+            case XX: setParams.xx(); break;
+        }
+        switch (expx) {
+            case EX: setParams.ex((int) time); break;
+            case PX: setParams.px(time); break;
+        }
+        return setParams;
+    }
+
     private String __set(String key, String value, String nxxx, String expx, long time, int attempt, int maxRetries) {
         try {
             synchronized (redis) {
-                return getRedis().set(prefix(key), encrypt(value), nxxx, expx, time);
+                return getRedis().set(prefix(key), encrypt(value), getSetParams(nxxx, expx, time));
             }
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
@@ -400,7 +423,7 @@ public class RedisService {
     private String __set_plaintext(String key, String value, String nxxx, String expx, long time, int attempt, int maxRetries) {
         try {
             synchronized (redis) {
-                return getRedis().set(prefix(key), value, nxxx, expx, time);
+                return getRedis().set(prefix(key), value, getSetParams(nxxx, expx, time));
             }
         } catch (RuntimeException e) {
             if (attempt > maxRetries) throw e;
@@ -418,6 +441,18 @@ public class RedisService {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__set_plaintext");
             return __set_plaintext(key, value, attempt+1, maxRetries);
+        }
+    }
+
+    private Long __touch(String key, int attempt, int maxRetries) {
+        try {
+            synchronized (redis) {
+                return getRedis().touch(prefix(key));
+            }
+        } catch (RuntimeException e) {
+            if (attempt > maxRetries) throw e;
+            resetForRetry(attempt, "retrying RedisService.__touch");
+            return __touch(key, attempt+1, maxRetries);
         }
     }
 
