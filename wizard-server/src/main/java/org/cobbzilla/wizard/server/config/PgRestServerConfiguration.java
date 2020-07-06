@@ -46,7 +46,7 @@ import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependencyRefs;
 import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependentEntities;
 
-@Slf4j
+@Slf4j @SuppressWarnings("SpringConfigurationProxyMethods")
 public class PgRestServerConfiguration extends RestServerConfiguration implements HasDatabaseConfiguration {
 
     public static final String ENV_PGPASSWORD = "PGPASSWORD";
@@ -356,9 +356,15 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return dependencyDAOCache.computeIfAbsent(entityClass, c -> getDependencyRefs(c, getDependencies(c)));
     }
 
-    public void deleteDependencies (Identifiable thing) {
+    public void deleteDependencies (Identifiable thing) { deleteDependencies(thing, null); }
+
+    public void deleteDependencies (Identifiable thing, Collection<Class<? extends Identifiable>> excludes) {
         dependencyRefs(thing.getClass()).forEach(
                 dep -> {
+                    if (excludes != null && excludes.stream().anyMatch(depClass -> depClass.getName().equals(dep.getEntity()))) {
+                        log.debug("deleteDependencies("+thing+"): excluding: "+dep);
+                        return;
+                    }
                     final DAO dao = getDaoForEntityClass(dep.getEntity());
                     if (dao instanceof AbstractCRUDDAO) {
                         ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
