@@ -330,13 +330,25 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         return count;
     }
 
-    public int bulkDelete(String field, Object value) {
+    public int bulkDeleteAndNotUuid(String field, Object value) { return bulkDelete(field, value, true); }
+
+    public int bulkDelete(String field, Object value) { return bulkDelete(field, value, false); }
+
+    public static final String EX_UUID = "__exclude_uuid__";
+
+    private int bulkDelete(String field, Object value, boolean notUuid) {
         final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
         final Query query;
+        final String deleteSql = "DELETE FROM " + getEntityClass().getSimpleName() + " WHERE ";
         if (value == null) {
-            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" IS NULL");
+            query = session.createQuery(deleteSql + field + " IS NULL");
+
+        } else if (notUuid) {
+            query = session.createQuery(deleteSql + field + " = :" + field + " AND uuid != :" + EX_UUID)
+                    .setParameter(field, value)
+                    .setParameter(EX_UUID, value);
         } else {
-            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
+            query = session.createQuery(deleteSql + field + " = :" + field)
                     .setParameter(field, value);
         }
         final int count = query.executeUpdate();
@@ -430,6 +442,15 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
                 expr1,
                 ilike(likeField, likeValue)
         )).addOrder(order), 0, getFinderMaxResults());
+    }
+
+    @Transactional(readOnly=true)
+    @Override public List<E> findByFieldEqualAndFieldNotEqual(String eqField, Object eqValue, String neField, String neValue) {
+        final Criterion expr1 = eqValue == null ? isNull(eqField) : eq(eqField, eqValue);
+        return list(criteria().add(and(
+                expr1,
+                ne(neField, neValue)
+        )).addOrder(getDefaultSortOrder()), 0, getFinderMaxResults());
     }
 
     @Transactional(readOnly=true)

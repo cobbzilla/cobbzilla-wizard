@@ -28,6 +28,7 @@ public interface DAO<E extends Identifiable> {
     List<E> findByFieldLike(String field, String value);
     List<E> findByFieldEqualAndFieldLike(String eqField, Object eqValue, String likeField, String likeValue);
     List<E> findByFieldEqualAndFieldLike(String eqField, Object eqValue, String likeField, String likeValue, Order order);
+    List<E> findByFieldEqualAndFieldNotEqual(String eqField, Object eqValue, String neField, String neValue);
     List<E> findByFieldIn(String field, Object[] values);
     List<E> findByFieldIn(String field, Collection<?> values);
 

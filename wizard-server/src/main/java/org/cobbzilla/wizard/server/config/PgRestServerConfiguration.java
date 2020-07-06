@@ -38,6 +38,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.URIUtil.getHost;
 import static org.cobbzilla.util.http.URIUtil.getPort;
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.reflect.ReflectionUtil.forName;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
@@ -356,20 +357,34 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return dependencyDAOCache.computeIfAbsent(entityClass, c -> getDependencyRefs(c, getDependencies(c)));
     }
 
-    public void deleteDependencies (Identifiable thing) { deleteDependencies(thing, null); }
+    public void deleteDependencies (Identifiable thing) { deleteDependencies(thing, null, null); }
 
-    public void deleteDependencies (Identifiable thing, Collection<Class<? extends Identifiable>> excludes) {
+    public void deleteDependencies (Identifiable thing,
+                                    final Collection<Class<? extends Identifiable>> excludeDepClasses,
+                                    final Collection<String> excludeDepFields) {
         dependencyRefs(thing.getClass()).forEach(
                 dep -> {
-                    if (excludes != null && excludes.stream().anyMatch(depClass -> depClass.getName().equals(dep.getEntity()))) {
-                        log.debug("deleteDependencies("+thing+"): excluding: "+dep);
+                    if (excludeDepClasses != null && excludeDepClasses.stream().anyMatch(depClass -> depClass.getName().equals(dep.getEntity()))) {
+                        log.debug("deleteDependencies("+thing+"): excluding by dep class: "+dep);
+                        return;
+                    }
+                    if (excludeDepFields != null && excludeDepFields.stream().anyMatch(depField -> depField.equals(dep.getField()))) {
+                        log.debug("deleteDependencies("+thing+"): excluding by dep field: "+dep);
                         return;
                     }
                     final DAO dao = getDaoForEntityClass(dep.getEntity());
                     if (dao instanceof AbstractCRUDDAO) {
-                        ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
+                        if (forName(dep.getEntity()).isAssignableFrom(thing.getClass())) {
+                            ((AbstractCRUDDAO) dao).bulkDeleteAndNotUuid(dep.getField(), thing.getUuid());
+                        } else {
+                            ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
+                        }
                     } else {
-                        dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                        if (forName(dep.getEntity()).isAssignableFrom(thing.getClass())) {
+                            dao.delete(dao.findByFieldEqualAndFieldNotEqual(dep.getField(), thing.getUuid(), Identifiable.UUID, thing.getUuid()));
+                        } else {
+                            dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                        }
                     }
                 }
         );
