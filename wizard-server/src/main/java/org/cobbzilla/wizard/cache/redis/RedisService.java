@@ -153,6 +153,7 @@ public class RedisService {
     public <T> void setObject(String key, T thing) { __set(key, toJsonOrDie(thing), 0, MAX_RETRIES); }
 
     public Long touch(String key) { return __touch(key, 0, MAX_RETRIES); }
+    public Long expire(String key, long ttl) { return __expire(key, (int) ttl, 0, MAX_RETRIES); }
 
     public List<String> list(String key) { return lrange(key, 0, -1); }
     public Long llen(String key) { return __llen(key, 0, MAX_RETRIES); }
@@ -238,11 +239,11 @@ public class RedisService {
 
     public static final String LOCK_SUFFIX = "._lock";
 
-    public boolean confirmLock(String key, String lock) {
+    public boolean confirmLock(String key, String lock, long lockTimeout) {
         key = key + LOCK_SUFFIX;
         final String lockVal = get(key);
         if (lockVal != null && lockVal.equals(lock)) {
-            touch(key);
+            expire(key, lockTimeout);
             return true;
         }
         return false;
@@ -453,6 +454,18 @@ public class RedisService {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__touch");
             return __touch(key, attempt+1, maxRetries);
+        }
+    }
+
+    private Long __expire(String key, int ttl, int attempt, int maxRetries) {
+        try {
+            synchronized (redis) {
+                return getRedis().expire(prefix(key), ttl);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > maxRetries) throw e;
+            resetForRetry(attempt, "retrying RedisService.__expire");
+            return __expire(key, ttl, attempt+1, maxRetries);
         }
     }
 
