@@ -67,6 +67,9 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     @Override public List<E> findAll() { return list(criteria()); }
 
     @Transactional(readOnly=true)
+    @Override @NonNull public List<E> findAll(@NonNull final Order order) { return list(criteria().addOrder(order)); }
+
+    @Transactional(readOnly=true)
     @Override public E findByUuid(String uuid) { return findByUniqueField(Identifiable.UUID, uuid); }
 
     @Transactional(readOnly=true)

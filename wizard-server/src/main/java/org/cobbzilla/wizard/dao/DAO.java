@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.dao;
 
+import lombok.NonNull;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.hibernate.criterion.Order;
@@ -21,6 +22,8 @@ public interface DAO<E extends Identifiable> {
     E get(Serializable id);
 
     List<E> findAll();
+    @NonNull List<E> findAll(@NonNull final Order order);
+
     default Integer countAll() { return findAll().size(); }
     E findByUuid(String uuid);
     E findByUniqueField(String field, Object value);
