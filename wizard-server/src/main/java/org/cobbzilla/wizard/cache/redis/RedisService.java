@@ -154,6 +154,7 @@ public class RedisService {
 
     public Long touch(String key) { return __touch(key, 0, MAX_RETRIES); }
     public Long expire(String key, long ttl) { return __expire(key, (int) ttl, 0, MAX_RETRIES); }
+    public Long pexpire(String key, long ttl) { return __pexpire(key, (int) ttl, 0, MAX_RETRIES); }
 
     public List<String> list(String key) { return lrange(key, 0, -1); }
     public Long llen(String key) { return __llen(key, 0, MAX_RETRIES); }
@@ -243,7 +244,7 @@ public class RedisService {
         key = key + LOCK_SUFFIX;
         final String lockVal = get(key);
         if (lockVal != null && lockVal.equals(lock)) {
-            expire(key, lockTimeout);
+            pexpire(key, lockTimeout);
             return true;
         }
         return false;
@@ -466,6 +467,18 @@ public class RedisService {
             if (attempt > maxRetries) throw e;
             resetForRetry(attempt, "retrying RedisService.__expire");
             return __expire(key, ttl, attempt+1, maxRetries);
+        }
+    }
+
+    private Long __pexpire(String key, long ttl, int attempt, int maxRetries) {
+        try {
+            synchronized (redis) {
+                return getRedis().pexpire(prefix(key), ttl);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > maxRetries) throw e;
+            resetForRetry(attempt, "retrying RedisService.__pexpire");
+            return __pexpire(key, ttl, attempt+1, maxRetries);
         }
     }
 
