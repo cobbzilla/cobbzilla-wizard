@@ -416,6 +416,12 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         return list(sort(criteria().add(c)), 0, getFinderMaxResults());
     }
 
+    @Transactional(readOnly=true)
+    public List<E> findAllByField(String field, Object value) {
+        final Criterion c = value == null ? isNull(field) : eq(field, value);
+        return list(sort(criteria().add(c)));
+    }
+
     protected DetachedCriteria sort(DetachedCriteria criteria) {
         final Order order = getDefaultSortOrder();
         return order == null ? criteria : criteria.addOrder(order);
