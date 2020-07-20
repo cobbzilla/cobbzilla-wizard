@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.model;
 
-import java.util.Collection;
-import java.util.Comparator;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
@@ -19,6 +19,12 @@ public interface NamedEntity {
 
     static String names (Collection<? extends NamedEntity> c) {
         return empty(c) ? "(empty)" : c.stream().map(NamedEntity::getName).collect(Collectors.joining(", "));
+    }
+
+    static <E extends NamedEntity> Map<String, E> nameMap (Collection<E> things) {
+        return empty(things)
+                ? Collections.emptyMap()
+                : things.stream().collect(Collectors.toMap(NamedEntity::getName, Function.identity()));
     }
 
 }
