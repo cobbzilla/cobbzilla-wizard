@@ -27,7 +27,11 @@ public class IdentifiableBaseParentEntity extends IdentifiableBase implements Pa
     @Override public boolean hasChildren () { return !empty(children); }
     public void initChildren () { children = new HashMap<>(); }
 
-    private static Map<String, Class<? extends Identifiable>> childClasses = new ConcurrentHashMap<>();
+    private static final Map<String, Class<? extends Identifiable>> childClasses = new ConcurrentHashMap<>();
+
+    public static void addChildClass(Class<? extends Identifiable> clazz) {
+        childClasses.put(clazz.getSimpleName(), clazz);
+    }
 
     public <T extends Identifiable> List<T> getChildren (Class<T> clazz) { return getChildren(clazz.getSimpleName()); }
 
