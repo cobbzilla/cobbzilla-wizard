@@ -71,6 +71,9 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
                 log.info("migrate: drop statement ("+e.getStatement()+") failed, ignoring: "+e, e);
                 return;
             } else {
+                // consider checking for errors like:
+                // "Detected resolved migration not applied to database: 2020071901"
+                // and trying to start in spite of them
                 throw e;
             }
 
