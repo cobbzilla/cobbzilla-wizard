@@ -210,7 +210,7 @@ public class ResourceUtil {
             log.debug("userPrincipal: "+e);
             user = null;
         }
-        if (required && user == null) throw forbiddenEx();
+        if (required && user == null) throw unauthorizedEx();
         return user;
     }
 
