@@ -1,6 +1,7 @@
 package org.cobbzilla.wizard.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.cobbzilla.util.collection.ExpirationMap;
@@ -110,18 +111,18 @@ public abstract class ModelSetupService {
         private final Identifiable owner;
         @Getter private final Map<CrudOperation, Collection<Identifiable>> status = new ConcurrentHashMap<>();
 
-        @Override public void preCreate(EntityConfig entityConfig, Identifiable entity) {
+        @Override public void preCreate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest) {
             setOwner(owner, entity);
-            super.preCreate(entityConfig, entity);
+            super.preCreate(entityConfig, entity, originalJsonRequest);
         }
 
         @Override public void postCreate(EntityConfig entityConfig, Identifiable entity, Identifiable created) {
             status.computeIfAbsent(CrudOperation.create, k -> new ArrayList<>()).add(created);
         }
 
-        @Override public void preUpdate(EntityConfig entityConfig, Identifiable entity) {
+        @Override public void preUpdate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest) {
             setOwner(owner, entity);
-            super.preUpdate(entityConfig, entity);
+            super.preUpdate(entityConfig, entity, originalJsonRequest);
         }
 
         @Override public void postUpdate(EntityConfig entityConfig, Identifiable entity, Identifiable updated) {

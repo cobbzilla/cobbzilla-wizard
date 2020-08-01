@@ -1,5 +1,6 @@
 package org.cobbzilla.wizardtest.resources;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import org.cobbzilla.restex.targets.TemplateCaptureTarget;
 import org.cobbzilla.wizard.model.Identifiable;
@@ -13,8 +14,13 @@ public class ApiDocsModelSetupListener extends ModelSetupListenerBase {
 
     protected void note(String s) { if (apiDocs != null) apiDocs.addNote(s); }
 
-    @Override public void preCreate (EntityConfig entityConfig, Identifiable entity) { note("Create " + entityConfig.getName()); }
-    @Override public void preUpdate (EntityConfig entityConfig, Identifiable entity) { note("Update " + entityConfig.getName()); }
+    @Override public void preCreate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest) {
+        note("Create " + entityConfig.getName());
+    }
+
+    @Override public void preUpdate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest) {
+        note("Update " + entityConfig.getName());
+    }
 
     @Override public void preEntityConfig (String entityType) { note("Lookup EntityConfig for " + entityType); }
 

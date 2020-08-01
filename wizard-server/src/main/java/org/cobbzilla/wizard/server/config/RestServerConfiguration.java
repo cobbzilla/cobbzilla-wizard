@@ -5,6 +5,7 @@ import com.github.jknack.handlebars.Handlebars;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cobbzilla.util.collection.ExpirationMap;
 import org.cobbzilla.util.io.FileUtil;
@@ -40,6 +41,8 @@ import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 public class RestServerConfiguration {
 
     public static final int MAX_DUMP_TRIES = 5;
+    @Getter(lazy=true) private final String id = initId();
+    private String initId() { return getServerName() + "_" + RandomStringUtils.randomAlphanumeric(12); }
 
     @JsonIgnore @Getter @Setter RestServer server;
     public boolean isRunning() { return getServer() != null && getServer().isRunning(); }

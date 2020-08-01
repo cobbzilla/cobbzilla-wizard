@@ -135,6 +135,19 @@ public class EntityConfig {
     /** The API endpoint to use when updating an entity. Default value: none */
     @Getter @Setter private String updateUri;
 
+    /** The HTTP method to use when searching entities. Default value: `POST` */
+    @Getter @Setter private String searchMethod = "POST";
+    /** The API endpoint to use when searching entities. Default value: none */
+    @Getter @Setter private String searchUri;
+
+    /**
+     * Create and Update requests are actually called with pre-build entity objects when the model is synced. If the
+     * following flag is set to true for some entity that will not happen, and related create or update API call will
+     * get pure JSON as read from the model without any additions (which happen in the first case when Json is used to
+     * pre-build entity object).
+     */
+    @Getter @Setter private boolean useOriginalJsonRequestOnly = false;
+
     /**
      * After using the `searchUri` to obtain some entities, the `searchFields` tells which fields should be
      * "columns" in the resulting data table. Fields not listed in `searchFields` will not be shown.

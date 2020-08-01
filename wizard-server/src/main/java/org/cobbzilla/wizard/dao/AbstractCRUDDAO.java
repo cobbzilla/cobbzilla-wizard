@@ -16,16 +16,16 @@ import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 import org.cobbzilla.wizard.validation.MultiViolationException;
 import org.cobbzilla.wizard.validation.SimpleViolationException;
 import org.cobbzilla.wizard.validation.ValidationResult;
-import org.hibernate.FlushMode;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.DetachedCriteria;
 import org.hibernate.criterion.Order;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.hibernate4.HibernateTemplate;
+import org.springframework.orm.hibernate5.HibernateTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.FlushModeType;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.*;
@@ -261,7 +261,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     }
 
     public int bulkUpdate(String setField, Object setValue, String[] whereFields, Object[] whereValues) {
-        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final Session session = Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).getCurrentSession();
         final String whereClause;
         final boolean hasWhereClause = !empty(whereFields);
         if (hasWhereClause) {
@@ -304,13 +304,13 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
             query = queryBase;
         }
         final int count = query.executeUpdate();
-        session.setFlushMode(FlushMode.COMMIT);
+        session.setFlushMode(FlushModeType.COMMIT);
         session.flush();
         return count;
     }
 
     public int bulkDelete(String field, Object value) {
-        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final Session session = Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).getCurrentSession();
         final Query query;
         if (value == null) {
             query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" IS NULL");
@@ -319,7 +319,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
                     .setParameter(field, value);
         }
         final int count = query.executeUpdate();
-        session.setFlushMode(FlushMode.COMMIT);
+        session.setFlushMode(FlushModeType.COMMIT);
         session.flush();
         return count;
     }
@@ -589,8 +589,7 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         try {
             if (thing instanceof Collection) {
                 final Collection c = (Collection) instantiate(thing.getClass());
-                for (Iterator iter = ((Collection) thing).iterator(); iter.hasNext(); ) {
-                    final Object element = iter.next();
+                for (final Object element : (Collection) thing) {
                     c.add(cacheCopy(element));
                 }
                 return (T) c;
@@ -609,9 +608,13 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
     }
 
     protected void setFlushMode() { setFlushMode(getHibernateTemplate()); }
-    public static void setFlushMode(HibernateTemplate template) { template.getSessionFactory().getCurrentSession().setFlushMode(FlushMode.COMMIT); }
+    public static void setFlushMode(HibernateTemplate template) {
+        Objects.requireNonNull(template.getSessionFactory()).getCurrentSession().setFlushMode(FlushModeType.COMMIT);
+    }
 
-    public void refresh(E entity) { getHibernateTemplate().getSessionFactory().getCurrentSession().refresh(entity); }
+    public void refresh(E entity) {
+        Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).getCurrentSession().refresh(entity);
+    }
 
     private static final String PROP_AUDIT_LOG = "__auditLog";
 

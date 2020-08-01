@@ -16,6 +16,7 @@ import static org.cobbzilla.util.collection.ArrayUtil.singletonArray;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.json.JsonUtil.json;
+import static org.cobbzilla.wizard.model.search.SearchQuery.*;
 
 @Slf4j
 @Consumes(MediaType.APPLICATION_JSON)
@@ -31,13 +32,13 @@ public abstract class AbstractResource<T extends Identifiable> {
     protected abstract String getEndpoint();
 
     @GET
-    public Response index(@QueryParam(SearchQuery.PARAM_USE_PAGINATION) Boolean usePagination,
-                          @QueryParam(SearchQuery.PARAM_PAGE_NUMBER) Integer pageNumber,
-                          @QueryParam(SearchQuery.PARAM_PAGE_SIZE) Integer pageSize,
-                          @QueryParam(SearchQuery.PARAM_SORT_FIELD) String sortField,
-                          @QueryParam(SearchQuery.PARAM_SORT_ORDER) String sortOrder,
-                          @QueryParam(SearchQuery.PARAM_FILTER) String filter,
-                          @QueryParam(SearchQuery.PARAM_BOUNDS) String bounds) {
+    public Response index(@QueryParam(PARAM_USE_PAGINATION) Boolean usePagination,
+                          @QueryParam(PARAM_PAGE_NUMBER) Integer pageNumber,
+                          @QueryParam(PARAM_PAGE_SIZE) Integer pageSize,
+                          @QueryParam(PARAM_SORT_FIELD) String sortField,
+                          @QueryParam(PARAM_SORT_ORDER) String sortOrder,
+                          @QueryParam(PARAM_FILTER) String filter,
+                          @QueryParam(PARAM_BOUNDS) String bounds) {
 
         if (usePagination == null || !usePagination) return findAll();
         return Response.ok(dao().search(new SearchQuery(pageNumber, pageSize, sortField, sortOrder, filter, parseBounds(bounds)))).build();

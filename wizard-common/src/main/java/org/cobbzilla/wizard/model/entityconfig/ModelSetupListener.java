@@ -6,10 +6,10 @@ import org.cobbzilla.wizard.util.RestResponse;
 
 public interface ModelSetupListener {
 
-    void preCreate (EntityConfig entityConfig, Identifiable entity);
+    void preCreate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest);
     void postCreate(EntityConfig entityConfig, Identifiable entity, Identifiable created);
 
-    void preUpdate (EntityConfig entityConfig, Identifiable entity);
+    void preUpdate (EntityConfig entityConfig, Identifiable entity, ObjectNode originalJsonRequest);
     void postUpdate(EntityConfig entityConfig, Identifiable entity, Identifiable updated);
 
     void preEntityConfig (String entityType);
