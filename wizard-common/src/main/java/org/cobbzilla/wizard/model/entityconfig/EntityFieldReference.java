@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.model.entityconfig;
 
 import lombok.*;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.bool;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 /**
@@ -11,9 +12,10 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 @NoArgsConstructor @EqualsAndHashCode(of={"entity", "field"}) @ToString(of={"entity", "field"})
 public class EntityFieldReference {
 
-    public EntityFieldReference (String entity, String field) {
+    public EntityFieldReference (String entity, String field, Boolean cascade) {
         this.entity = entity;
         this.field = field;
+        this.cascade = cascade;
     }
 
     /** A special value that can be used by child entities to indicate that the lexically enclosing entity is their parent. */
@@ -35,5 +37,9 @@ public class EntityFieldReference {
      * of the entity, or any of its parents.
      */
     @Getter @Setter private String finder;
+
+    /** Should a deletion of an entity cascade to the entity referenced? */
+    @Getter @Setter private Boolean cascade;
+    public boolean cascade() { return bool(cascade); }
 
 }

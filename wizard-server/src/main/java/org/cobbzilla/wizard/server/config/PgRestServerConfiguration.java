@@ -347,12 +347,12 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return reversed;
     }
 
-    private Map<Class<? extends Identifiable>, List<Class<? extends Identifiable>>> dependencyCache = new ConcurrentHashMap<>();
+    private final Map<Class<? extends Identifiable>, List<Class<? extends Identifiable>>> dependencyCache = new ConcurrentHashMap<>();
     public List<Class<? extends Identifiable>> getDependencies (Class<? extends Identifiable> entityClass) {
         return dependencyCache.computeIfAbsent(entityClass, c -> getDependentEntities(entityClass, getEntityClassesReverse()));
     }
 
-    private Map<Class<? extends Identifiable>, Collection<EntityFieldReference>> dependencyDAOCache = new ConcurrentHashMap<>();
+    private final Map<Class<? extends Identifiable>, Collection<EntityFieldReference>> dependencyDAOCache = new ConcurrentHashMap<>();
     public Collection<EntityFieldReference> dependencyRefs(Class<? extends Identifiable> entityClass) {
         return dependencyDAOCache.computeIfAbsent(entityClass, c -> getDependencyRefs(c, getDependencies(c)));
     }
@@ -364,6 +364,10 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
                                     final Collection<String> excludeDepFields) {
         dependencyRefs(thing.getClass()).forEach(
                 dep -> {
+                    if (!dep.cascade()) {
+                        log.debug("deleteDependencies("+thing+"): excluding due to cascade=false: "+dep);
+                        return;
+                    }
                     if (excludeDepClasses != null && excludeDepClasses.stream().anyMatch(depClass -> depClass.getName().equals(dep.getEntity()))) {
                         log.debug("deleteDependencies("+thing+"): excluding by dep class: "+dep);
                         return;
