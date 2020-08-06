@@ -3,16 +3,14 @@ package org.cobbzilla.wizardtest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 
-import java.security.SecureRandom;
 import java.util.List;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.RANDOM;
 import static org.cobbzilla.util.daemon.ZillaRuntime.now;
 
 public class RandomUtil {
 
     public static final String TEST_EMAIL_SUFFIX = "@example.com";
-
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     public static String randomName() { return randomName(20); }
 
