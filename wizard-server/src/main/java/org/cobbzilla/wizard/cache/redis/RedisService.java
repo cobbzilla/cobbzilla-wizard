@@ -176,6 +176,13 @@ public class RedisService {
         }
         return count;
     }
+    public Long del_matching_withPrefix(String keyMatch) {
+        Long count = 0L;
+        for (final String fullKey : keys_withPrefix(keyMatch)) {
+            count += __del(fullKey, 0);
+        }
+        return count;
+    }
     public void flush() { del_matching(ALL_KEYS); }
 
     public Long sadd(String key, String value) { return __sadd(prefix(key), new String[]{ encrypt(value) }, 0); }
@@ -211,6 +218,7 @@ public class RedisService {
     }
 
     public Collection<String> keys(String key) { return __keys(prefix(key), 0); }
+    public Collection<String> keys_withPrefix(String key) { return __keys(key, 0); }
     public String rename(String key, String newFullKey) { return __rename(prefix(key), newFullKey, 0); }
 
     public static final String LOCK_SUFFIX = "._lock";
