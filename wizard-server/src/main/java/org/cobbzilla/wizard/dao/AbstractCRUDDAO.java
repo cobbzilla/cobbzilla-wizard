@@ -360,6 +360,16 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         return count;
     }
 
+    public int bulkDeleteWhere(String whereClause) {
+        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final String deleteSql = "DELETE FROM " + getEntityClass().getSimpleName() + " WHERE " + whereClause;
+        final Query query = session.createQuery(deleteSql);
+        final int count = query.executeUpdate();
+        session.setFlushMode(FlushMode.COMMIT);
+        session.flush();
+        return count;
+    }
+
     @Transactional(readOnly=true)
     @Override public E findByUniqueField(String field, Object value) {
         return uniqueResult(value == null ? isNull(field) : eq(field, value));
