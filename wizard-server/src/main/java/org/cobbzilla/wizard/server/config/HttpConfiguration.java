@@ -26,4 +26,5 @@ public class HttpConfiguration {
     @Getter @Setter private Integer workerThreads;
     public boolean hasWorkerThreads () { return workerThreads != null; }
 
+    @Getter @Setter private boolean exitOnOutOfMemoryError = true;
 }
