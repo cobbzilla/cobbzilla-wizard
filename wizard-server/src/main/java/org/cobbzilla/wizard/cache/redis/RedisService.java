@@ -58,7 +58,7 @@ public class RedisService {
         this.key = key;
     }
 
-    private Map<String, RedisService> prefixServiceCache = new ConcurrentHashMap<>();
+    private final Map<String, RedisService> prefixServiceCache = new ConcurrentHashMap<>();
 
     public RedisService prefixNamespace(String prefix) { return prefixNamespace(prefix, configuration.getRedis().getKey()); }
 
