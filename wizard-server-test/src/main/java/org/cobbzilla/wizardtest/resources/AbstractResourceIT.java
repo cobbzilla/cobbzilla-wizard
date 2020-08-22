@@ -97,7 +97,6 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
         if (hasRedis) {
             final RedisConfiguration redis = ((HasRedisConfiguration) configuration).getRedis();
             redis.setPrefix(redis.getPrefix()+"_"+testNameToken()+"_"+randomAlphanumeric(10));
-            log.warn(">>>>> redis port = "+redis.getPort());
         }
         if (hasDb) {
             final DatabaseConfiguration database = ((HasDatabaseConfiguration) configuration).getDatabase();
