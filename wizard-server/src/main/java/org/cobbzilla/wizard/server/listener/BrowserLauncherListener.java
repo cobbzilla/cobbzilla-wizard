@@ -34,6 +34,7 @@ public class BrowserLauncherListener extends RestServerLifecycleListenerBase {
                 }
             }
         });
+        appThread.setName(BrowserLauncherListener.class.getSimpleName());
         appThread.setDaemon(true);
         appThread.start();
 
