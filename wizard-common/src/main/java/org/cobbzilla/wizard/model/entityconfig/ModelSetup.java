@@ -392,7 +392,7 @@ public class ModelSetup {
                     if (childClassName == null) childClassName = entity.getClass().getPackage().getName() + "." + childEntityType;
                     final Class<? extends Identifiable> childClass = forName(childClassName);
 
-                    @Cleanup("shutdownNow") final ExecutorService exec = fixedPool(Math.min(children.length, maxConcurrency));
+                    @Cleanup("shutdownNow") final ExecutorService exec = fixedPool(Math.min(children.length, maxConcurrency), "ModelSetup.exec");
                     final Set<Future<?>> futures = new HashSet<>();
                     for (final JsonNode child : children) {
                         if (!(child instanceof ObjectNode)) {
