@@ -37,19 +37,15 @@ import static org.cobbzilla.util.string.StringUtil.UTF8;
 @Slf4j
 public class ResourceUtil {
 
-    public static final Response OK_RESPONSE = Response.ok().build();
-    public static final Response OK_EMPTY_OBJECT = Response.ok(Collections.emptyMap()).build();
-    public static final Response OK_EMPTY_LIST = Response.ok(Collections.emptyList()).build();
-
-    public static Response ok() { return OK_RESPONSE; }
+    public static Response ok() { return Response.ok().build(); }
 
     public static Response ok(Object o) { return Response.ok(o).build(); }
 
     public static Response ok_utf8(Object o) { return Response.ok(o).header(CONTENT_ENCODING, UTF8).build(); }
 
-    public static Response ok_empty() { return OK_EMPTY_OBJECT; }
+    public static Response ok_empty() { return Response.ok(Collections.emptyMap()).build(); }
 
-    public static Response ok_empty_list() { return OK_EMPTY_LIST; }
+    public static Response ok_empty_list() { return Response.ok(Collections.emptyList()).build(); }
 
     public static Response send(SendableResource resource) {
         return send(resource.getOut(), resource.getStatus(), resource.getHeaders(), resource.getName(), resource.getContentType(), resource.getContentLength(), resource.getForceDownload());
