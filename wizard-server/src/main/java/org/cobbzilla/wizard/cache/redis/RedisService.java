@@ -193,6 +193,7 @@ public class RedisService {
     public Long srem(String key, String[] values) { return __srem(prefix(key), encrypt(values), 0); }
     public Set<String> smembers(String key) { return decrypt(__smembers(prefix(key), 0)); }
     public boolean sismember(String key, String value) { return __sismember(prefix(key), encrypt(value), 0); }
+    public boolean sismember_plaintext(String key, String value) { return __sismember(prefix(key), value, 0); }
     public String srandmember(String key) { return decrypt(__srandmember(prefix(key), 0)); }
     public List<String> srandmembers(String key, int count) { return decrypt(__srandmember(prefix(key), count, 0)); }
     public String spop(String key) { return decrypt(__spop(prefix(key), 0)); }
