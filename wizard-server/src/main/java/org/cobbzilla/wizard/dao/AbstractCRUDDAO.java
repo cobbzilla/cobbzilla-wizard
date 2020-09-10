@@ -302,13 +302,13 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
                                             + " SET " + String.join(" IS NULL, ", setFields) + " IS NULL"
                                             + whereClause);
         } else {
-            final var setFieldsSQLPart = Arrays.stream(setFields)
-                                               .map(s -> s + (s == null ? " IS NULL" : " = :" + s))
-                                               .collect(Collectors.joining(", "));
+            final String setFieldsSQLPart = Arrays.stream(setFields)
+                                                  .map(s -> s + (s == null ? " IS NULL" : " = :" + s))
+                                                  .collect(Collectors.joining(", "));
             queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName()
                                             + " SET " + setFieldsSQLPart
                                             + whereClause);
-            for (var i = 0; i < setValues.length; i++) {
+            for (int i = 0; i < setValues.length; i++) {
                 if (setValues[i] != null) queryBase.setParameter(setFields[i], setValues[i]);
             }
         }
@@ -339,31 +339,30 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
 
     public static final String EX_UUID = "__exclude_uuid__";
 
-    private int bulkDelete(String field, Object value, boolean notUuid) {
-        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
-        final Query query;
-        final String deleteSql = "DELETE FROM " + getEntityClass().getSimpleName() + " WHERE ";
-        if (value == null) {
-            query = session.createQuery(deleteSql + field + " IS NULL");
+    private int bulkDelete(@NonNull final String field, @Nullable final Object value, final boolean notUuid) {
+        if (value == null) return bulkDeleteWhere(field + " IS NULL");
 
-        } else if (notUuid) {
-            query = session.createQuery(deleteSql + field + " = :" + field + " AND uuid != :" + EX_UUID)
-                    .setParameter(field, value)
-                    .setParameter(EX_UUID, value);
-        } else {
-            query = session.createQuery(deleteSql + field + " = :" + field)
-                    .setParameter(field, value);
+        final StringBuilder condition = new StringBuilder(field).append(" = :").append(field);
+        final HashMap<String, Object> params = new HashMap<>();
+        params.put(field, value);
+
+        if (notUuid) {
+            condition.append(" AND uuid != :").append(EX_UUID);
+            params.put(EX_UUID, value);
         }
-        final int count = query.executeUpdate();
-        session.setFlushMode(FlushMode.COMMIT);
-        session.flush();
-        return count;
+
+        return bulkDeleteWhere(condition.toString(), params);
     }
 
-    public int bulkDeleteWhere(String whereClause) {
+    public int bulkDeleteWhere(@NonNull final String whereClause) {
+        return bulkDeleteWhere(whereClause, null);
+    }
+
+    public int bulkDeleteWhere(@NonNull final String whereClause, @Nullable final Map<String, Object> parameters) {
         final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
         final String deleteSql = "DELETE FROM " + getEntityClass().getSimpleName() + " WHERE " + whereClause;
         final Query query = session.createQuery(deleteSql);
+        if (!empty(parameters)) parameters.forEach(query::setParameter);
         final int count = query.executeUpdate();
         session.setFlushMode(FlushMode.COMMIT);
         session.flush();
