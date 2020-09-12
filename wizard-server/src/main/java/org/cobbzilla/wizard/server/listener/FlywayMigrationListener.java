@@ -32,7 +32,14 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
         this.server = server;
         final PgRestServerConfiguration configuration = (PgRestServerConfiguration) server.getConfiguration();
         if (configuration.getDatabase().isMigrationEnabled()) {
-            migrate(configuration);
+            // does the flyway table exist? If not, this is a first-time setup
+            try {
+                configuration.execSql("select count(*) from "+getFlywayTableName());
+                migrate(configuration);
+            } catch (Exception e) {
+                log.warn("beforeStart: database schema does not seem to exist, will create it");
+                configuration.getDatabase().getHibernate().setHbm2ddlAuto("create");
+            }
         }
         super.beforeStart(server);
     }
