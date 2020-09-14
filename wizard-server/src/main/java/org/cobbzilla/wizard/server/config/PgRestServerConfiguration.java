@@ -417,4 +417,13 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
                 .generateConstraintSql(includeIndexes).toArray(new String[0]);
     }
 
+    public boolean tableExists(String tableName) {
+        try {
+            execSql("select count(*) from "+tableName);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }
