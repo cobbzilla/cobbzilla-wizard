@@ -66,8 +66,9 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             if (checkTable) {
                 ok = checkTable(config);
                 if (!ok) {
-                    // create the schema when the test table does not exist
+                    // create the schema when the test table does not exist. Disable migration
                     config.getDatabase().getHibernate().setHbm2ddlAuto("create");
+                    config.getDatabase().setMigrationEnabled(false);
                 }
             } else {
                 config.execSql("select 1");
@@ -124,7 +125,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             try {
                 return runTableCheck(config, tableName);
             } catch (Exception e) {
-                log.warn("table '"+tableName+"' not found, will create schema: " + shortError(e));
+                log.warn("table '"+tableName+"' not found, will create schema (disabling migration): " + shortError(e));
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
                 config.getDatabase().setMigrationEnabled(false);
             }
@@ -145,7 +146,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             try {
                 runTableCheck(config, tableName);
             } catch (Exception e) {
-                die(PREFIX + "table '"+tableName+"' not found: " + shortError(e));
+                die(PREFIX + "runTableCheck failed for table '"+tableName+"': " + shortError(e));
             }
         }
         if (isCheckRedis()) {
