@@ -126,6 +126,7 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             } catch (Exception e) {
                 log.warn("table '"+tableName+"' not found, will create schema: " + shortError(e));
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
+                config.getDatabase().setMigrationEnabled(false);
             }
         }
         return false;
