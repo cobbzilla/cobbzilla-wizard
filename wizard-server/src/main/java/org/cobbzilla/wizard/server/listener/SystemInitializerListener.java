@@ -66,9 +66,9 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             if (checkTable) {
                 ok = checkTable(config);
                 if (!ok) {
-                    // create the schema when the test table does not exist. Disable migration
+                    // create the schema when the test table does not exist. Do baseline migration
                     config.getDatabase().getHibernate().setHbm2ddlAuto("create");
-                    config.getDatabase().setMigrationEnabled(false);
+                    config.getDatabase().setMigrationBaselineOnly(true);
                 }
             } else {
                 config.execSql("select 1");
@@ -87,9 +87,9 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
                 execScript("createdb --encoding=UTF-8 "+db);
                 if (!dbExists(db)) die(PREFIX+"error creating "+db+" database");
 
-                // create the schema, just this time. Disable migration.
+                // create the schema, just this time. Do baseline migration.
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
-                config.getDatabase().setMigrationEnabled(false);
+                config.getDatabase().setMigrationBaselineOnly(true);
 
             } else {
                 log.info(db+" DB exists, not creating");
@@ -125,9 +125,9 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
             try {
                 return runTableCheck(config, tableName);
             } catch (Exception e) {
-                log.warn("table '"+tableName+"' not found, will create schema (disabling migration): " + shortError(e));
+                log.warn("table '"+tableName+"' not found, will create schema and do baseline migration: " + shortError(e));
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
-                config.getDatabase().setMigrationEnabled(false);
+                config.getDatabase().setMigrationBaselineOnly(true);
             }
         }
         return false;

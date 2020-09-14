@@ -46,7 +46,8 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
 
         // check to see if flyway tables exist
         final var flywayTable = getFlywayTableName();
-        final var baseline = checkIfBaseline(configuration, flywayTable);
+        final boolean baselineOnly = configuration.getDatabase().isMigrationBaselineOnly();
+        final var baseline = baselineOnly || checkIfBaseline(configuration, flywayTable);
         final var baselineVersion = baseline ? MigrationVersion.fromVersion(getBaselineVersion())
                                              : MigrationVersion.EMPTY;
         if (baseline) {
@@ -58,8 +59,8 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
 
         final Flyway flyway = new Flyway(new FluentConfiguration()
                 .dataSource(dbConfig.getUrl(), dbConfig.getUser(), dbConfig.getPassword())
-                .skipDefaultResolvers(skipDefaultResolvers())
-                .resolvers(resolvers != null ? resolvers : new MigrationResolver[0])
+                .skipDefaultResolvers(baselineOnly || skipDefaultResolvers())
+                .resolvers(resolvers != null && !baselineOnly ? resolvers : new MigrationResolver[0])
                 .baselineOnMigrate(baseline)
                 .baselineVersion(baselineVersion));
 
