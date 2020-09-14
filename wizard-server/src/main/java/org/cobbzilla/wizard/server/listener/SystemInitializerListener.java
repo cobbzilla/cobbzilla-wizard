@@ -86,8 +86,9 @@ public class SystemInitializerListener extends RestServerLifecycleListenerBase {
                 execScript("createdb --encoding=UTF-8 "+db);
                 if (!dbExists(db)) die(PREFIX+"error creating "+db+" database");
 
-                // create the schema, just this time
+                // create the schema, just this time. Disable migration.
                 config.getDatabase().getHibernate().setHbm2ddlAuto("create");
+                config.getDatabase().setMigrationEnabled(false);
 
             } else {
                 log.info(db+" DB exists, not creating");
