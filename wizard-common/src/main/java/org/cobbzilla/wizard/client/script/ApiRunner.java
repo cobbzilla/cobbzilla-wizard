@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.jknack.handlebars.Handlebars;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -155,6 +156,7 @@ public class ApiRunner {
                 if (empty(defaults.getParams())) {
                     log.warn(logPrefix+"no default parameters set");
                 } else {
+                    @NonNull final var defaultParamsLog = new StringBuilder();
                     for (Map.Entry<String, Object> param : defaults.getParams().entrySet()) {
                         final String pName = param.getKey();
                         final Object pValue = param.getValue();
@@ -166,10 +168,14 @@ public class ApiRunner {
                             if ((pValue instanceof Boolean) && !((Boolean) pValue)) {
                                 continue; // boolean values already default to false, no need to change script
                             }
-                            log.info(logPrefix+"parameter '"+pName+"' undefined, using default value ("+pValue+")");
+                            defaultParamsLog.append("\n\t").append(pName).append('=').append(pValue);
                             script.setParam(pName, pValue);
                             paramsChanged = true;
                         }
+                    }
+                    if (defaultParamsLog.length() > 0) {
+                        log.info(logPrefix + "Following parameter(s) are undefined, using shown default value(s):"
+                                 + defaultParamsLog.toString());
                     }
                 }
             }

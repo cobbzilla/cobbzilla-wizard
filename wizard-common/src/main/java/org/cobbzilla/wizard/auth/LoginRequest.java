@@ -20,7 +20,7 @@ public class LoginRequest {
     public boolean forceLowercase () { return true; }
 
     @Setter private String name;
-    public String getName () { return name == null ? null : forceLowercase() ? name.toLowerCase() : name; }
+    public String getName () { return name == null ? null : (forceLowercase() ? name.toLowerCase() : name).trim(); }
     public boolean hasName () { return !empty(name); }
 
     public String getUsername () { return getName(); }
@@ -32,10 +32,8 @@ public class LoginRequest {
     @Getter @Setter @JsonProperty private String totpToken;
     @JsonIgnore public boolean hasTotpToken() { return !empty(totpToken); }
 
-    @Getter @Setter private String deviceId;
-    @JsonIgnore public boolean hasDevice () { return !empty(deviceId); }
-
-    @Getter @Setter private String deviceName;
+    @Getter @Setter private String device;
+    @JsonIgnore public boolean hasDevice () { return !empty(device); }
 
     // optional - server-side resource can fill this in for other server-side code to use
     @JsonIgnore @Getter @Setter private String userAgent;
@@ -43,8 +41,6 @@ public class LoginRequest {
     public String toString () {
         return "{name="+getName()+", password="+mask(password)+", totpToken="+mask(totpToken)+", device="+getDevice()+"}";
     }
-
-    @JsonIgnore public String getDevice() { return hasDevice() ? deviceId + " ("+deviceName+")" : "NOT-SET"; }
 
     public String mask(String value) { return empty(value) ? "NOT-SET" : "SET"; }
 }

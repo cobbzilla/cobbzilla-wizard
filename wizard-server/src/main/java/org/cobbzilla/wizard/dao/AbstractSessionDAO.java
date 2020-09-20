@@ -68,7 +68,7 @@ public abstract class AbstractSessionDAO<T extends Identifiable> {
         getSessionRedis().set(uuid, toJson(thing), shouldExist ? XX : NX, EX, getSessionTimeout(thing));
     }
 
-    private long getSessionTimeout(T thing) { return getSessionTimeout(); }
+    protected long getSessionTimeout(T thing) { return getSessionTimeout(); }
 
     protected long getSessionTimeout() { return DAYS.toSeconds(30); }
 

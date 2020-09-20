@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.http.HttpStatusCodes;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.wizard.cache.redis.HasRedisConfiguration;
+import org.cobbzilla.wizard.cache.redis.RedisConfiguration;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.client.script.ApiRunner;
 import org.cobbzilla.wizard.client.script.ApiRunnerListenerBase;
@@ -91,6 +93,11 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
 
         final boolean hasDb = configuration instanceof HasDatabaseConfiguration;
         final boolean hasQuartz = configuration instanceof HasQuartzConfiguration;
+        final boolean hasRedis = configuration instanceof HasRedisConfiguration;
+        if (hasRedis) {
+            final RedisConfiguration redis = ((HasRedisConfiguration) configuration).getRedis();
+            redis.setPrefix(redis.getPrefix()+"_"+testNameToken()+"_"+randomAlphanumeric(10));
+        }
         if (hasDb) {
             final DatabaseConfiguration database = ((HasDatabaseConfiguration) configuration).getDatabase();
             if (useTestSpecificDatabase()) {
@@ -272,7 +279,11 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
     protected boolean allowPreExistingDatabase() { return false; }
 
     private String getTempDbNamePrefix(String url) {
-        return truncate(url.substring(url.lastIndexOf('/') + 1), 15) + "_" + truncate(camelCaseToSnakeCase(getClass().getSimpleName()), 35).toLowerCase();
+        return truncate(url.substring(url.lastIndexOf('/') + 1), 15) + "_" + testNameToken();
+    }
+
+    private String testNameToken() {
+        return truncate(camelCaseToSnakeCase(getClass().getSimpleName()), 35).toLowerCase();
     }
 
     protected Map<String, String> getServerEnvironment() throws Exception { return null; }

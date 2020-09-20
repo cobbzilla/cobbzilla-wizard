@@ -27,9 +27,17 @@ public class HashedPassword implements Serializable {
     public static final HashedPassword DISABLED = new HashedPassword(true, "disabled");
     public static final HashedPassword DELETED = new HashedPassword(true, "deleted");
 
+    public static final String SPECIAL_PREFIX = ":special:";
+    public static final String SPECIAL_SUFFIX = "__special__";
+
     public HashedPassword (String password) { setPassword(password); }
 
-    private HashedPassword (boolean special, String val) { hashedPassword = "__"+ truncate(val, 10)+"__"; }
+    private HashedPassword (boolean special, String val) { hashedPassword = SPECIAL_PREFIX +truncate(val, 10)+SPECIAL_SUFFIX; }
+
+    @JsonIgnore @Transient public boolean isSpecial () {
+        return hashedPassword.startsWith(SPECIAL_PREFIX) && hashedPassword.endsWith(SPECIAL_SUFFIX);
+    }
+    @JsonIgnore @Transient public boolean isNotSpecial () { return !isSpecial(); }
 
     @HasValue(message=ERR_HASHED_PASSWORD_EMPTY)
     @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_HASHED_PASSWORD_LENGTH)

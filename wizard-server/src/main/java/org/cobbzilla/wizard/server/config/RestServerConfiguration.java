@@ -118,6 +118,9 @@ public class RestServerConfiguration {
         return handler;
     }
 
+    @Getter @Setter private SupportInfo support = new SupportInfo();
+    public boolean getHasSupportInfo () { return support != null && support.getHasInfo(); }
+
     public String getApiUriBase() { return getPublicUriBase() + getHttp().getBaseUri(); }
 
     public String getLoopbackApiBase() { return "http://127.0.0.1:" + getHttp().getPort() + getHttp().getBaseUri(); }

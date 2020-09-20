@@ -4,18 +4,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.collection.SingletonSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-import static net.sf.cglib.core.CollectionUtils.transform;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
-import static org.cobbzilla.util.daemon.ZillaRuntime.now;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.security.CryptoUtil.string_decrypt;
@@ -25,11 +24,14 @@ import static org.cobbzilla.util.system.Sleep.sleep;
 @Service @NoArgsConstructor @Slf4j
 public class RedisService {
 
-    public static final int MAX_RETRIES = 5;
+    public static final byte MAX_RETRIES = 5;
+
+    public static final String NX = "NX";
+    public static final String XX = "XX";
 
     public static final String EX = "EX";
-    public static final String XX = "XX";
-    public static final String NX = "NX";
+    public static final String PX = "PX";
+
     public static final String ALL_KEYS = "*";
 
     @Autowired @Getter @Setter private HasRedisConfiguration configuration;
@@ -56,7 +58,7 @@ public class RedisService {
         this.key = key;
     }
 
-    private Map<String, RedisService> prefixServiceCache = new ConcurrentHashMap<>();
+    private final Map<String, RedisService> prefixServiceCache = new ConcurrentHashMap<>();
 
     public RedisService prefixNamespace(String prefix) { return prefixNamespace(prefix, configuration.getRedis().getKey()); }
 
@@ -73,7 +75,7 @@ public class RedisService {
     }
 
     public void reconnect () {
-        log.debug("marking redis for reconnection...");
+        if (log.isDebugEnabled()) log.debug("marking redis for reconnection...");
         synchronized (redis) {
             if (redis.get() != null) {
                 try { redis.get().disconnect(); } catch (Exception e) {
@@ -87,7 +89,7 @@ public class RedisService {
     private Jedis getRedis () {
         synchronized (redis) {
             if (redis.get() == null) {
-                log.debug("connecting to redis...");
+                if (log.isDebugEnabled()) log.debug("connecting to redis...");
                 redis.set(newJedis());
             }
         }
@@ -97,141 +99,158 @@ public class RedisService {
     public <V> RedisMap<V> map (String prefix) { return map(prefix, null); }
     public <V> RedisMap<V> map (String prefix, Long duration) { return new RedisMap<>(prefix, duration, this); }
 
-    public boolean exists(String key) { return __exists(key, 0, MAX_RETRIES); }
-
+    public boolean exists(String key) { return __exists(prefix(key), 0); }
     public boolean anyExists(Collection<String> keys) {
-        for (String k : keys) if (exists(k)) return true;
+        for (final String key : keys) {
+            if (__exists(prefix(key), 0)) return true;
+        }
         return false;
     }
-
     public boolean allExist(Collection<String> keys) {
-        for (String k : keys) if (!exists(k)) return false;
-        return true;
+        return keys.size() == __exists(prefix(keys).toArray(new String[keys.size()]), 0);
     }
 
     public <T> T getObject(String key, Class<T> clazz) {
-        final String json = get(key);
-        return empty(json) ? null : fromJsonOrDie(json, clazz);
+        final String json = __get(prefix(key), 0);
+        return empty(json) ? null : fromJsonOrDie(decrypt(json), clazz);
     }
+    public String get(String key) { return decrypt(__get(prefix(key), 0)); }
+    public String get_withPrefix(String prefixedKey) { return decrypt(__get(prefixedKey, 0)); }
+    public String get_plaintext(String key) { return __get(prefix(key), 0); }
 
-    public String get(String key) { return decrypt(__get(key, 0, MAX_RETRIES)); }
-    public String get_withPrefix(String prefixedKey) { return decrypt(__get(prefixedKey, 0, MAX_RETRIES, false)); }
+    /**
+     * @param key
+     * @return TTL in seconds for the given key
+     */
+    public int get_ttl(final String key) { return __ttl(prefix(key), 0).intValue(); }
 
-    public String get_plaintext(String key) { return __get(key, 0, MAX_RETRIES); }
-
+    public <T> void setObject(String key, T thing) { __set(prefix(key), encrypt(toJsonOrDie(thing)), 0); }
+    public void set(String key, String value) { __set(prefix(key), encrypt(value), 0); }
     public void set(String key, String value, String nxxx, String expx, long time) {
-        __set(key, value, nxxx, expx, time, 0, MAX_RETRIES);
+        __set(prefix(key), encrypt(value), buildSetParams(nxxx, expx, time), 0);
     }
-
     public void set(String key, String value, String expx, long time) {
-        __set(key, value, XX, expx, time, 0, MAX_RETRIES);
-        __set(key, value, NX, expx, time, 0, MAX_RETRIES);
+        final String fullKey = prefix(key);
+        final String preparedValue = encrypt(value);
+        __set(fullKey, preparedValue, buildSetParams(XX, expx, time), 0);
+        __set(fullKey, preparedValue, buildSetParams(NX, expx, time), 0);
     }
-
-    public void set(String key, String value) { __set(key, value, 0, MAX_RETRIES); }
-
+    public void set_plaintext(String key, String value) { __set(prefix(key), value, 0); }
+    public void set_plaintext(String key, String value, String nxxx, String expx, long time) {
+        __set(prefix(key), value, buildSetParams(nxxx, expx, time), 0);
+    }
+    public void set_plaintext(String key, String value, String expx, long time) {
+        final String fullKey = prefix(key);
+        __set(fullKey, value, buildSetParams(XX, expx, time), 0);
+        __set(fullKey, value, buildSetParams(NX, expx, time), 0);
+    }
     public void setAll(Collection<String> keys, String value, String expx, long time) {
         for (String k : keys) set(k, value, expx, time);
     }
 
-    public <T> void setObject(String key, T thing) { __set(key, toJsonOrDie(thing), 0, MAX_RETRIES); }
+    public Long touch(String key) { return __touch(prefix(key), 0); }
+    public Long expire(String key, int ttlSeconds) { return __expire(prefix(key), ttlSeconds, 0); }
+    public Long pexpire(String key, long ttlMillis) { return __pexpire(prefix(key), ttlMillis, 0); }
 
     public List<String> list(String key) { return lrange(key, 0, -1); }
-    public Long llen(String key) { return __llen(key, 0, MAX_RETRIES); }
-    public List<String> lrange(String key, int start, int end) { return __lrange(key, start, end, 0, MAX_RETRIES); }
-    public void lpush(String key, String value) { __lpush(key, value, 0, MAX_RETRIES); }
-    public String lpop(String data) { return decrypt(__lpop(data, 0, MAX_RETRIES)); }
-    public void rpush(String key, String value) { __rpush(key, value, 0, MAX_RETRIES); }
-    public String rpop(String data) { return decrypt(__rpop(data, 0, MAX_RETRIES)); }
+    public Long llen(String key) { return __llen(prefix(key), 0); }
+    public List<String> lrange(String key, int start, int end) { return __lrange(prefix(key), start, end, 0); }
+    public void lpush(String key, String value) { __lpush(prefix(key), encrypt(value), 0); }
+    public void rpush(String key, String value) { __rpush(prefix(key), encrypt(value), 0); }
+    public String lpop(String key) { return decrypt(__lpop(prefix(key), 0)); }
+    public String rpop(String key) { return decrypt(__rpop(prefix(key), 0)); }
 
-    public void hset(String key, String field, String value) { __hset(key, field, value, 0, MAX_RETRIES); }
-    public String hget(String key, String field) { return decrypt(__hget(key, field, 0, MAX_RETRIES)); }
-    public Map<String, String> hgetall(String key) { return decrypt(__hgetall(key, 0, MAX_RETRIES)); }
+    public void hset(String key, String field, String value) { __hset(prefix(key), encrypt(field), encrypt(value), 0); }
+    public String hget(String key, String field) { return decrypt(__hget(prefix(key), encrypt(field), 0)); }
+    public Map<String, String> hgetall(String key) { return decrypt(__hgetall(prefix(key), 0)); }
+    public Long hdel(String key, String field) { return __hdel(prefix(key), encrypt(field), 0); }
+    public Set<String> hkeys(String key) { return __hkeys(prefix(key), 0); }
+    public Long hlen(String key) { return __hlen(prefix(key), 0); }
 
-    private Map<String, String> decrypt(Map<String, String> map) {
-        if (!hasKey()) return map;
-        final Map<String, String> decrypted = new HashMap<>();
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            decrypted.put(decrypt(entry.getKey()), decrypt(entry.getValue()));
+    public Long del(String key) { return __del(prefix(key), 0); }
+    public Long del_withPrefix(String prefixedKey) { return __del(prefixedKey, 0); }
+    public Long del_matching(String keyMatch) {
+        Long count = 0L;
+        for (final String fullKey : keys(keyMatch)) {
+            count += __del(fullKey, 0);
         }
-        return decrypted;
+        return count;
+    }
+    public Long del_matching_withPrefix(String keyMatch) {
+        Long count = 0L;
+        for (final String fullKey : keys_withPrefix(keyMatch)) {
+            count += __del(fullKey, 0);
+        }
+        return count;
+    }
+    public void flush() { del_matching(ALL_KEYS); }
+
+    public Long sadd(String key, String value) { return __sadd(prefix(key), new String[]{ encrypt(value) }, 0); }
+    public Long sadd(String key, String[] values) { return __sadd(prefix(key), encrypt(values), 0); }
+    public Long sadd_plaintext(String key, String value) { return __sadd(prefix(key), new String[]{ value }, 0); }
+    public Long sadd_plaintext(String key, String[] values) { return __sadd(prefix(key), values, 0); }
+    public Long srem(String key, String value) { return __srem(prefix(key), new String[]{ encrypt(value) }, 0); }
+    public Long srem(String key, String[] values) { return __srem(prefix(key), encrypt(values), 0); }
+    public Set<String> smembers(String key) { return decrypt(__smembers(prefix(key), 0)); }
+    public boolean sismember(String key, String value) { return __sismember(prefix(key), encrypt(value), 0); }
+    public boolean sismember_plaintext(String key, String value) { return __sismember(prefix(key), value, 0); }
+    public String srandmember(String key) { return decrypt(__srandmember(prefix(key), 0)); }
+    public List<String> srandmembers(String key, int count) { return decrypt(__srandmember(prefix(key), count, 0)); }
+    public String spop(String key) { return decrypt(__spop(prefix(key), 0)); }
+    public Set<String> spop(String key, long count) { return decrypt(__spop(prefix(key), count, 0)); }
+    public long scard(String key) { return __scard(prefix(key), 0); }
+    public Set<String> sunion(Collection<String> keys) {
+        return decrypt(__sunion(prefix(keys).toArray(new String[keys.size()]), 0));
+    }
+    public Set<String> sunion_plaintext(Collection<String> keys) {
+        return __sunion(prefix(keys).toArray(new String[keys.size()]), 0);
+    }
+    public Long sunionstore(String destKey, Collection<String> keys) {
+        return __sunionstore(prefix(destKey), prefix(keys).toArray(new String[keys.size()]), 0);
     }
 
-    public Long hdel(String key, String field) { return __hdel(key, field, 0, MAX_RETRIES); }
-    public Set<String> hkeys(String key) { return __hkeys(key, 0, MAX_RETRIES); }
-    public Long hlen(String key) { return __hlen(key, 0, MAX_RETRIES); }
-
-    public Long del(String key) { return __del(key, 0, MAX_RETRIES); }
-    public Long del_withPrefix(String prefixedKey) { return __del(prefixedKey, 0, MAX_RETRIES, false); }
-
-    public void set_plaintext(String key, String value, String nxxx, String expx, long time) {
-        __set(key, value, nxxx, expx, time, 0, MAX_RETRIES);
-    }
-
-    public void set_plaintext(String key, String value) {
-        __set(key, value, 0, MAX_RETRIES);
-    }
-
-    public Long sadd(String key, String value) { return sadd(key, new String[]{value}); }
-    public Long sadd(String key, String[] values) { return __sadd(key, values, 0, MAX_RETRIES); }
-
-    public Long srem(String key, String value) { return srem(key, new String[]{value}); }
-    public Long srem(String key, String[] values) { return __srem(key, values, 0, MAX_RETRIES); }
-
-    public Set<String> smembers(String key) { return __smembers(key, 0, MAX_RETRIES); }
-    public boolean sismember(String key, String value) { return __sismember(key, value, 0, MAX_RETRIES); }
-
-    public List<String> srandmembers(String key, int count) { return __srandmember(key, count, 0, MAX_RETRIES); }
-    public String srandmember(String key) {
-        final List<String> rand = srandmembers(key, 1);
-        return empty(rand) ? null : rand.get(0);
-    }
-
-    public String spop(String key) {
-        final Set<String> popped = spop(key, 1);
-        return empty(popped) ? null : popped.iterator().next();
-    }
-    public Set<String> spop(String key, long count) { return __spop(key, count, 0, MAX_RETRIES); }
-
-    public long scard(String key) { return __scard(key, 0, MAX_RETRIES); }
-
-    public Long incr(String key) { return __incrBy(key, 1, 0, MAX_RETRIES); }
+    public Long incr(String key) { return __incrBy(prefix(key), 1, 0); }
+    public Long incrBy(String key, long value) { return __incrBy(prefix(key), value, 0); }
+    public Long decr(String key) { return __decrBy(prefix(key), 1, 0); }
+    public Long decrBy(String key, long value) { return __decrBy(prefix(key), value, 0); }
     public Long counterValue(String key) {
         final String value = get_plaintext(key);
         return value == null ? null : Long.parseLong(value);
     }
 
-    public Long incrBy(String key, long value) { return __incrBy(key, value, 0, MAX_RETRIES); }
-    public Long decr(String key) { return __decrBy(key, 1, 0, MAX_RETRIES); }
-
-    public Long decrBy(String key, long value) { return __decrBy(key, value, 0, MAX_RETRIES); }
-
-    public Collection<String> keys(String key) { return __keys(key, 0, MAX_RETRIES); }
+    public Collection<String> keys(String key) { return __keys(prefix(key), 0); }
+    public Collection<String> keys_withPrefix(String key) { return __keys(key, 0); }
+    public String rename(String key, String newFullKey) { return __rename(prefix(key), newFullKey, 0); }
 
     public static final String LOCK_SUFFIX = "._lock";
 
-    public boolean confirmLock(String key, String lock) {
+    public boolean confirmLock(String key, String lock, long lockTimeout) {
         key = key + LOCK_SUFFIX;
         final String lockVal = get(key);
-        return lockVal != null && lockVal.equals(lock);
+        if (lockVal != null && lockVal.equals(lock)) {
+            pexpire(key, lockTimeout);
+            return true;
+        }
+        return false;
     }
-
     public String lock(String key, long lockTimeout, long deadlockTimeout) {
+        if (log.isDebugEnabled()) log.debug("lock("+key+") starting");
         key = key + LOCK_SUFFIX;
         final String uuid = UUID.randomUUID().toString();
         String lockVal = get(key);
         final long start = now();
         while ((lockVal == null || !lockVal.equals(uuid)) && (now() - start < lockTimeout)) {
             set(key, uuid, NX, EX, deadlockTimeout/1000);
+            if (log.isDebugEnabled()) log.debug("lock("+key+") locked with uuid="+uuid);
             lockVal = get(key);
+            if (log.isDebugEnabled()) log.debug("lock("+key+") after locking with uuid="+uuid+", lockVal="+lockVal);
         }
         if (lockVal == null || !lockVal.equals(uuid)) {
             return die("lock: timeout locking "+key);
         }
-        log.info("lock: LOCKED "+key);
+        if (log.isDebugEnabled()) log.debug("lock: LOCKED "+key+" = "+lockVal);
         return uuid;
     }
-
     public void unlock(String key, String lock) {
         key = key + LOCK_SUFFIX;
         final String lockVal = get(key);
@@ -243,46 +262,22 @@ public class RedisService {
         }
     }
 
-    public String loadScript(String script) { return __loadScript(script, 0, MAX_RETRIES); }
-
-    private String __loadScript(String script, int attempt, int maxRetries) {
-        try {
-            synchronized (redis) {
-                return getRedis().scriptLoad(script);
-            }
-        } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
-            resetForRetry(attempt, "retrying RedisService.__loadScript");
-            return __loadScript(script, attempt+1, maxRetries);
-        }
-    }
-
-
+    public String loadScript(String script) { return __loadScript(script, 0); }
     public Object eval(String scriptsha, List<String> keys, List<String> args) {
-        return __eval(scriptsha, prefix(keys), args, 0, MAX_RETRIES);
-    }
-
-    private Object __eval(String scriptsha, List<String> keys, List<String> args, int attempt, int maxRetries) {
-        try {
-            synchronized (redis) {
-                return getRedis().evalsha(scriptsha, keys, args);
-            }
-        } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
-            resetForRetry(attempt, "retrying RedisService.__eval");
-            return __eval(scriptsha, keys, args, attempt+1, maxRetries);
-        }
+        return __eval(scriptsha, prefix(keys), args, 0);
     }
 
     public String prefix (String key) { return empty(prefix) ? key : prefix + "." + key; }
-    public List<String> prefix(Collection<String> keys) { return transform(keys, o -> prefix(o.toString())); }
+    public List<String> prefix(final Collection<String> keys) {
+        if (keys == null) return null;
+        return keys.stream().map(this::prefix).collect(Collectors.toList());
+    }
 
     // override these for full control
     protected String encrypt(String data) {
-        if (!hasKey()) return data;
+        if (!hasKey() || empty(data)) return data;
         return string_encrypt(data, getKey());
     }
-
     protected String[] encrypt(String[] data) {
         if (!hasKey() || empty(data)) return data;
         final String[] encrypted = new String[data.length];
@@ -293,11 +288,9 @@ public class RedisService {
     }
 
     protected String decrypt(String data) {
-        if (!hasKey()) return data;
-        if (data == null) return null;
+        if (!hasKey() || empty(data)) return data;
         return string_decrypt(data, getKey());
     }
-
     protected <T extends Collection<String>> T decrypt(T data) {
         if (!hasKey() || empty(data)) return data;
         final T decrypted = (T) new ArrayList<String>();
@@ -314,355 +307,503 @@ public class RedisService {
         }
         return decrypted;
     }
+    protected Map<String, String> decrypt(Map<String, String> map) {
+        if (!hasKey() || empty(map)) return map;
+        final Map<String, String> decrypted = new HashMap<>(map.size());
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            decrypted.put(decrypt(entry.getKey()), decrypt(entry.getValue()));
+        }
+        return decrypted;
+    }
+
+    private SetParams buildSetParams(final String nxxx, final String expx, final long time) {
+        SetParams setParams = new SetParams();
+        switch (nxxx) {
+            case NX: setParams.nx(); break;
+            case XX: setParams.xx(); break;
+        }
+        switch (expx) {
+            case EX: setParams.ex((int) time); break;
+            case PX: setParams.px(time); break;
+        }
+        return setParams;
+    }
 
     private void resetForRetry(int attempt, String reason) {
         reconnect();
         sleep(attempt * 10, reason);
     }
 
-    private String __get(String key, int attempt, int maxRetries) {
-        return __get(key, attempt, maxRetries, true);
-    }
-
-    private String __get(String key, int attempt, int maxRetries, boolean applyPrefix) {
+    private String __get(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().get(applyPrefix ? prefix(key) : key);
+                return getRedis().get(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__get");
-            return __get(key, attempt+1, maxRetries);
+            return __get(fullKey, attempt + 1);
         }
     }
 
-    private boolean __exists(String key, int attempt, int maxRetries) {
+    private Long __ttl(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().exists(prefix(key));
+                return getRedis().ttl(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__ttl");
+            return __ttl(fullKey, attempt + 1);
+        }
+    }
+
+    private boolean __exists(final String fullKey, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().exists(fullKey);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__exists");
-            return __exists(key, attempt+1, maxRetries);
+            return __exists(fullKey, attempt + 1);
         }
     }
 
-    private String __set(String key, String value, String nxxx, String expx, long time, int attempt, int maxRetries) {
+    private Long __exists(final String[] fullKeys, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().set(prefix(key), encrypt(value), nxxx, expx, time);
+                return getRedis().exists(fullKeys);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__exists on array of keys");
+            return __exists(fullKeys, attempt + 1);
+        }
+    }
+
+    private String __set(final String fullKey, final String preparedValue, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().set(fullKey, preparedValue);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__set");
-            return __set(key, value, nxxx, expx, time, attempt + 1, maxRetries);
+            return __set(fullKey, preparedValue, attempt + 1);
         }
     }
 
-    private String __set(String key, String value, int attempt, int maxRetries) {
+    private String __set(final String fullKey, final String preparedValue, final SetParams setParams,
+                         final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().set(prefix(key), encrypt(value));
+                return getRedis().set(fullKey, preparedValue, setParams);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
-            resetForRetry(attempt, "retrying RedisService.__set");
-            return __set(key, value, attempt+1, maxRetries);
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__set with params");
+            return __set(fullKey, preparedValue, setParams, attempt + 1);
         }
     }
 
-    private Long __lpush(String key, String value, int attempt, int maxRetries) {
+    private Long __touch(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().lpush(prefix(key), encrypt(value));
+                return getRedis().touch(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__touch");
+            return __touch(fullKey, attempt + 1);
+        }
+    }
+
+    private Long __expire(final String fullKey, final int ttlSeconds, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().expire(fullKey, ttlSeconds);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__expire");
+            return __expire(fullKey, ttlSeconds, attempt + 1);
+        }
+    }
+
+    private Long __pexpire(final String fullKey, final long ttlMillis, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().pexpire(fullKey, ttlMillis);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__pexpire");
+            return __pexpire(fullKey, ttlMillis, attempt + 1);
+        }
+    }
+
+    private Long __lpush(final String fullKey, final String preparedValue, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().lpush(fullKey, preparedValue);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__lpush");
-            return __lpush(key, value, attempt + 1, maxRetries);
+            return __lpush(fullKey, preparedValue, attempt + 1);
         }
     }
 
-    private String __lpop(String key, int attempt, int maxRetries) {
+    private String __lpop(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().lpop(prefix(key));
+                return getRedis().lpop(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__lpop");
-            return __lpop(key, attempt+1, maxRetries);
+            return __lpop(fullKey, attempt + 1);
         }
     }
 
-    private Long __rpush(String key, String value, int attempt, int maxRetries) {
+    private Long __rpush(final String fullKey, final String preparedValue, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().rpush(prefix(key), encrypt(value));
+                return getRedis().rpush(fullKey, preparedValue);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__rpush");
-            return __rpush(key, value, attempt + 1, maxRetries);
+            return __rpush(fullKey, preparedValue, attempt + 1);
         }
     }
 
-    private String __rpop(String data, int attempt, int maxRetries) {
+    private String __rpop(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().rpop(data);
+                return getRedis().rpop(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__rpop");
-            return __rpop(data, attempt+1, maxRetries);
+            return __rpop(fullKey, attempt + 1);
         }
     }
 
-    private String __hget(String key, String field, int attempt, int maxRetries) {
-        if (empty(field)) return die("__hget("+key+"/): field was empty");
+    private String __hget(final String fullKey, final String preparedField, final int attempt) {
+        if (empty(preparedField)) return die("__hget(" + fullKey + "/): field was empty");
         try {
             synchronized (redis) {
-                return getRedis().hget(prefix(key), encrypt(field));
+                return getRedis().hget(fullKey, preparedField);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__hget");
-            return __hget(key, field, attempt + 1, maxRetries);
+            return __hget(fullKey, preparedField, attempt + 1);
         }
     }
 
-    private Map<String, String> __hgetall(String key, int attempt, int maxRetries) {
+    private Map<String, String> __hgetall(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().hgetAll(prefix(key));
+                return getRedis().hgetAll(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__hgetall");
-            return __hgetall(key, attempt + 1, maxRetries);
+            return __hgetall(fullKey, attempt + 1);
         }
     }
 
-    private Long __hset(String key, String field, String value, int attempt, int maxRetries) {
+    private Long __hset(final String fullKey, final String preparedField, final String preparedValue,
+                        final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().hset(prefix(key), encrypt(field), encrypt(value));
+                return getRedis().hset(fullKey, preparedField, preparedValue);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
-            resetForRetry(attempt, "retrying RedisService.__hget");
-            return __hset(key, field, value, attempt + 1, maxRetries);
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__hset");
+            return __hset(fullKey, preparedField, preparedValue, attempt + 1);
         }
     }
 
-    private Long __hdel(String key, String field, int attempt, int maxRetries) {
+    private Long __hdel(final String fullKey, final String preparedField, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().hdel(prefix(key), encrypt(field));
+                return getRedis().hdel(fullKey, preparedField);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__hdel");
-            return __hdel(key, field, attempt + 1, maxRetries);
+            return __hdel(fullKey, preparedField, attempt + 1);
         }
     }
 
-    private Set<String> __hkeys(String key, int attempt, int maxRetries) {
+    private Set<String> __hkeys(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().hkeys(prefix(key));
+                return getRedis().hkeys(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
-            resetForRetry(attempt, "retrying RedisService.__hget");
-            return __hkeys(key, attempt + 1, maxRetries);
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__hkeys");
+            return __hkeys(fullKey, attempt + 1);
         }
     }
 
-    private Long __hlen(String key, int attempt, int maxRetries) {
+    private Long __hlen(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().hlen(prefix(key));
+                return getRedis().hlen(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__hlen");
-            return __hlen(key, attempt + 1, maxRetries);
+            return __hlen(fullKey, attempt + 1);
         }
     }
 
-    private Long __del(String key, int attempt, int maxRetries) {
-        return __del(key, attempt, maxRetries, true);
-    }
-
-    private Long __del(String key, int attempt, int maxRetries, boolean applyPrefix) {
+    private Long __del(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().del(applyPrefix ? prefix(key) : key);
+                return getRedis().del(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__del");
-            return __del(key, attempt+1, maxRetries, applyPrefix);
+            return __del(fullKey, attempt + 1);
         }
     }
 
-    private Long __sadd(String key, String[] members, int attempt, int maxRetries) {
+    private Long __sadd(final String fullKey, final String[] preparedMembers, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().sadd(prefix(key), encrypt(members));
+                return getRedis().sadd(fullKey, preparedMembers);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__sadd");
-            return __sadd(key, members, attempt+1, maxRetries);
+            return __sadd(fullKey, preparedMembers, attempt + 1);
         }
     }
 
-    private Long __srem(String key, String[] members, int attempt, int maxRetries) {
+    private Long __srem(final String fullKey, final String[] preparedMembers, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().srem(prefix(key), encrypt(members));
+                return getRedis().srem(fullKey, preparedMembers);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__srem");
-            return __srem(key, members, attempt+1, maxRetries);
+            return __srem(fullKey, preparedMembers, attempt + 1);
         }
     }
 
-    private Set<String> __smembers(String key, int attempt, int maxRetries) {
+    private Set<String> __smembers(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return decrypt(getRedis().smembers(prefix(key)));
+                return getRedis().smembers(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__smembers");
-            return __smembers(key, attempt+1, maxRetries);
+            return __smembers(fullKey, attempt + 1);
         }
     }
 
-    private boolean __sismember(String key, String value, int attempt, int maxRetries) {
+    private boolean __sismember(final String fullKey, final String preparedValue, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().sismember(prefix(key), encrypt(value));
+                return getRedis().sismember(fullKey, preparedValue);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__sismember");
-            return __sismember(key, value, attempt+1, maxRetries);
+            return __sismember(fullKey, preparedValue, attempt + 1);
         }
     }
 
-    private List<String> __srandmember(String key, int count, int attempt, int maxRetries) {
+    private String __srandmember(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return decrypt(getRedis().srandmember(prefix(key), count));
+                return getRedis().srandmember(fullKey);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__srandmember");
-            return __srandmember(key, count, attempt+1, maxRetries);
+            return __srandmember(fullKey, attempt + 1);
         }
     }
 
-    private Set<String> __spop(String key, long count, int attempt, int maxRetries) {
+    private List<String> __srandmember(final String fullKey, final int count, final int attempt) {
         try {
             synchronized (redis) {
-                return decrypt(count == 1 ? new SingletonSet<>(getRedis().spop(prefix(key))) : getRedis().spop(prefix(key), count));
+                return getRedis().srandmember(fullKey, count);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__srandmember with count");
+            return __srandmember(fullKey, count, attempt + 1);
+        }
+    }
+
+    private String __spop(final String fullKey, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().spop(fullKey);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__spop");
-            return __spop(key, count, attempt+1, maxRetries);
+            return __spop(fullKey, attempt + 1);
         }
     }
 
-    private Long __scard(String key, int attempt, int maxRetries) {
+    private Set<String> __spop(final String fullKey, final long count, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().scard(prefix(key));
+                return getRedis().spop(fullKey, count);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__spop with count");
+            return __spop(fullKey, count, attempt + 1);
+        }
+    }
+
+    private Long __scard(final String fullKey, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().scard(fullKey);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__scard");
-            return __scard(key, attempt+1, maxRetries);
+            return __scard(fullKey, attempt + 1);
         }
     }
 
-    private Long __incrBy(String key, long value, int attempt, int maxRetries) {
+    private Set<String> __sunion(final String[] fullKeys, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().incrBy(prefix(key), value);
+                return getRedis().sunion(fullKeys);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__sunion");
+            return __sunion(fullKeys, attempt + 1);
+        }
+    }
+
+    private Long __sunionstore(final String fullDestKey, final String[] fullKeys, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().sunionstore(fullDestKey, fullKeys);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__sunionstore");
+            return __sunionstore(fullDestKey, fullKeys, attempt + 1);
+        }
+    }
+
+    private Long __incrBy(final String fullKey, final long value, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().incrBy(fullKey, value);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__incrBy");
-            return __incrBy(key, value, attempt + 1, maxRetries);
+            return __incrBy(fullKey, value, attempt + 1);
         }
     }
 
-    private Long __decrBy(String key, long value, int attempt, int maxRetries) {
+    private Long __decrBy(final String fullKey, final long value, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().decrBy(prefix(key), value);
+                return getRedis().decrBy(fullKey, value);
             }
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__decrBy");
-            return __decrBy(key, value, attempt+1, maxRetries);
+            return __decrBy(fullKey, value, attempt + 1);
         }
     }
 
-    private Long __llen(String key, int attempt, int maxRetries) {
+    private Long __llen(final String fullKey, final int attempt) {
         try {
             synchronized (redis) {
-                return getRedis().llen(prefix(key));
+                return getRedis().llen(fullKey);
             }
-
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__llen");
-            return __llen(key, attempt + 1, maxRetries);
+            return __llen(fullKey, attempt + 1);
         }
     }
 
-    private List<String> __lrange(String key, int start, int end, int attempt, int maxRetries) {
+    private List<String> __lrange(final String fullKey, final int start, final int end, final int attempt) {
         try {
-            final List<String> range;
             synchronized (redis) {
-                range = getRedis().lrange(prefix(key), start, end);
+                return decrypt(getRedis().lrange(fullKey, start, end));
             }
-            final List<String> list = new ArrayList<>(range.size());
-            for (String item : range) list.add(decrypt(item));
-
-            return list;
-
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__lrange");
-            return __lrange(key, start, end, attempt + 1, maxRetries);
+            return __lrange(fullKey, start, end, attempt + 1);
         }
     }
 
-    private Collection<String> __keys(String key, int attempt, int maxRetries) {
+    private Collection<String> __keys(final String prefixedKeyPattern, final int attempt) {
         try {
-            final Set<String> keys;
             synchronized (redis) {
-                keys = getRedis().keys(prefix(key));
+                return getRedis().keys(prefixedKeyPattern);
             }
-            return keys;
-
         } catch (RuntimeException e) {
-            if (attempt > maxRetries) throw e;
+            if (attempt > MAX_RETRIES) throw e;
             resetForRetry(attempt, "retrying RedisService.__keys");
-            return __keys(key, attempt + 1, maxRetries);
+            return __keys(prefixedKeyPattern, attempt + 1);
         }
     }
 
-    public void flush() { keys(ALL_KEYS).forEach(this::del_withPrefix); }
+    private String __rename(final String fullKey, final String newFullKey, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().rename(fullKey, newFullKey);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__rename");
+            return __rename(fullKey, newFullKey, attempt + 1);
+        }
+    }
+
+    private String __loadScript(final String script, final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().scriptLoad(script);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__loadScript");
+            return __loadScript(script, attempt + 1);
+        }
+    }
+
+    private Object __eval(final String scriptsha, final List<String> fullKeys, final List<String> args,
+                          final int attempt) {
+        try {
+            synchronized (redis) {
+                return getRedis().evalsha(scriptsha, fullKeys, args);
+            }
+        } catch (RuntimeException e) {
+            if (attempt > MAX_RETRIES) throw e;
+            resetForRetry(attempt, "retrying RedisService.__eval");
+            return __eval(scriptsha, fullKeys, args, attempt + 1);
+        }
+    }
 
 }

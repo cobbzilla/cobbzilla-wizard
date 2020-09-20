@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.dao;
 
+import lombok.NonNull;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.hibernate.criterion.Order;
@@ -21,6 +22,8 @@ public interface DAO<E extends Identifiable> {
     E get(Serializable id);
 
     List<E> findAll();
+    @NonNull List<E> findAll(@NonNull final Order order);
+
     default Integer countAll() { return findAll().size(); }
     E findByUuid(String uuid);
     E findByUniqueField(String field, Object value);
@@ -28,6 +31,7 @@ public interface DAO<E extends Identifiable> {
     List<E> findByFieldLike(String field, String value);
     List<E> findByFieldEqualAndFieldLike(String eqField, Object eqValue, String likeField, String likeValue);
     List<E> findByFieldEqualAndFieldLike(String eqField, Object eqValue, String likeField, String likeValue, Order order);
+    List<E> findByFieldEqualAndFieldNotEqual(String eqField, Object eqValue, String neField, String neValue);
     List<E> findByFieldIn(String field, Object[] values);
     List<E> findByFieldIn(String field, Collection<?> values);
 

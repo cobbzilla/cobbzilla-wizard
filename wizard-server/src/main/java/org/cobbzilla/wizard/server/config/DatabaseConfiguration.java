@@ -38,8 +38,9 @@ public class DatabaseConfiguration {
     @Getter @Setter private HibernateConfiguration hibernate;
 
     @Getter @Setter private boolean migrationEnabled = true;
+    @Getter @Setter private boolean migrationBaselineOnly = false;
 
-    private List<Runnable> postDataSourceSetupHandlers = new ArrayList<>();
+    private final List<Runnable> postDataSourceSetupHandlers = new ArrayList<>();
     public void addPostDataSourceSetupHandler (Runnable handler) { postDataSourceSetupHandlers.add(handler); }
     public void runPostDataSourceSetupHandlers () {
         for (Runnable r : postDataSourceSetupHandlers) r.run();
