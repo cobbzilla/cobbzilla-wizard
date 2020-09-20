@@ -3,6 +3,7 @@ package org.cobbzilla.wizard.client.script;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.jknack.handlebars.Handlebars;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -22,7 +23,7 @@ import java.util.Map;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.HttpSchemes.isHttpOrHttps;
-import static org.cobbzilla.util.json.JsonUtil.json;
+import static org.cobbzilla.util.json.JsonUtil.*;
 import static org.cobbzilla.util.system.Sleep.sleep;
 import static org.cobbzilla.util.time.TimeUtil.parseDuration;
 import static org.cobbzilla.wizard.client.script.ApiRunner.standardHandlebars;
@@ -37,9 +38,13 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
     public static final String AWAIT_URL = "await_url";
     public static final String VERIFY_UNREACHABLE = "verify_unreachable";
     public static final String RESPONSE_VAR = "await_json";
+    public static final String ECHO_IN_LOG = "echo_in_log ";
+    public static final String ADD_TO_CTX = "add_to_ctx ";
 
     public static final long DEFAULT_AWAIT_URL_CHECK_INTERVAL = SECONDS.toMillis(10);
     public static final long DEFAULT_VERIFY_UNAVAILABLE_TIMEOUT = SECONDS.toMillis(10);
+
+    private static final char GRACE_AND_TIMEOUT_SEPARATOR = ':';
 
     public SimpleApiRunnerListener(String name) { super(name); }
 
@@ -62,6 +67,10 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             handleAwaitUrl(before, ctx);
         } else if (before.startsWith(VERIFY_UNREACHABLE)) {
             handleVerifyUnreachable(before, ctx);
+        } else if (before.startsWith(ECHO_IN_LOG)) {
+            handleEcho(before, ctx);
+        } else if (before.startsWith(ADD_TO_CTX)) {
+            handleAddToCtx(before, ctx);
         } else {
             super.beforeScript(before, ctx);
         }
@@ -80,6 +89,10 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             handleAwaitUrl(after, ctx);
         } else if (after.startsWith(VERIFY_UNREACHABLE)) {
             handleVerifyUnreachable(after, ctx);
+        } else if (after.startsWith(ECHO_IN_LOG)) {
+            handleEcho(after, ctx);
+        } else if (after.startsWith(ADD_TO_CTX)) {
+            handleAddToCtx(after, ctx);
         } else {
             super.afterScript(after, ctx);
         }
@@ -93,32 +106,51 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
         final String[] parts = HandlebarsUtil.apply(getHandlebars(), arg, ctx).split("\\s+");
         if (parts.length < 3) return die(AWAIT_URL+": no URL and/or timeout specified");
         final String url = formatUrl(parts[1]);
-        final long timeout = parseDuration(parts[2]);
+        final long timeout = waitAndParseTimeout(parts[2]);
         final long checkInterval = (parts.length >= 4) ? parseDuration(parts[3]) : DEFAULT_AWAIT_URL_CHECK_INTERVAL;
-        final String jsCondition = (parts.length >= 5) ? parseJs(parts, 4) : "true";
+        final String jsCondition = (parts.length >= 5) ? parseJs(parts, 4) : null;
 
         final long start = now();
         final HttpRequestBean request = formatRequest(new HttpRequestBean(url));
         while (now() - start < timeout) {
             try {
                 final HttpResponseBean response = HttpUtil.getResponse(request);
-                if (response.isOk()) {
+                if (!response.isOk()) {
+                    log.info(AWAIT_URL + ": received HTTP status " + response.getStatus() + " (will retry): " + url);
+                } else if (empty(jsCondition)) {
+                    log.info(AWAIT_URL + ": received HTTP status OK and there's no JS condition: " + url);
+                    return true;
+                } else {
                     ctx.put(RESPONSE_VAR, toResponseObject(response));
                     if (js.evaluateBoolean(jsCondition, ctx, false)) {
-                        log.info(AWAIT_URL + ": received HTTP status OK and JS condition was true ("+jsCondition+"): " + url);
+                        log.info(AWAIT_URL + ": received HTTP status OK and JS condition was true ("
+                                 + jsCondition + "): " + url);
                         return true;
                     } else {
-                        log.debug(AWAIT_URL + ": received HTTP status OK but JS condition was false ("+jsCondition+"): " + url);
+                        log.info(AWAIT_URL + ": received HTTP status OK but JS condition was false ("
+                                  + jsCondition + "): (will retry): " + url);
                     }
-                } else {
-                    log.info(AWAIT_URL+": received HTTP status "+response.getStatus()+" (will retry): "+url);
                 }
             } catch (Exception e) {
-                log.debug(AWAIT_URL+": error, will retry: "+e);
+                log.warn(AWAIT_URL+": error, will retry: "+e);
             }
             sleep(checkInterval, AWAIT_URL+" "+url);
         }
         return die(AWAIT_URL+": timeout waiting for "+url);
+    }
+
+    private long waitAndParseTimeout(@NonNull final String values) {
+        // grace period of not doing anything may be set up within this option as <grace>.<timeout>. If there's no dot
+        // there, then only <timeout> is given, and there's not waiting on grace period to do here.
+        final var separatorPosition = values.indexOf(GRACE_AND_TIMEOUT_SEPARATOR);
+        if (separatorPosition < 0) return parseDuration(values);
+
+        final var graceStr = values.substring(0, separatorPosition);
+        final var grace = parseDuration(graceStr);
+        log.info(AWAIT_URL + ": sleeping for grace period before checking next awaiting URL: " + graceStr);
+        sleep(grace, AWAIT_URL + " -grace-");
+
+        return parseDuration(values.substring(separatorPosition + 1));
     }
 
     private boolean handleVerifyUnreachable(String arg, Map<String, Object> ctx) {
@@ -153,6 +185,22 @@ public class SimpleApiRunnerListener extends ApiRunnerListenerBase {
             log.info(VERIFY_UNREACHABLE+": unreachable? "+e);
             return true;
         }
+    }
+
+    @NonNull private String handleEcho(@NonNull final String arg, @NonNull final Map<String, Object> ctx) {
+        final var parts = arg.split("\\s+", 2);
+        if (parts.length != 2) return die(ECHO_IN_LOG + ": no variables specified");
+        final var output = HandlebarsUtil.apply(getHandlebars(), parts[1], ctx);
+        log.info("ECHO:\n" + output);
+        return output;
+    }
+
+    @NonNull private Map<String, Object> handleAddToCtx(@NonNull final String arg,
+                                                        @NonNull final Map<String, Object> ctx) {
+        final var parts = arg.split("\\s+", 2);
+        if (parts.length != 2) return die(ADD_TO_CTX + ": no variables specified");
+        ctx.putAll(fromJsonOrDie(parts[1], Map.class));
+        return ctx;
     }
 
     private String formatUrl(String url) {

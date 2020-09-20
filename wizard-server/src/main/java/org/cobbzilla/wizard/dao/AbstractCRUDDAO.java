@@ -6,6 +6,7 @@ package org.cobbzilla.wizard.dao;
  */
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.api.CrudOperation;
@@ -26,6 +27,7 @@ import org.springframework.orm.hibernate5.HibernateTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.FlushModeType;
+import javax.annotation.Nullable;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.*;
@@ -34,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
@@ -62,6 +65,9 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
 
     @Transactional(readOnly=true)
     @Override public List<E> findAll() { return list(criteria()); }
+
+    @Transactional(readOnly=true)
+    @Override @NonNull public List<E> findAll(@NonNull final Order order) { return list(criteria().addOrder(order)); }
 
     @Transactional(readOnly=true)
     @Override public E findByUuid(String uuid) { return findByUniqueField(Identifiable.UUID, uuid); }
@@ -252,16 +258,23 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         }
     }
 
-    public int bulkUpdate(String setField, Object setValue) {
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue) {
         return bulkUpdate(setField, setValue, (String[]) null, null);
     }
 
-    public int bulkUpdate(String setField, Object setValue, String whereField, Object whereValue) {
-        return bulkUpdate(setField, setValue, new String[] {whereField}, new Object[] {whereValue});
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue,
+                          @NonNull final String whereField, @Nullable final Object whereValue) {
+        return bulkUpdate(setField, setValue, new String[] { whereField }, new Object[] { whereValue });
     }
 
-    public int bulkUpdate(String setField, Object setValue, String[] whereFields, Object[] whereValues) {
-        final Session session = Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).getCurrentSession();
+    public int bulkUpdate(@NonNull final String setField, @Nullable final Object setValue,
+                          @Nullable final String[] whereFields, @Nullable final Object[] whereValues) {
+        return bulkUpdate(new String[] { setField }, new Object[] { setValue }, whereFields, whereValues);
+    }
+
+    public int bulkUpdate(@NonNull final String[] setFields, @Nullable final Object[] setValues,
+                          @Nullable final String[] whereFields, @Nullable final Object[] whereValues) {
+        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
         final String whereClause;
         final boolean hasWhereClause = !empty(whereFields);
         if (hasWhereClause) {
@@ -282,13 +295,24 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
             if (!empty(whereValues)) return die("bulkUpdate: number of whereFields did not match number of whereValues");
             whereClause = "";
         }
+
         final Query queryBase;
-        if (setValue == null) {
-            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = NULL"+whereClause);
+        if (empty(setValues)) {
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName()
+                                            + " SET " + String.join(" IS NULL, ", setFields) + " IS NULL"
+                                            + whereClause);
         } else {
-            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName() + " SET " + setField + " = :" + setField+whereClause)
-                    .setParameter(setField, setValue);
+            final String setFieldsSQLPart = Arrays.stream(setFields)
+                                                  .map(s -> s + (s == null ? " IS NULL" : " = :" + s))
+                                                  .collect(Collectors.joining(", "));
+            queryBase = session.createQuery("UPDATE " + getEntityClass().getSimpleName()
+                                            + " SET " + setFieldsSQLPart
+                                            + whereClause);
+            for (int i = 0; i < setValues.length; i++) {
+                if (setValues[i] != null) queryBase.setParameter(setFields[i], setValues[i]);
+            }
         }
+
         final Query query;
         if (hasWhereClause) {
             Query q = queryBase;
@@ -309,15 +333,36 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         return count;
     }
 
-    public int bulkDelete(String field, Object value) {
-        final Session session = Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).getCurrentSession();
-        final Query query;
-        if (value == null) {
-            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" IS NULL");
-        } else {
-            query = session.createQuery("DELETE FROM "+getEntityClass().getSimpleName()+" WHERE "+field+" = :"+field)
-                    .setParameter(field, value);
+    public int bulkDeleteAndNotUuid(String field, Object value) { return bulkDelete(field, value, true); }
+
+    public int bulkDelete(String field, Object value) { return bulkDelete(field, value, false); }
+
+    public static final String EX_UUID = "__exclude_uuid__";
+
+    private int bulkDelete(@NonNull final String field, @Nullable final Object value, final boolean notUuid) {
+        if (value == null) return bulkDeleteWhere(field + " IS NULL");
+
+        final StringBuilder condition = new StringBuilder(field).append(" = :").append(field);
+        final HashMap<String, Object> params = new HashMap<>();
+        params.put(field, value);
+
+        if (notUuid) {
+            condition.append(" AND uuid != :").append(EX_UUID);
+            params.put(EX_UUID, value);
         }
+
+        return bulkDeleteWhere(condition.toString(), params);
+    }
+
+    public int bulkDeleteWhere(@NonNull final String whereClause) {
+        return bulkDeleteWhere(whereClause, null);
+    }
+
+    public int bulkDeleteWhere(@NonNull final String whereClause, @Nullable final Map<String, Object> parameters) {
+        final Session session = getHibernateTemplate().getSessionFactory().getCurrentSession();
+        final String deleteSql = "DELETE FROM " + getEntityClass().getSimpleName() + " WHERE " + whereClause;
+        final Query query = session.createQuery(deleteSql);
+        if (!empty(parameters)) parameters.forEach(query::setParameter);
         final int count = query.executeUpdate();
         session.setFlushMode(FlushModeType.COMMIT);
         session.flush();
@@ -380,6 +425,12 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
         return list(sort(criteria().add(c)), 0, getFinderMaxResults());
     }
 
+    @Transactional(readOnly=true)
+    public List<E> findAllByField(String field, Object value) {
+        final Criterion c = value == null ? isNull(field) : eq(field, value);
+        return list(sort(criteria().add(c)));
+    }
+
     protected DetachedCriteria sort(DetachedCriteria criteria) {
         final Order order = getDefaultSortOrder();
         return order == null ? criteria : criteria.addOrder(order);
@@ -409,6 +460,15 @@ public abstract class AbstractCRUDDAO<E extends Identifiable>
                 expr1,
                 ilike(likeField, likeValue)
         )).addOrder(order), 0, getFinderMaxResults());
+    }
+
+    @Transactional(readOnly=true)
+    @Override public List<E> findByFieldEqualAndFieldNotEqual(String eqField, Object eqValue, String neField, String neValue) {
+        final Criterion expr1 = eqValue == null ? isNull(eqField) : eq(eqField, eqValue);
+        return list(criteria().add(and(
+                expr1,
+                ne(neField, neValue)
+        )).addOrder(getDefaultSortOrder()), 0, getFinderMaxResults());
     }
 
     @Transactional(readOnly=true)

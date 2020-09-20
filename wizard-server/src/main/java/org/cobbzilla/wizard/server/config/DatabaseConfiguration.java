@@ -37,14 +37,10 @@ public class DatabaseConfiguration {
 
     @Getter @Setter private HibernateConfiguration hibernate;
 
-    // migration is always enabled, unless its value is "false"
-    @Getter @Setter private String migrationEnabled;
-    public boolean migrationEnabled () { return empty(migrationEnabled) || !migrationEnabled.equalsIgnoreCase("false"); }
+    @Getter @Setter private boolean migrationEnabled = true;
+    @Getter @Setter private boolean migrationBaselineOnly = false;
 
-    @Getter @Setter private String baselineVersion;
-    public boolean hasBaselineVersion() { return !empty(baselineVersion); };
-
-    private List<Runnable> postDataSourceSetupHandlers = new ArrayList<>();
+    private final List<Runnable> postDataSourceSetupHandlers = new ArrayList<>();
     public void addPostDataSourceSetupHandler (Runnable handler) { postDataSourceSetupHandlers.add(handler); }
     public void runPostDataSourceSetupHandlers () {
         for (Runnable r : postDataSourceSetupHandlers) r.run();

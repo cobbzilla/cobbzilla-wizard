@@ -1,14 +1,11 @@
 package org.cobbzilla.wizard.resources;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import javax.ws.rs.core.Response;
 
-@NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
+@NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @ToString(of={"status"})
 public class ResourceHttpException extends RuntimeException {
 
     @Getter @Setter private int status;

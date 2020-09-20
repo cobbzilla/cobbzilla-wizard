@@ -2,6 +2,6 @@ package org.cobbzilla.wizard.dao;
 
 public interface EntityFilter<E> {
 
-    public boolean isAcceptable (E entity);
+    boolean isAcceptable (E entity);
 
 }

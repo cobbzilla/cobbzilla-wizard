@@ -23,6 +23,8 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.glassfish.grizzly.http.server.*;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpContainer;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.message.internal.StreamingOutputProvider;
@@ -190,17 +192,22 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
 
         final HttpServer httpServer = new HttpServer();
         final NetworkListener listener = new NetworkListener("grizzly-"+serverName, getListenAddress(), httpConfig.getPort());
+        final TCPNIOTransport transport = listener.getTransport();
         if (httpConfig.hasSelectorThreads()) {
             log.info("buildServer: using "+httpConfig.getSelectorThreads()+" selector threads");
-            listener.getTransport().setSelectorRunnersCount(httpConfig.getSelectorThreads());
+            transport.setSelectorRunnersCount(httpConfig.getSelectorThreads());
         } else {
-            log.info("buildServer: using "+listener.getTransport().getSelectorRunnersCount()+" selector threads");
+            log.info("buildServer: using "+ transport.getSelectorRunnersCount()+" selector threads");
         }
+        final ThreadPoolConfig workerThreadPoolConfig = transport.getWorkerThreadPoolConfig();
         if (httpConfig.hasWorkerThreads()) {
             log.info("buildServer: using "+httpConfig.getWorkerThreads()+" worker threads");
-            listener.getTransport().getWorkerThreadPoolConfig().setMaxPoolSize(httpConfig.getWorkerThreads());
+            workerThreadPoolConfig.setMaxPoolSize(httpConfig.getWorkerThreads());
         } else {
-            log.info("buildServer: using "+listener.getTransport().getWorkerThreadPoolConfig().getMaxPoolSize()+" worker threads");
+            log.info("buildServer: using "+ workerThreadPoolConfig.getMaxPoolSize()+" worker threads");
+        }
+        if (httpConfig.isExitOnOutOfMemoryError()) {
+            workerThreadPoolConfig.setThreadFactory(new ExitOnOutOfMemoryErrorThreadFactory(workerThreadPoolConfig));
         }
         httpServer.addListener(listener);
 

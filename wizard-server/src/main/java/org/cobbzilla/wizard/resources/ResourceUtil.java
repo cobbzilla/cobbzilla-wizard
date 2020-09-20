@@ -142,6 +142,9 @@ public class ResourceUtil {
     public static Response forbidden() { return status(FORBIDDEN); }
     public static ResourceHttpException forbiddenEx() { return new ResourceHttpException(FORBIDDEN); }
 
+    public static Response unauthorized() { return status(UNAUTHORIZED); }
+    public static ResourceHttpException unauthorizedEx() { return new ResourceHttpException(UNAUTHORIZED); }
+
     public static Response invalid() { return status(UNPROCESSABLE_ENTITY); }
     public static Response invalid(List<ConstraintViolationBean> violations) { return status(UNPROCESSABLE_ENTITY, violations); }
 
@@ -207,7 +210,7 @@ public class ResourceUtil {
             log.debug("userPrincipal: "+e);
             user = null;
         }
-        if (required && user == null) throw forbiddenEx();
+        if (required && user == null) throw unauthorizedEx();
         return user;
     }
 

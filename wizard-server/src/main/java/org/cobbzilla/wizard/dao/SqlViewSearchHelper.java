@@ -104,7 +104,7 @@ public class SqlViewSearchHelper {
             }
             final ResultSetBean rs = configuration.execSql(query, args);
             final List<Future<?>> results = new ArrayList<>(rs.rowCount());
-            final ExecutorService exec = searchByEncryptedField ? fixedPool(Math.min(16, rs.rowCount())) : null;
+            final ExecutorService exec = searchByEncryptedField ? fixedPool(Math.min(16, rs.rowCount()), "SqlViewSearchHelper.exec") : null;
 
             for (Map<String, Object> row : rs.getRows()) {
                 if (searchByEncryptedField) {

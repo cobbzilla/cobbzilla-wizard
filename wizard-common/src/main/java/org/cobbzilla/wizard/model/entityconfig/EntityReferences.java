@@ -85,7 +85,7 @@ public class EntityReferences {
         Arrays.stream(dependencyOrParent.getDeclaredFields())
                 .filter(FIELD_HAS_FK)
                 .filter(f -> f.getAnnotation(ECForeignKey.class).entity().equals(entityClass))
-                .forEach(f -> refs.add(new EntityFieldReference(dependency.getName(), f.getName())));
+                .forEach(f -> refs.add(new EntityFieldReference(dependency.getName(), f.getName(), f.getAnnotation(ECForeignKey.class).cascade())));
         refs.addAll(getDependencyRefs(entityClass, dependency, dependencyOrParent.getSuperclass(), refs));
         return refs;
     }

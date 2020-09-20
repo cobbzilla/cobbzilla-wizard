@@ -23,7 +23,7 @@ public class AnalyticsQueueService {
     @Autowired private RestServerConfiguration configuration;
 
     private final Map<String, AnalyticsData> analyticsData = new HashMap<>();
-    private final ExecutorService executorService = fixedPool(10);
+    private final ExecutorService exec = fixedPool(10, "AnalyticsQueueService.exec");
 
     public void report(String uuid, AnalyticsData data) {
         synchronized (analyticsData) { analyticsData.put(uuid, data); }
@@ -60,7 +60,7 @@ public class AnalyticsQueueService {
                     analyticsData.clear();
                 }
 
-                copy.forEach((key, value) -> executorService.submit(() -> {
+                copy.forEach((key, value) -> exec.submit(() -> {
                     final HttpRequestBean request = new HttpRequestBean(POST, writeUrl, value.buildMessage());
                     try {
                         final HttpResponseBean response = HttpUtil.getResponse(request);

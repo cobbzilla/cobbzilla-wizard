@@ -3,6 +3,7 @@ package org.cobbzilla.wizard.server.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Cleanup;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
@@ -22,6 +23,7 @@ import org.cobbzilla.wizard.model.entityconfig.EntityFieldReference;
 import org.cobbzilla.wizard.model.entityconfig.EntityReferences;
 import org.springframework.context.annotation.Bean;
 
+import javax.annotation.Nullable;
 import javax.persistence.Transient;
 import java.io.File;
 import java.sql.*;
@@ -36,6 +38,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.http.URIUtil.getHost;
 import static org.cobbzilla.util.http.URIUtil.getPort;
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.reflect.ReflectionUtil.forName;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 import static org.cobbzilla.util.string.StringUtil.checkSafeShellArg;
@@ -44,7 +47,7 @@ import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependencyRefs;
 import static org.cobbzilla.wizard.model.entityconfig.EntityReferences.getDependentEntities;
 
-@Slf4j
+@Slf4j @SuppressWarnings("SpringConfigurationProxyMethods")
 public class PgRestServerConfiguration extends RestServerConfiguration implements HasDatabaseConfiguration {
 
     public static final String ENV_PGPASSWORD = "PGPASSWORD";
@@ -283,20 +286,34 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
 
     public File pgDump(File file, DbDumpMode dumpMode) { return pgDump(file, dumpMode, file.getName().endsWith(".gz")); }
 
-    public File pgDump(File file, DbDumpMode dumpMode, boolean gzip) {
-        final File temp = temp("pgRestore-out", ".sql" + (gzip ? ".gz" : ""));
-        final String dumpOptions;
-        if (dumpMode == null) dumpMode = DbDumpMode.all;
+    public File pgDumpDataOnly(@NonNull final File file, @NonNull final String tableName) {
+        var options = buildPGDumpOptions(DbDumpMode.data) + " --table " + tableName;
+        return pgDump(file, options, file.getName().endsWith(".gz"));
+    }
+
+    @NonNull private String buildPGDumpOptions(@Nullable final DbDumpMode dumpMode) {
+        if (dumpMode == null) return "--inserts"; // same as 'all'
+
         switch (dumpMode) {
-            case all: dumpOptions = "--inserts"; break;
-            case schema: dumpOptions = "--schema-only"; break;
-            case data: dumpOptions = "--data-only --inserts"; break;
-            case pre_data: dumpOptions = "--section=pre-data"; break;
-            case post_data: dumpOptions = "--section=post-data"; break;
+            case all: return "--inserts";
+            case schema: return "--schema-only";
+            case data: return "--data-only --inserts";
+            case pre_data: return "--section=pre-data";
+            case post_data: return "--section=post-data";
             default: return die("pgDump: invalid dumpMode: "+dumpMode);
         }
+    }
+
+    public File pgDump(@NonNull final File file, @Nullable final DbDumpMode dumpMode, final boolean gzip) {
+        return pgDump(file, buildPGDumpOptions(dumpMode), gzip);
+    }
+
+    @NonNull public File pgDump(@NonNull final File file, @NonNull final String dumpOptions, final boolean gzip) {
+        final File temp = temp("pgRestore-out", ".sql" + (gzip ? ".gz" : ""));
         return retry(() -> {
-            final String output = execScript(pgCommandString("pg_dump") + " " + dumpOptions + (gzip ? " | gzip" : "") + " > " + abs(temp) + " || exit 1", pgEnv());
+            final String output = execScript(pgCommandString("pg_dump") + " " + dumpOptions + (gzip ? " | gzip" : "")
+                                             + " > " + abs(temp) + " || exit 1",
+                                             pgEnv());
             if (output.contains("ERROR")) die("pgDump: error dumping DB:\n" + output);
             if (!temp.renameTo(file)) {
                 log.warn("pgDump: error renaming file, trying copy");
@@ -330,24 +347,48 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return reversed;
     }
 
-    private Map<Class<? extends Identifiable>, List<Class<? extends Identifiable>>> dependencyCache = new ConcurrentHashMap<>();
+    private final Map<Class<? extends Identifiable>, List<Class<? extends Identifiable>>> dependencyCache = new ConcurrentHashMap<>();
     public List<Class<? extends Identifiable>> getDependencies (Class<? extends Identifiable> entityClass) {
         return dependencyCache.computeIfAbsent(entityClass, c -> getDependentEntities(entityClass, getEntityClassesReverse()));
     }
 
-    private Map<Class<? extends Identifiable>, Collection<EntityFieldReference>> dependencyDAOCache = new ConcurrentHashMap<>();
+    private final Map<Class<? extends Identifiable>, Collection<EntityFieldReference>> dependencyDAOCache = new ConcurrentHashMap<>();
     public Collection<EntityFieldReference> dependencyRefs(Class<? extends Identifiable> entityClass) {
         return dependencyDAOCache.computeIfAbsent(entityClass, c -> getDependencyRefs(c, getDependencies(c)));
     }
 
-    public void deleteDependencies (Identifiable thing) {
+    public void deleteDependencies (Identifiable thing) { deleteDependencies(thing, null, null); }
+
+    public void deleteDependencies (Identifiable thing,
+                                    final Collection<Class<? extends Identifiable>> excludeDepClasses,
+                                    final Collection<String> excludeDepFields) {
         dependencyRefs(thing.getClass()).forEach(
                 dep -> {
+                    if (!dep.cascade()) {
+                        log.debug("deleteDependencies("+thing+"): excluding due to cascade=false: "+dep);
+                        return;
+                    }
+                    if (excludeDepClasses != null && excludeDepClasses.stream().anyMatch(depClass -> depClass.getName().equals(dep.getEntity()))) {
+                        log.debug("deleteDependencies("+thing+"): excluding by dep class: "+dep);
+                        return;
+                    }
+                    if (excludeDepFields != null && excludeDepFields.stream().anyMatch(depField -> depField.equals(dep.getField()))) {
+                        log.debug("deleteDependencies("+thing+"): excluding by dep field: "+dep);
+                        return;
+                    }
                     final DAO dao = getDaoForEntityClass(dep.getEntity());
                     if (dao instanceof AbstractCRUDDAO) {
-                        ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
+                        if (forName(dep.getEntity()).isAssignableFrom(thing.getClass())) {
+                            ((AbstractCRUDDAO) dao).bulkDeleteAndNotUuid(dep.getField(), thing.getUuid());
+                        } else {
+                            ((AbstractCRUDDAO) dao).bulkDelete(dep.getField(), thing.getUuid());
+                        }
                     } else {
-                        dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                        if (forName(dep.getEntity()).isAssignableFrom(thing.getClass())) {
+                            dao.delete(dao.findByFieldEqualAndFieldNotEqual(dep.getField(), thing.getUuid(), Identifiable.UUID, thing.getUuid()));
+                        } else {
+                            dao.delete(dao.findByField(dep.getField(), thing.getUuid()));
+                        }
                     }
                 }
         );
@@ -374,6 +415,15 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         return new EntityReferences()
                 .setPackages(getDatabase().getHibernate().getEntityPackages())
                 .generateConstraintSql(includeIndexes).toArray(new String[0]);
+    }
+
+    public boolean tableExists(String tableName) {
+        try {
+            execSql("select count(*) from "+tableName);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 }
