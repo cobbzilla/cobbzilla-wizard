@@ -122,6 +122,9 @@ public enum EntityFieldType {
     /** a US ZIP code */
     us_zip  (),
 
+    /** a US city */
+    us_city  (),
+
     /** HTTP URL */
     http_url (new EntityConfigFieldValidator_httpUrl()),
 

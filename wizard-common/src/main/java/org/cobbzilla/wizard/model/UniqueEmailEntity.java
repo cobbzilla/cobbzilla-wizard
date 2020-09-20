@@ -3,11 +3,11 @@ package org.cobbzilla.wizard.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.cobbzilla.wizard.validation.HasValue;
-import org.hibernate.validator.constraints.Email;
 
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
+import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;

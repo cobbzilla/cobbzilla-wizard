@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.model.json;
 
 import org.hibernate.HibernateException;
-import org.hibernate.engine.spi.SessionImplementor;
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.usertype.ParameterizedType;
 import org.hibernate.usertype.UserType;
 import org.postgresql.util.PGobject;
@@ -40,15 +40,17 @@ public class JSONBUserType extends CollectionUserType implements ParameterizedTy
 
     @Override public int[] sqlTypes() { return new int[]{Types.JAVA_OBJECT}; }
 
-    @Override public Object nullSafeGet(ResultSet resultSet, String[] names,
-                                        SessionImplementor session, Object owner)
+    @Override public Object nullSafeGet (ResultSet resultSet, String[] names,
+                                         SharedSessionContractImplementor sharedSessionContractImplementor,
+                                         Object o)
             throws HibernateException, SQLException {
         final String json = resultSet.getString(names[0]);
         return json == null ? null : fromJsonOrDie(json, returnedClass);
     }
 
-    @Override public void nullSafeSet(PreparedStatement st, Object value, int index,
-                                      SessionImplementor session) throws HibernateException, SQLException {
+    @Override public void nullSafeSet (PreparedStatement st, Object value, int index,
+                                       SharedSessionContractImplementor sharedSessionContractImplementor)
+            throws HibernateException, SQLException {
         final String json = value == null ? null : toJsonOrDie(value);
         final PGobject pgo = new PGobject();
         pgo.setType(JSONB_TYPE);

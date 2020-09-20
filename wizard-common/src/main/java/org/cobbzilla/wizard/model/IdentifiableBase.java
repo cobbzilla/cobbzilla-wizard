@@ -78,7 +78,9 @@ public class IdentifiableBase implements Identifiable {
 
     public void initUuid() { setUuid(randomUUID().toString()); }
 
-    @Override public Identifiable update(Identifiable thing) { return update(thing, null); }
+    @Override public Identifiable update(Identifiable thing) {
+        return update(thing, null);
+    }
 
     public Identifiable update(Identifiable thing, String[] fields) {
         String existingUuid = getUuid();

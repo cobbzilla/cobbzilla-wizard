@@ -14,8 +14,7 @@ public abstract class AuthFilter<T extends TokenPrincipal> implements ContainerR
     protected abstract Set<String> getSkipAuthPaths();
     protected abstract Set<String> getSkipAuthPrefixes();
 
-    @Override
-    public void filter(ContainerRequestContext request) throws IOException {
+    @Override public void filter(ContainerRequestContext request) throws IOException {
 
         final String u = request.getUriInfo().getPath();
         final String uri = u.startsWith("/") ? u : "/" + u; // ensure there is always a leading / for filtering purposes

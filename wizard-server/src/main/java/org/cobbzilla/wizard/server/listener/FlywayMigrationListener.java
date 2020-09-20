@@ -31,7 +31,7 @@ public class FlywayMigrationListener<C extends RestServerConfiguration> extends 
     @Override public void beforeStart(RestServer server) {
         this.server = server;
         final PgRestServerConfiguration configuration = (PgRestServerConfiguration) server.getConfiguration();
-        if (configuration.getDatabase().isMigrationEnabled()) {
+        if (configuration.getDatabase().migrationEnabled()) {
             migrate(configuration);
         }
         super.beforeStart(server);

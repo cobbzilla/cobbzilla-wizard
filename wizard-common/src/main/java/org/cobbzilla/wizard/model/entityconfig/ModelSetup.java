@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
-import lombok.Cleanup;
-import lombok.Getter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.InvocationHandler;
@@ -317,17 +315,20 @@ public class ModelSetup {
                         } else if ((update && request.hasData(strict)) || request.forceUpdate()) {
                             final Identifiable existing = getCached(api, json(response.json, request.getEntity().getClass()));
                             Identifiable toUpdate;
+                            ObjectNode jsonToUpdate = request.jsonNode();
                             if (existing != null) {
+                                jsonToUpdate = (ObjectNode) mergeJsonNodesOrDie(json(existing), jsonToUpdate);
                                 existing.update(entity);
                                 toUpdate = existing;
                             } else {
                                 toUpdate = entity;
                             }
                             if (listener != null && ((ModelEntity) entity).performSubstitutions()) {
+                                jsonToUpdate = listener.jsonSubst(jsonToUpdate);
                                 toUpdate = listener.subst(toUpdate);
                             }
                             log.info(logPrefix + " already exists, updating: " + id(toUpdate));
-                            entity = update(api, context, entityConfig, toUpdate, listener);
+                            entity = update(api, context, entityConfig, toUpdate, jsonToUpdate, listener);
                         } else {
                             log.info(logPrefix+" already exists: "+getUri);
                             entity = json(response.json, request.getEntity().getClass());
@@ -337,17 +338,17 @@ public class ModelSetup {
                         if (verify) {
                             getVerifyLog().logCreation(getUri, entity instanceof ModelEntity ? ((ModelEntity) entity).getEntity() : entity);
                         } else {
-                            entity = create(api, context, entityConfig, entity, listener, runName);
+                            entity = create(api, context, entityConfig, entity, request.jsonNode(), listener, runName);
                         }
                         break;
                     default:
                         die(logPrefix+"error creating " + entityType + ": " + response);
                 }
             } else {
-                entity = create(api, context, entityConfig, entity, listener, runName);
+                entity = create(api, context, entityConfig, entity, request.jsonNode(), listener, runName);
             }
         } else {
-            entity = create(api, context, entityConfig, entity, listener, runName);
+            entity = create(api, context, entityConfig, entity, request.jsonNode(), listener, runName);
         }
         if (entity == null) return;
 
@@ -448,6 +449,7 @@ public class ModelSetup {
                                                        LinkedHashMap<String, Identifiable> ctx,
                                                        EntityConfig entityConfig,
                                                        T entity,
+                                                       @NonNull ObjectNode originalEntityAsJSONNode,
                                                        ModelSetupListener listener,
                                                        String runName) throws Exception {
         if (isVerify()) {
@@ -462,9 +464,10 @@ public class ModelSetup {
 
         if (listener != null) {
             if (entity instanceof ModelEntity && ((ModelEntity) entity).performSubstitutions()) {
+                originalEntityAsJSONNode = listener.jsonSubst(originalEntityAsJSONNode);
                 entity = listener.subst(entity);
             }
-            listener.preCreate(entityConfig, entity);
+            listener.preCreate(entityConfig, entity, originalEntityAsJSONNode);
         }
         log.info("create("+runName+"): creating " + entityConfig.getName() + ": "+ id(entity));
         T created;
@@ -513,6 +516,7 @@ public class ModelSetup {
                                                        LinkedHashMap<String, Identifiable> ctx,
                                                        EntityConfig entityConfig,
                                                        T entity,
+                                                       @NonNull final ObjectNode originalEntityAsJSONNode,
                                                        ModelSetupListener listener) throws Exception {
         if (isVerify()) {
             log.info("update: in verify mode, not updating: " + id(entity));
@@ -523,12 +527,26 @@ public class ModelSetup {
         // if the entity has a parent, it will want that parent's UUID in that field
         setParentFields(ctx, entityConfig, entity);
 
-        if (listener != null) listener.preUpdate(entityConfig, entity);
+        if (listener != null) listener.preUpdate(entityConfig, entity, originalEntityAsJSONNode);
         final T updated;
+        @NonNull val entityClass = (Class<T>) Class.forName(getRawClass(entity.getClass().getName()));
         switch (entityConfig.getUpdateMethod().toLowerCase()) {
-            case "put":  updated = api.put(uri, entity); break;
-            case "post": updated = api.post(uri, entity); break;
-            default: return die("invalid update method: "+entityConfig.getCreateMethod());
+            case "put":
+                if (entityConfig.isUseOriginalJsonRequestOnly()) {
+                    updated = api.put(uri, originalEntityAsJSONNode, entityClass);
+                } else {
+                    updated = api.put(uri, entity);
+                }
+                break;
+            case "post":
+                if (entityConfig.isUseOriginalJsonRequestOnly()) {
+                    updated = api.post(uri, originalEntityAsJSONNode, entityClass);
+                } else {
+                    updated = api.post(uri, entity);
+                }
+                break;
+            default:
+                return die("invalid update method: "+entityConfig.getCreateMethod());
         }
         if (listener != null) listener.postUpdate(entityConfig, entity, updated);
         return updated;

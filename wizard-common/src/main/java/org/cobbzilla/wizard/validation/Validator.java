@@ -7,6 +7,8 @@ import javax.validation.groups.Default;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hibernate.validator.internal.engine.ConstraintViolationImpl.forReturnValueValidation;
+
 // forked from dropwizard-- https://github.com/codahale/dropwizard
 
 /**
@@ -42,7 +44,8 @@ public class Validator {
     public ValidationResult validate(Object o, Class<?>... groups) {
         final List<ConstraintViolation> violations = new ArrayList<>();
         if (o == null) {
-            violations.add(EmptyRequestEntityConstraintViolation.INSTANCE);
+            violations.add(forReturnValueValidation("err.requestEntity.null", null, null, null, null, null, null, null,
+                                                    null, null, null, null));
         } else {
             violations.addAll(factory.getValidator().validate(o,groups));
         }

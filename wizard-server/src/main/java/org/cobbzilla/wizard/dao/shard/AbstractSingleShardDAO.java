@@ -11,9 +11,9 @@ import org.cobbzilla.wizard.model.shard.ShardMap;
 import org.cobbzilla.wizard.model.shard.Shardable;
 import org.cobbzilla.wizard.server.config.HasDatabaseConfiguration;
 import org.cobbzilla.wizard.server.config.RestServerConfiguration;
-import org.hibernate.Query;
 import org.hibernate.SessionFactory;
 import org.hibernate.StatelessSession;
+import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.AbstractApplicationContext;
 
@@ -22,12 +22,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
 @Slf4j
-public abstract class AbstractSingleShardDAO<E extends Shardable>
-        extends AbstractCRUDDAO<E>
+public abstract class AbstractSingleShardDAO<E extends Shardable> extends AbstractCRUDDAO<E>
         implements SingleShardDAO<E> {
 
     @SuppressWarnings("SpringJavaAutowiredMembersInspection")
@@ -80,7 +80,7 @@ public abstract class AbstractSingleShardDAO<E extends Shardable>
             return query.list();
 
         } finally {
-            if (query != null && query instanceof Closeable) ReflectionUtil.closeQuietly(query);
+            if (query instanceof Closeable) ReflectionUtil.closeQuietly(query);
             if (session != null) session.close();
         }
     }
@@ -89,7 +89,7 @@ public abstract class AbstractSingleShardDAO<E extends Shardable>
 
     @Override public void cleanup() {
         try {
-            getHibernateTemplate().getSessionFactory().close();
+            Objects.requireNonNull(getHibernateTemplate().getSessionFactory()).close();
         } catch (Exception e) {
             log.warn("cleanup: error destroying session factory: "+e, e);
         }

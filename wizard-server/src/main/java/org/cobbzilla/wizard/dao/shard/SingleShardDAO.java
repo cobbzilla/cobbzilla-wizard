@@ -4,7 +4,7 @@ import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.shard.ShardMap;
 import org.cobbzilla.wizard.model.shard.Shardable;
 import org.hibernate.Session;
-import org.springframework.orm.hibernate4.HibernateTemplate;
+import org.springframework.orm.hibernate5.HibernateTemplate;
 
 import java.util.List;
 

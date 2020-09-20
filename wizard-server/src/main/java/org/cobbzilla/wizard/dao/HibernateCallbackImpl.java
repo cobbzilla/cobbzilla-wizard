@@ -1,9 +1,9 @@
 package org.cobbzilla.wizard.dao;
 
 import org.hibernate.HibernateException;
-import org.hibernate.Query;
+import org.hibernate.query.Query;
 import org.hibernate.Session;
-import org.springframework.orm.hibernate4.HibernateCallback;
+import org.springframework.orm.hibernate5.HibernateCallback;
 
 import java.util.HashSet;
 import java.util.List;
@@ -71,9 +71,7 @@ public class HibernateCallbackImpl<T> implements HibernateCallback<List<T>> {
             }
         }
 
-        final List<T> result = query.list();
-
-        return result;
+        return (List<T>) query.list();
     }
 
 }

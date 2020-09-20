@@ -8,15 +8,17 @@ import org.cobbzilla.wizard.model.crypto.EncryptedTypes;
 import org.cobbzilla.wizard.server.config.*;
 import org.cobbzilla.wizard.server.listener.DbPoolShutdownListener;
 import org.hibernate.SessionFactory;
+import org.hibernate.boot.model.naming.PhysicalNamingStrategy;
+import org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl;
 import org.hibernate.cfg.ImprovedNamingStrategy;
 import org.jasypt.encryption.pbe.PBEStringEncryptor;
 import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
 import org.jasypt.hibernate4.encryptor.HibernatePBEStringEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.orm.hibernate4.HibernateTemplate;
-import org.springframework.orm.hibernate4.HibernateTransactionManager;
-import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
+import org.springframework.orm.hibernate5.HibernateTemplate;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
@@ -69,13 +71,12 @@ public class RdbmsConfigCommon {
     }
 
     public HibernateTemplate hibernateTemplate(SessionFactory sessionFactory) {
-        final HibernateTemplate hibernateTemplate = new HibernateTemplate(sessionFactory);
-        return hibernateTemplate;
+        return new HibernateTemplate(sessionFactory);
     }
 
     public LocalSessionFactoryBean sessionFactory() {
         final LocalSessionFactoryBean factory = new LocalSessionFactoryBean();
-        factory.setNamingStrategy(ImprovedNamingStrategy.INSTANCE);
+        factory.setPhysicalNamingStrategy(PhysicalNamingStrategyStandardImpl.INSTANCE);
         factory.setDataSource(dataSource());
         factory.setHibernateProperties(hibernateProperties());
         factory.setPackagesToScan(getDatabase().getHibernate().getEntityPackages());

@@ -11,4 +11,5 @@ public @interface ECType {
     String name() default "";
     String displayName() default "";
     String pluralDisplayName() default "";
+    boolean useOriginalJsonRequestOnly() default false;
 }
