@@ -451,14 +451,16 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
 
         final String serverName = server.getConfiguration().getServerName();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("stopping "+serverName);
+        final Thread serverShutdownThread = new Thread(() -> {
+            log.info("stopping " + serverName);
             server.stopServer();
             synchronized (mainThreadLock) {
                 mainThread.interrupt();
                 mainThreadLock.notify();
             }
-        }));
+        });
+        serverShutdownThread.setName(server.getClass().getSimpleName()+"_shutdownHook");
+        Runtime.getRuntime().addShutdownHook(serverShutdownThread);
 
         log.info(serverName+" running, base URI is " + server.getBaseUri().toString());
         try {
