@@ -234,12 +234,14 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
         String dbPass = getDatabase().getPassword();
         if (empty(dbPass)) dbPass = "";
 
-        final Map<String, String> env = new HashMap<>();
-        env.putAll(getEnvironment());
+        final Map<String, String> env = new HashMap<>(getEnvironment());
         env.put(ENV_PGPASSWORD, dbPass);
         String path = env.get("PATH");
         if (path == null) {
-            path = "/bin:/usr/bin:/usr/local/bin";
+            path = System.getenv("PATH");
+            if (empty(path)) {
+                path = "/bin:/usr/bin:/usr/local/bin";
+            }
         } else {
             path += ":/usr/local/bin";
         }
