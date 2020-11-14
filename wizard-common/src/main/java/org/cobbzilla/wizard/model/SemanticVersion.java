@@ -56,9 +56,8 @@ public class SemanticVersion implements Comparable<SemanticVersion>, Serializabl
         setMajor(Integer.parseInt(matcher.group(1)));
         setMinor(Integer.parseInt(matcher.group(2)));
         setPatch(Integer.parseInt(matcher.group(3)));
-        if (matcher.groupCount() > 4) {
-            setBuild(Integer.valueOf(matcher.group(5)));
-        }
+        final String buildNumber = matcher.group(5);
+        if (!empty(buildNumber)) setBuild(Integer.valueOf(buildNumber));
     }
 
     @Max(value=SV_VERSION_MAX, message=SV_MAJOR_TOO_LARGE)
