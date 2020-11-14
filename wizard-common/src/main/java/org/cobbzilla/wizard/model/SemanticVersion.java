@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import javax.persistence.Transient;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.io.FileFilter;
@@ -84,8 +85,7 @@ public class SemanticVersion implements Comparable<SemanticVersion>, Serializabl
 
     @Max(value=SV_VERSION_MAX, message=SV_BUILD_TOO_LARGE)
     @Min(value=SV_VERSION_MIN, message=SV_BUILD_TOO_SMALL)
-    @Column(name="build_version", length=SV_VERSION_MAXLEN)
-    @Getter @Setter private Integer build = null;
+    @Transient @Getter @Setter private Integer build = null;
 
     public static boolean isValid (String version) { return VERSION_PATTERN.matcher(version).find(); }
 
