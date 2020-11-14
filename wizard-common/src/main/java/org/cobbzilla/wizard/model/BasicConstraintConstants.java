@@ -26,6 +26,8 @@ public class BasicConstraintConstants {
     public static final String SV_MINOR_TOO_SMALL = "{err.semanticVersion.minor.tooSmall}";
     public static final String SV_PATCH_TOO_LARGE = "{err.semanticVersion.patch.tooBig}";
     public static final String SV_PATCH_TOO_SMALL = "{err.semanticVersion.patch.tooSmall}";
+    public static final String SV_BUILD_TOO_LARGE = "{err.semanticVersion.build.tooBig}";
+    public static final String SV_BUILD_TOO_SMALL = "{err.semanticVersion.build.tooSmall}";
     public static final int SV_VERSION_MAXLEN = 30;
 
     public static final int SV_VERSION_MAX = 999999999;

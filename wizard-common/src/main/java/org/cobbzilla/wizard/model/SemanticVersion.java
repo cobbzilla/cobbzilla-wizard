@@ -20,13 +20,15 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.*;
 @NoArgsConstructor @AllArgsConstructor @Slf4j
 public class SemanticVersion implements Comparable<SemanticVersion>, Serializable {
 
-    public static final String SEMANTIC_VERSION_RE = "(\\d+)\\.(\\d+)\\.(\\d+)";
+    public static final String SEMANTIC_VERSION_RE = "(\\d+)\\.(\\d+)\\.(\\d+)(\\.(\\d+))?";
     public static final String VERSION_REGEXP = "^" + SEMANTIC_VERSION_RE + "$";
     public static final Pattern VERSION_PATTERN = Pattern.compile(VERSION_REGEXP);
 
     public static final FileFilter DIR_FILTER = pathname -> pathname.isDirectory() && SemanticVersion.isValid(pathname.getName());
 
     public static final Comparator<SemanticVersion> COMPARE_LATEST_FIRST = Comparator.reverseOrder();
+
+    public SemanticVersion(int major, int minor, int patch) { this(major, minor, patch, null); }
 
     /**
      * Is v2 newer than v1?
@@ -53,6 +55,9 @@ public class SemanticVersion implements Comparable<SemanticVersion>, Serializabl
         setMajor(Integer.parseInt(matcher.group(1)));
         setMinor(Integer.parseInt(matcher.group(2)));
         setPatch(Integer.parseInt(matcher.group(3)));
+        if (matcher.groupCount() > 4) {
+            setBuild(Integer.valueOf(matcher.group(5)));
+        }
     }
 
     @Max(value=SV_VERSION_MAX, message=SV_MAJOR_TOO_LARGE)
@@ -77,9 +82,14 @@ public class SemanticVersion implements Comparable<SemanticVersion>, Serializabl
         return new SemanticVersion(other.getMajor(), other.getMinor(), other.getPatch()+1);
     }
 
+    @Max(value=SV_VERSION_MAX, message=SV_BUILD_TOO_LARGE)
+    @Min(value=SV_VERSION_MIN, message=SV_BUILD_TOO_SMALL)
+    @Column(name="build_version", length=SV_VERSION_MAXLEN)
+    @Getter @Setter private Integer build = null;
+
     public static boolean isValid (String version) { return VERSION_PATTERN.matcher(version).find(); }
 
-    @Override public String toString () { return major + "." + minor + "." + patch; }
+    @Override public String toString () { return major + "." + minor + "." + patch + (build == null ? "" : "."+build); }
 
     @Override public int compareTo(SemanticVersion other) {
         if (other == null) throw new IllegalArgumentException("compareTo: argument was null");
@@ -87,6 +97,10 @@ public class SemanticVersion implements Comparable<SemanticVersion>, Serializabl
         diff = major - other.major; if (diff != 0) return diff;
         diff = minor - other.minor; if (diff != 0) return diff;
         diff = patch - other.patch; if (diff != 0) return diff;
+        if (build != null && other.build != null) {
+            diff = build - other.build;
+            if (diff != 0) return diff;
+        }
         return 0;
     }
 
