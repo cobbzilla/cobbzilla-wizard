@@ -30,7 +30,10 @@ public class BrowserLauncherListener extends RestServerLifecycleListenerBase {
                     }
                 } else {
                     // no browser. tell the user where the server is listening via log statement
-                    log.info("\n\n"+server.getConfiguration().getServerName()+" Successfully Started\n\nNot launching browser: System lacks a browser and/or desktop window manager.\n\nWeb UI is: "+baseUri+"\nAPI is: "+baseUri+"/api\nHit Control-C to stop the server\n");
+                    final String versionInfo = server.getConfiguration().hasVersion()
+                            ? "\nVersion: " + server.getConfiguration().getVersion()
+                            : "";
+                    log.info("\n\n"+server.getConfiguration().getServerName()+" Successfully Started"+versionInfo+"\n\nNot launching browser: System lacks a browser and/or desktop window manager.\n\nWeb UI is: "+baseUri+"\nAPI is: "+baseUri+"/api\nHit Control-C to stop the server\n");
                 }
             }
         });
