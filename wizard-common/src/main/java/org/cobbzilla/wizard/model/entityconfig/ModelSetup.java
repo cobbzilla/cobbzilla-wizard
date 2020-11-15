@@ -308,7 +308,7 @@ public class ModelSetup {
                             if (listener != null && ((ModelEntity) entity).performSubstitutions()) {
                                 entity = listener.subst(entity);
                             }
-                            log.info(logPrefix + " diffing: " + id(entity));
+                            log.info(logPrefix + "diffing: " + id(entity));
                             if (listener != null && request.performSubstitutions()) {
                                 request = listener.subst(request);
                             }
@@ -326,10 +326,10 @@ public class ModelSetup {
                             if (listener != null && ((ModelEntity) entity).performSubstitutions()) {
                                 toUpdate = listener.subst(toUpdate);
                             }
-                            log.info(logPrefix + " already exists, updating: " + id(toUpdate));
+                            log.info(logPrefix + "already exists, updating: " + id(toUpdate));
                             entity = update(api, context, entityConfig, toUpdate, listener);
                         } else {
-                            log.info(logPrefix+" already exists: "+getUri);
+                            log.info(logPrefix + "already exists: " + getUri);
                             entity = json(response.json, request.getEntity().getClass());
                         }
                         break;
@@ -341,7 +341,7 @@ public class ModelSetup {
                         }
                         break;
                     default:
-                        die(logPrefix+"error creating " + entityType + ": " + response);
+                        die(logPrefix + "error creating " + entityType + ": " + response);
                 }
             } else {
                 entity = create(api, context, entityConfig, entity, listener, runName);
