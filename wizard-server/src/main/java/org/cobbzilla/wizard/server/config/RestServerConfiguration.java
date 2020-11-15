@@ -54,7 +54,7 @@ public class RestServerConfiguration {
     @Getter @Setter private File tmpdir = FileUtil.getDefaultTempDir();
     @Getter @Setter private String serverName;
     @Getter @Setter private String version;
-    public boolean hasVersion () { return !empty(version); }
+    public boolean hasVersion () { return !empty(getVersion()); }
 
     @Setter private String publicUriBase;
     public String getPublicUriBase () {
