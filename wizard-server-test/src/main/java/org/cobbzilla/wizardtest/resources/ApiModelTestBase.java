@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.SingletonList;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.jdbc.UncheckedSqlException;
+import org.cobbzilla.util.network.PortPicker;
 import org.cobbzilla.util.system.Sleep;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.client.script.ApiRunner;
@@ -20,6 +21,7 @@ import org.cobbzilla.wizard.server.config.HasDatabaseConfiguration;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 import org.cobbzilla.wizard.server.config.RestServerConfiguration;
 import org.junit.Before;
+import redis.embedded.RedisServer;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,12 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.System.identityHashCode;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.network.PortPicker.pickOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.modelHash;
@@ -73,12 +77,39 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
 
     @Before public void resetSystemClock() { setSystemTimeOffset(0); }
 
+    protected boolean enableEmbeddedRedis () { return true; }
+    protected boolean enableEmbeddedPostgreSQL () { return true; }
+
+    @Getter private Integer redisPort = null;
+    private RedisServer redisServer = null;
+
+    @Override public void beforeStart(RestServer<C> server) {
+        if (enableEmbeddedRedis()) {
+            if (redisPort == null) {
+                redisPort = pickOrDie();
+                try {
+                    redisServer = new RedisServer(redisPort);
+                    redisServer.start();
+                } catch (Exception e) {
+                    die("beforeStart: error creating/starting RedisServer on port " + redisPort + ": " + shortError(e), e);
+                }
+            }
+        }
+        super.beforeStart(server);
+    }
+
     @Override public void onStart(RestServer<C> server) {
         super.onStart(server);
         try {
             setup(getModelSetupListener(), getModelPrefix(), getManifest(), doTruncateDb(), getModelRunName());
         } catch (Exception e) {
             die("onStart: error calling setup: "+e, e);
+        }
+    }
+
+    @Override public void onStop(RestServer<C> server) {
+        if (redisServer != null) {
+            redisServer.stop();
         }
     }
 
