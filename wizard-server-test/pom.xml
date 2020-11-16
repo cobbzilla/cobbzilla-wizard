@@ -33,14 +33,12 @@ This code is available under the Apache License, version 2: http://www.apache.or
             <groupId>com.github.kstyrc</groupId>
             <artifactId>embedded-redis</artifactId>
             <version>0.6</version>
-<!--            <scope>test</scope>-->
         </dependency>
 
         <dependency>
             <groupId>ru.yandex.qatools.embed</groupId>
             <artifactId>postgresql-embedded</artifactId>
             <version>2.10</version>
-<!--            <scope>test</scope>-->
         </dependency>
 
         <dependency>

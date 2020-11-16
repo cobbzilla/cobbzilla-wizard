@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.SingletonList;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.jdbc.UncheckedSqlException;
-import org.cobbzilla.util.network.PortPicker;
 import org.cobbzilla.util.system.Sleep;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.client.script.ApiRunner;
@@ -20,8 +19,10 @@ import org.cobbzilla.wizard.server.config.DatabaseConfiguration;
 import org.cobbzilla.wizard.server.config.HasDatabaseConfiguration;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;
 import org.cobbzilla.wizard.server.config.RestServerConfiguration;
+import org.junit.AfterClass;
 import org.junit.Before;
 import redis.embedded.RedisServer;
+import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.System.identityHashCode;
@@ -43,6 +43,7 @@ import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.modelHash;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.setupModel;
+import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V11;
 
 @Slf4j
 public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S extends RestServer<C>>
@@ -78,10 +79,12 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
     @Before public void resetSystemClock() { setSystemTimeOffset(0); }
 
     protected boolean enableEmbeddedRedis () { return true; }
-    protected boolean enableEmbeddedPostgreSQL () { return true; }
+    @Getter private static Integer redisPort = null;
+    private static RedisServer redisServer = null;
 
-    @Getter private Integer redisPort = null;
-    private RedisServer redisServer = null;
+    protected boolean enableEmbeddedPostgreSQL () { return true; }
+    @Getter private static Integer pgPort = null;
+    private static EmbeddedPostgres pgServer = null;
 
     @Override public void beforeStart(RestServer<C> server) {
         if (enableEmbeddedRedis()) {
@@ -92,6 +95,23 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
                     redisServer.start();
                 } catch (Exception e) {
                     die("beforeStart: error creating/starting RedisServer on port " + redisPort + ": " + shortError(e), e);
+                }
+            }
+        }
+        if (enableEmbeddedPostgreSQL()) {
+            if (pgPort == null) {
+                pgPort = pickOrDie();
+                pgServer = new EmbeddedPostgres(V11);
+                try {
+                    final DatabaseConfiguration dbConfig = getDbConfig(getConfiguration());
+                    final String dbName = dbConfig.getDatabaseName();
+                    final String dbUser = dbConfig.getUser();
+                    final String dbPass = dbConfig.getPassword();
+                    final String url = pgServer.start("localhost", pgPort, dbName, dbUser, dbPass);
+                    dbConfig.setUrl(url);
+
+                } catch (Exception e) {
+                    die("beforeStart: error creating/starting PostgreSQL on port " + pgPort + ": " + shortError(e), e);
                 }
             }
         }
@@ -107,9 +127,18 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         }
     }
 
-    @Override public void onStop(RestServer<C> server) {
+    @Override public void onStop(RestServer<C> server) { cleanupServices(); }
+
+    @AfterClass public static void cleanupServices () {
         if (redisServer != null) {
             redisServer.stop();
+            redisServer = null;
+            redisPort = null;
+        }
+        if (pgServer != null) {
+            pgServer.stop();
+            pgServer = null;
+            pgPort = null;
         }
     }
 
