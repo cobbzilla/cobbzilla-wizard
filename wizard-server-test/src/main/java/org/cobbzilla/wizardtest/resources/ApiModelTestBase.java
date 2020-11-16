@@ -128,7 +128,7 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
         }
     }
 
-    @Override public void onStop(RestServer<C> server) { cleanupServices(); }
+    @Override public void onStop(RestServer<C> server) { cleanupServices(); super.onStop(server); }
 
     @AfterClass public static void cleanupServices () {
         if (redisServer != null) {
