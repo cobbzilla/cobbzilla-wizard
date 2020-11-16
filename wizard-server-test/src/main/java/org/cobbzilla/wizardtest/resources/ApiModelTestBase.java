@@ -22,7 +22,6 @@ import org.cobbzilla.wizard.server.config.RestServerConfiguration;
 import org.junit.AfterClass;
 import org.junit.Before;
 import redis.embedded.RedisServer;
-import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,13 +37,11 @@ import static java.lang.System.identityHashCode;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.io.FileUtil.*;
-import static org.cobbzilla.util.network.NetworkUtil.IPv4_LOCALHOST;
 import static org.cobbzilla.util.network.PortPicker.pickOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.modelHash;
 import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.setupModel;
-import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V11;
 
 @Slf4j
 public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S extends RestServer<C>>
@@ -83,10 +80,6 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
     @Getter private static Integer redisPort = null;
     private static RedisServer redisServer = null;
 
-    protected boolean enableEmbeddedPostgreSQL () { return true; }
-    @Getter private static Integer pgPort = null;
-    private static EmbeddedPostgres pgServer = null;
-
     @Override public void beforeStart(RestServer<C> server) {
         if (enableEmbeddedRedis()) {
             if (redisPort == null) {
@@ -96,23 +89,6 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
                     redisServer.start();
                 } catch (Exception e) {
                     die("beforeStart: error creating/starting RedisServer on port " + redisPort + ": " + shortError(e), e);
-                }
-            }
-        }
-        if (enableEmbeddedPostgreSQL()) {
-            if (pgPort == null) {
-                pgPort = pickOrDie();
-                pgServer = new EmbeddedPostgres(V11);
-                try {
-                    final DatabaseConfiguration dbConfig = getDbConfig(getConfiguration());
-                    final String dbName = dbConfig.getDatabaseName();
-                    final String dbUser = dbConfig.getUser();
-                    final String dbPass = dbConfig.getPassword();
-                    final String url = pgServer.start(IPv4_LOCALHOST, pgPort, dbName, dbUser, dbPass);
-                    dbConfig.setUrl(url);
-
-                } catch (Exception e) {
-                    die("beforeStart: error creating/starting PostgreSQL on port " + pgPort + ": " + shortError(e), e);
                 }
             }
         }
@@ -135,11 +111,6 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
             redisServer.stop();
             redisServer = null;
             redisPort = null;
-        }
-        if (pgServer != null) {
-            pgServer.stop();
-            pgServer = null;
-            pgPort = null;
         }
     }
 

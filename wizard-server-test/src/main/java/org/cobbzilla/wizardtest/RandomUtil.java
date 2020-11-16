@@ -1,7 +1,7 @@
 package org.cobbzilla.wizardtest;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class RandomUtil {
         return now() + (days * 1000 * 60 * 60 * 24);
     }
 
-    public static boolean randomBoolean() { return RandomUtils.nextInt(0, 2) % 2 == 0; }
+    public static boolean randomBoolean() { return RandomUtils.nextInt(RANDOM, 2) == 0; }
 
     public static <T> T pickMod(T[] things, int i) {
         if (i <= 0 || i > things.length) i = things.length;

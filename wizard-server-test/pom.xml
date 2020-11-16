@@ -36,12 +36,6 @@ This code is available under the Apache License, version 2: http://www.apache.or
         </dependency>
 
         <dependency>
-            <groupId>ru.yandex.qatools.embed</groupId>
-            <artifactId>postgresql-embedded</artifactId>
-            <version>2.10</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.cobbzilla</groupId>
             <artifactId>restex</artifactId>
             <version>1.0.1-SNAPSHOT</version>
