@@ -38,6 +38,7 @@ import static java.lang.System.identityHashCode;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.network.NetworkUtil.IPv4_LOCALHOST;
 import static org.cobbzilla.util.network.PortPicker.pickOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.system.CommandShell.execScript;
@@ -107,7 +108,7 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
                     final String dbName = dbConfig.getDatabaseName();
                     final String dbUser = dbConfig.getUser();
                     final String dbPass = dbConfig.getPassword();
-                    final String url = pgServer.start("localhost", pgPort, dbName, dbUser, dbPass);
+                    final String url = pgServer.start(IPv4_LOCALHOST, pgPort, dbName, dbUser, dbPass);
                     dbConfig.setUrl(url);
 
                 } catch (Exception e) {
