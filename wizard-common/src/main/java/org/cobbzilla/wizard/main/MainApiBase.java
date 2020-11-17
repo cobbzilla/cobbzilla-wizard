@@ -69,7 +69,7 @@ public abstract class MainApiBase<OPT extends MainApiOptionsBase> extends MainBa
     }
 
     protected void handleAccountNotFound(String account) {
-        die("Account not found: "+account);
+        die("Account not found: "+account + " (API was "+getOptions().getApiBase()+")");
     }
 
     public static class ApiTokenClient<OPT extends MainApiOptionsBase> extends ApiClientBase {
