@@ -47,7 +47,12 @@ public abstract class MainApiOptionsBase extends BaseMainOptions {
     protected String getDefaultApiBaseUri() { return "@API_SERVER"; }
 
     @Getter private final String password = initPassword();
-    public boolean hasPassword () { return !empty(getPassword()) && password != INVALID_PASSWORD; }
+    public boolean hasPassword () {
+        // we really do set password == INVALID_PASSWORD in initPassword if it was not set
+        // so the != comparison is correct.
+        //noinspection StringEquality
+        return !empty(getPassword()) && password != INVALID_PASSWORD;
+    }
 
     public boolean requireAccount() { return true; }
 
