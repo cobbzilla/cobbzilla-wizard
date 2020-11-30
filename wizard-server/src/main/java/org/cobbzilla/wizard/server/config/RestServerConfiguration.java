@@ -62,6 +62,9 @@ public class RestServerConfiguration {
         return !empty(publicUriBase) && publicUriBase.endsWith("/") ? publicUriBase.substring(0, publicUriBase.length()-1) : publicUriBase;
     }
 
+    @Getter @Setter private OpenApiConfiguration openApi;
+    public boolean hasOpenApi () { return openApi != null && openApi.valid(); }
+
     @Getter @Setter private String springContextPath = "classpath:/spring.xml";
     @Getter @Setter private String springShardContextPath = "classpath:/spring-shard.xml";
     @Getter @Setter private int bcryptRounds = 12;

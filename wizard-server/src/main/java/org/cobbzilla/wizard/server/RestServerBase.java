@@ -58,9 +58,10 @@ import static org.cobbzilla.util.system.Sleep.sleep;
 @NoArgsConstructor @Slf4j
 public abstract class RestServerBase<C extends RestServerConfiguration> implements RestServer<C> {
 
-    public RestServerBase (RestServer<C> other) {
-        copy(this, other, new String[]{"httpServer", "configuration", "applicationContext"});
-    }
+    public static final String[] COPY_FIELDS
+            = {"httpServer", "configuration", "applicationContext"};
+
+    public RestServerBase (RestServer<C> other) { copy(this, other, COPY_FIELDS); }
 
     @Getter @Setter private volatile static ErrorApi errorApi;
 
@@ -298,6 +299,11 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         rc.register(new StreamingOutputProvider());
         rc.register(MultiPartFeature.class);
         // rc.register(new StringProvider());
+
+        if (configuration.hasOpenApi()) {
+            configuration.getOpenApi().register(configuration, rc);
+        }
+
         return rc;
     }
 
