@@ -3,16 +3,20 @@ package org.cobbzilla.wizard.server.config;
 import com.github.jknack.handlebars.Handlebars;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.map.SingletonMap;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.util.handlebars.HasHandlebars;
+import org.cobbzilla.wizard.filters.auth.AuthFilter;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import java.util.*;
@@ -26,6 +30,7 @@ public class OpenApiConfiguration {
 
     // set contactEmail to this value to disable OpenAPI
     public static final String OPENAPI_DISABLED = "openapi_disabled";
+    public static final String SEC_API_KEY = "apiKey";
 
     @Getter @Setter private String title;
     @Getter @Setter private String description;
@@ -58,7 +63,6 @@ public class OpenApiConfiguration {
             handlebars = null;
         }
 
-        final OpenAPI oas = new OpenAPI();
         final Info info = new Info()
                 .title(subst(title(configuration), handlebars, ctx, configuration))
                 .description(subst((empty(description) ? title(configuration) : description), handlebars, ctx, configuration))
@@ -70,10 +74,21 @@ public class OpenApiConfiguration {
                         .url(subst(licenseUrl, handlebars, ctx, configuration)))
                 .version((configuration.hasVersion() ? configuration.getVersion() : "(configuration.version was missing or empty)"));
 
-        oas.info(info);
         final List<Server> servers = new ArrayList<>();
-        servers.add(new Server().url(configuration.getHttp().getBaseUri()));
-        oas.servers(servers);
+        servers.add(new Server()
+                .url(configuration.getHttp().getBaseUri()));
+
+        final AuthFilter authFilter = configuration.getBean(AuthFilter.class);
+        final SecurityScheme securityScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.APIKEY)
+                .name(authFilter.getAuthTokenHeader())
+                .in(SecurityScheme.In.HEADER);
+
+        final OpenAPI oas = new OpenAPI()
+                .components(new Components().securitySchemes(new SingletonMap<>(SEC_API_KEY, securityScheme)))
+                .info(info)
+                .servers(servers);
+
         final SwaggerConfiguration oasConfig = new SwaggerConfiguration()
                 .openAPI(oas)
                 .prettyPrint(true)

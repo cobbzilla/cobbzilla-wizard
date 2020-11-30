@@ -182,6 +182,10 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         applicationContext = buildSpringApplicationContext();
         configuration.setApplicationContext(applicationContext);
 
+        if (configuration.hasOpenApi()) {
+            configuration.getOpenApi().register(configuration, rc);
+        }
+
         // set the IoC factory
         rc.property("contextConfig", applicationContext);
 
@@ -299,11 +303,6 @@ public abstract class RestServerBase<C extends RestServerConfiguration> implemen
         rc.register(new StreamingOutputProvider());
         rc.register(MultiPartFeature.class);
         // rc.register(new StringProvider());
-
-        if (configuration.hasOpenApi()) {
-            configuration.getOpenApi().register(configuration, rc);
-        }
-
         return rc;
     }
 

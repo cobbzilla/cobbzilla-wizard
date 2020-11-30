@@ -9,7 +9,7 @@ import static org.cobbzilla.wizard.resources.ResourceUtil.unauthorized;
 
 public abstract class AuthFilter<T extends TokenPrincipal> implements ContainerRequestFilter {
 
-    protected abstract String getAuthTokenHeader();
+    public abstract String getAuthTokenHeader();
     protected String getSubUserHeader() { return null; }
     protected abstract Set<String> getSkipAuthPaths();
     protected abstract Set<String> getSkipAuthPrefixes();
