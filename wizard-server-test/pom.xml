@@ -34,23 +34,6 @@ This code is available under the Apache License, version 2: http://www.apache.or
             <artifactId>embedded-redis</artifactId>
             <version>0.6</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.cobbzilla</groupId>
-            <artifactId>restex</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-mapper-asl</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-core-asl</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
     </dependencies>
 
 </project>

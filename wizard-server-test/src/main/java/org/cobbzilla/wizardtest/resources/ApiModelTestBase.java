@@ -45,7 +45,7 @@ import static org.cobbzilla.wizard.model.entityconfig.ModelSetup.setupModel;
 
 @Slf4j
 public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S extends RestServer<C>>
-        extends ApiDocsResourceIT<C, S>
+        extends AbstractResourceIT<C, S>
         implements ApiScriptIncludeHandler {
 
     protected String getModelPrefix() { return "models/"; }
@@ -68,11 +68,7 @@ public abstract class ApiModelTestBase<C extends PgRestServerConfiguration, S ex
     protected Class<? extends ModelSetupListener> getModelSetupListenerClass() { return ModelSetupListenerBase.class; }
     @Getter(lazy=true) private final ModelSetupListener modelSetupListener = instantiate(getModelSetupListenerClass(), getConfiguration());
 
-    public ApiRunnerMultiListener getApiListener() {
-        final ApiRunnerMultiListener listener = new ApiRunnerMultiListener(getClass().getName());
-        if (docsEnabled) listener.addApiListener(apiDocsRunnerListener);
-        return listener;
-    }
+    public ApiRunnerMultiListener getApiListener() { return new ApiRunnerMultiListener(getClass().getName()); }
 
     @Before public void resetSystemClock() { setSystemTimeOffset(0); }
 
