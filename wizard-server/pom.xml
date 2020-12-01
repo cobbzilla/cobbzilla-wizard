@@ -281,12 +281,17 @@ This code is available under the Apache License, version 2: http://www.apache.or
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-jaxrs2</artifactId>
-            <version>2.1.5</version>
+            <version>${swagger.version}</version>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-integration</artifactId>
-            <version>2.1.5</version>
+            <version>${swagger.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
         </dependency>
 
     </dependencies>
