@@ -15,8 +15,8 @@ public class EntityConfigFieldValidator_json extends EntityConfigFieldValidator_
 
     @Override public ValidationResult validate(Locale locale, Validator validator, EntityFieldConfig fieldConfig,
                                                Object value) {
-        ValidationResult validation = super.validate(locale, validator, fieldConfig, value);
-        if (validation.isInvalid()) return validation;
+        final ValidationResult validation = super.validate(locale, validator, fieldConfig, value);
+        if (validation != null && validation.isInvalid()) return validation;
         final String val = empty(value) ? "" : value.toString().trim();
         if (empty(val)) return fieldConfig.required() ? new ValidationResult("err."+fieldConfig.getName()+".required") : null;
         try {
