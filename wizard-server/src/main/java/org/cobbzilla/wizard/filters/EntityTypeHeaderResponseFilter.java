@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.filters;
 
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.wizard.dao.SearchResults;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.Identifiable;
 
 import javax.ws.rs.container.ContainerRequestContext;

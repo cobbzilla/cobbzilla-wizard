@@ -8,7 +8,7 @@ import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.cache.redis.HasRedisConfiguration;
 import org.cobbzilla.wizard.cache.redis.RedisService;
 import org.cobbzilla.wizard.dao.DAO;
-import org.cobbzilla.wizard.dao.SearchResults;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableFindByUnique2FieldFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableFindByUnique3FieldFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableIdentityFinder;

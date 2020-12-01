@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.model.entityconfig;
 
+import io.swagger.v3.oas.models.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -24,7 +25,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 
+import static lombok.AccessLevel.PRIVATE;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
+import static org.cobbzilla.util.json.JsonUtil.NOTNULL_MAPPER;
+import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
 import static org.cobbzilla.util.string.StringUtil.*;
 
@@ -697,5 +702,46 @@ public class EntityConfig {
             }
         }
         return validation;
+    }
+
+    // do not expose a getter for the example, we don't want this appearing in JSON
+    @Getter(lazy=true, value=PRIVATE) private final Object example = initExample();
+    private Object initExample() {
+        final Object o = instantiate(className);
+        for (String field : fieldNames) {
+            try {
+                ReflectionUtil.set(o, field, fields.get(field).example());
+            } catch (Exception e) {
+                log.info("initExample: error setting "+field+" on "+o.getClass().getName()+": "+shortError(e));
+            }
+        }
+        return o;
+    }
+
+    public <T> T example() { return (T) getExample(); }
+
+    public <T> Schema<T> openApiSchema() {
+        final T defaultObj = instantiate(className);
+        final T example = example();
+        final Schema<T> s = new Schema<>();
+
+        final String simpleName = defaultObj.getClass().getSimpleName();
+        s.name(simpleName)
+                .title(camelCaseToString(simpleName))
+                .example(json(example, NOTNULL_MAPPER));
+        s.setDefault(defaultObj);
+        final Map<String, Schema> props = new HashMap<>();
+        final List<String> required = new ArrayList<>();
+        for (String field : fieldNames) {
+            final Schema<Object> fieldSchema = fieldToOpenApiSchema(this.getFields().get(field), required);
+            props.put(field, fieldSchema);
+        }
+        s.required(required).properties(props);
+        return s;
+    }
+
+    private <T> Schema<T> fieldToOpenApiSchema(EntityFieldConfig fieldConfig, List<String> required) {
+        if (fieldConfig.required()) required.add(fieldConfig.getDisplayName());
+        return fieldConfig.openApiType();
     }
 }

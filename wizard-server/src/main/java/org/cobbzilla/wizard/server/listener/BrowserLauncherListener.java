@@ -27,8 +27,12 @@ public class BrowserLauncherListener extends RestServerLifecycleListenerBase {
         final Thread appThread = new Thread(() -> {
             final boolean allowLaunch = configAllowsBrowserLaunch(config);
             final Desktop desktop = allowLaunch && isDesktopSupported() ? Desktop.getDesktop() : null;
+            final String versionInfo = server.getConfiguration().hasVersion()
+                    ? "\nVersion: " + server.getConfiguration().getVersion()
+                    : "";
             if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
                 try {
+                    log.info("\n\n"+server.getConfiguration().getServerName()+" Successfully Started"+versionInfo+"\n\nLaunching browser to: "+baseUri+"\n\nSet env var "+getDisableBrowserAutoLaunchEnvVarName()+"=true to disable browser launching\n\nHit Control-C to stop the server\n");
                     desktop.browse(URIUtil.toUri(baseUri));
                 } catch (Exception e) {
                     final String msg = "onStart: error launching default browser with url '" + baseUri + "':  " + e;
@@ -37,9 +41,6 @@ public class BrowserLauncherListener extends RestServerLifecycleListenerBase {
                 }
             } else {
                 // no browser. tell the user where the server is listening via log statement
-                final String versionInfo = server.getConfiguration().hasVersion()
-                        ? "\nVersion: " + server.getConfiguration().getVersion()
-                        : "";
                 log.info("\n\n"+server.getConfiguration().getServerName()+" Successfully Started"+versionInfo+"\n\nNot launching browser: System lacks a browser and/or desktop window manager.\n\nWeb UI is: "+baseUri+"\nAPI is: "+baseUri+"/api\nHit Control-C to stop the server\n");
             }
         });

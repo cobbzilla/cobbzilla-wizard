@@ -12,6 +12,7 @@ import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.IdentifiableBase;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.server.config.PgRestServerConfiguration;

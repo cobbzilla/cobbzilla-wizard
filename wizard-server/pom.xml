@@ -276,24 +276,6 @@ This code is available under the Apache License, version 2: http://www.apache.or
             <artifactId>opencsv</artifactId>
             <version>4.1</version>
         </dependency>
-
-        <!-- API docs -->
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-jaxrs2</artifactId>
-            <version>${swagger.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-integration</artifactId>
-            <version>${swagger.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>${swagger.version}</version>
-        </dependency>
-
     </dependencies>
 
 </project>

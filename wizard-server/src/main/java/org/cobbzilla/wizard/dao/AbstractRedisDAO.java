@@ -3,6 +3,7 @@ package org.cobbzilla.wizard.dao;
 import lombok.Getter;
 import org.cobbzilla.wizard.cache.redis.RedisService;
 import org.cobbzilla.wizard.model.ExpirableBase;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 

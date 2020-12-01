@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.dao;
 
 import lombok.NonNull;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.hibernate.criterion.Order;
 

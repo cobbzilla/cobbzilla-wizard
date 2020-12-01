@@ -1,6 +1,7 @@
 package org.cobbzilla.wizard.model.entityconfig;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.models.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -9,15 +10,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.validation.ValidationResult;
 import org.cobbzilla.wizard.validation.Validator;
+import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
+import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToString;
 
 /**
@@ -196,6 +201,73 @@ public class EntityFieldConfig implements VerifyLogAware<EntityFieldConfig> {
 
             default:
                 return die("displayValueFor("+answer+"): unsupported control type: "+getControl());
+        }
+    }
+
+    public Object example() {
+        final DateTime today = new DateTime();
+        switch (getTypeOrDefault()) {
+            case flag:                  return true;
+            case date_future:           return now()+DAYS.toMillis(1);
+            case date_past:             return now()-DAYS.toMillis(1);
+            case epoch_time: case date: return now();
+            case age:                   return ""+42;
+            case currency:              return "USD";
+            case decimal:               return 10.5;
+            case email:                 return "someone@example.com";
+            case embedded:              return instantiate(this.objectType);
+            case error:                 return "An error occurred";
+            case expiration_time: case time_duration:
+                                        return MINUTES.toMillis(1);
+            case hostname: case fqdn:   return "test.example.com";
+            case http_url:              return "https://example.com/";
+            case integer:               return 42;
+            case ip4:                   return "10.0.1.42";
+            case ip6:                   return "fd00::42";
+            case json:                  return "{}";
+            case json_array:            return "[]";
+            case locale:                return "en_US";
+            case money_decimal:         return "10.42";
+            case money_integer:         return "1042";
+            case us_state:              return "ND";
+            case us_zip:                return "90210";
+            case us_phone:              return "+18885551212";
+            case time_zone:             return "America/New York";
+            case year:                  return ""+ today.year().get();
+            case year_future:           return ""+(today.year().get()+1);
+            case year_past:             return ""+(today.year().get()-1);
+            case year_and_month:        return ""+ today.year().get() + "-"+today.monthOfYear().get();
+            case year_and_month_future: return ""+ (today.year().get()+1) + "-"+today.monthOfYear().get();
+            case year_and_month_past:   return ""+ (today.year().get()-1) + "-"+today.monthOfYear().get();
+            case string:
+            default:                    return "foo";
+        }
+    }
+
+    public Schema openApiType() {
+        return openApiBaseType().name(getName())
+                .title(getDisplayName())
+                .example(example())
+                .readOnly(readOnly());
+    }
+
+    private Schema openApiBaseType() {
+        switch (getTypeOrDefault()) {
+            case flag:                  return new Schema<Boolean>().type("boolean");
+
+            case date_future: case date_past: case date:
+            case epoch_time: case expiration_time: case time_duration:
+            case money_integer:         return new Schema<Long>().type("integer").format("int64");
+
+            case age: case integer: case year: case year_future: case year_past:
+            case year_and_month: case year_and_month_future: case year_and_month_past:
+                                        return new Schema<Integer>().type("integer").format("int32");
+
+            case decimal:               return new Schema<Double>().type("number").format("double");
+
+            case embedded:              return null; // todo: better handling of embedded types
+
+            default:                    return new Schema<String>().type("string");
         }
     }
 }

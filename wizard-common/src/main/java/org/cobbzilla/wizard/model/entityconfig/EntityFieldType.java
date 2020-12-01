@@ -32,6 +32,12 @@ public enum EntityFieldType {
     /** a string of characters */
     string (new EntityConfigFieldValidator_string()),
 
+    /** valid JSON object (as a string) */
+    json (new EntityConfigFieldValidator_json()),
+
+    /** valid JSON array (as a string) */
+    json_array (new EntityConfigFieldValidator_json_array()),
+
     /** a string of characters where comparisons like lt/le/gt/ge are not useful */
     opaque_string (new EntityConfigFieldValidator_string()),
 

@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.server.config;
 
 import com.github.jknack.handlebars.Handlebars;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -17,13 +18,15 @@ import org.apache.commons.collections4.map.SingletonMap;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.util.handlebars.HasHandlebars;
 import org.cobbzilla.wizard.filters.auth.AuthFilter;
+import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
+import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
+import org.cobbzilla.wizard.util.ClasspathScanner;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 
 @Slf4j
 public class OpenApiConfiguration {
@@ -31,6 +34,7 @@ public class OpenApiConfiguration {
     // set contactEmail to this value to disable OpenAPI
     public static final String OPENAPI_DISABLED = "openapi_disabled";
     public static final String SEC_API_KEY = "apiKey";
+    public static final String API_TAG_UTILITY = "utility";
 
     @Getter @Setter private String title;
     @Getter @Setter private String description;
@@ -38,6 +42,7 @@ public class OpenApiConfiguration {
     @Getter @Setter private String terms;
     @Getter @Setter private String licenseName;
     @Getter @Setter private String licenseUrl;
+    @Getter @Setter private String[] additionalPackages;
 
     public boolean valid() {
         return !empty(contactEmail) && !contactEmail.equalsIgnoreCase(OPENAPI_DISABLED)
@@ -89,12 +94,54 @@ public class OpenApiConfiguration {
                 .info(info)
                 .servers(servers);
 
+        final Set<String> packages = getPackages(configuration);
+        if (configuration instanceof HasDatabaseConfiguration) {
+            try {
+                addEntitySchemas(oas, packages.toArray(String[]::new), configuration);
+            } catch (Exception e) {
+                log.warn("register: error reading entity configs or converting to OpenApi schemas: "+shortError(e));
+            }
+        }
+
         final SwaggerConfiguration oasConfig = new SwaggerConfiguration()
                 .openAPI(oas)
                 .prettyPrint(true)
-                .resourcePackages(Arrays.stream(configuration.getJersey().getResourcePackages()).collect(Collectors.toSet()));
+                .resourcePackages(packages);
 
         rc.register(new OpenApiResource().openApiConfiguration(oasConfig));
+    }
+
+    public static final AnnotationTypeFilter SCHEMA_FILTER = new AnnotationTypeFilter(Schema.class);
+
+    protected void addEntitySchemas(OpenAPI oas, String[] packages, RestServerConfiguration configuration) throws Exception {
+        final EntityConfigSource entityConfigSource = configuration.getBean(EntityConfigSource.class);
+        final Set<Class<?>> apiEntities = new HashSet<>();
+        final PgRestServerConfiguration pgConfig = (PgRestServerConfiguration) configuration;
+        apiEntities.addAll(pgConfig.getEntityClassesReverse());
+        apiEntities.addAll(new ClasspathScanner<>()
+                .setPackages(packages)
+                .setFilter(SCHEMA_FILTER)
+                .scan());
+        for (Class<?> entity : apiEntities) {
+            final EntityConfig entityConfig = entityConfigSource.getOrCreateEntityConfig(entity);
+            oas.schema(entityConfig.example().getClass().getSimpleName(), entityConfig.openApiSchema());
+        }
+    }
+
+    protected Set<String> getPackages(RestServerConfiguration configuration) {
+        // always add jersey resources
+        final Set<String> packages
+                = new HashSet<>(Arrays.asList(configuration.getJersey().getResourcePackages()));
+
+        // add entities if we have them
+        if (configuration instanceof HasDatabaseConfiguration) {
+            final DatabaseConfiguration db = ((HasDatabaseConfiguration) configuration).getDatabase();
+            packages.addAll(Arrays.asList(db.getHibernate().getEntityPackages()));
+        }
+        if (!empty(additionalPackages)) {
+            packages.addAll(Arrays.asList(additionalPackages));
+        }
+        return packages;
     }
 
     public String subst (String value,

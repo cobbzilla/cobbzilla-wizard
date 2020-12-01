@@ -23,6 +23,7 @@ import static org.cobbzilla.util.collection.ArrayUtil.arrayToString;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
+import static org.cobbzilla.wizard.model.entityconfig.EntityConfig.ENTITY_FILTER;
 
 @NoArgsConstructor @Accessors(chain=true) @Slf4j
 public class EntityReferences {
@@ -47,7 +48,7 @@ public class EntityReferences {
         // find entity classes
         final List<Class<? extends Identifiable>> classes = new ClasspathScanner<Identifiable>()
                 .setPackages(packages)
-                .setFilter(EntityConfig.ENTITY_FILTER)
+                .setFilter(ENTITY_FILTER)
                 .scan();
         final Topology<Class<? extends Identifiable>> topology = new Topology<>();
         classes.forEach(c -> topology.addNode(c, getReferencedEntities(c)));
@@ -57,7 +58,7 @@ public class EntityReferences {
     public static boolean hasForeignKey(Class candidate, Class<? extends Identifiable> entityClass) {
         if (candidate.equals(Object.class)) return false;
         if (Arrays.stream(candidate.getDeclaredFields())
-                .filter(EntityReferences.FIELD_HAS_FK)
+                .filter(FIELD_HAS_FK)
                 .anyMatch(f -> f.getAnnotation(ECForeignKey.class).entity().equals(entityClass))) {
             return true;
         }
@@ -96,7 +97,7 @@ public class EntityReferences {
         final List<String> constraints = new ArrayList<>();
         new ClasspathScanner<>()
                 .setPackages(packages)
-                .setFilter(EntityConfig.ENTITY_FILTER)
+                .setFilter(ENTITY_FILTER)
                 .scan()
                 .forEach(c -> constraints.addAll(constraintsForClass((Class<? extends Identifiable>) c, includeIndexes)));
         return constraints;
@@ -106,8 +107,8 @@ public class EntityReferences {
         final List<Class<? extends Identifiable>> refs = new ArrayList<>();
         while (!clazz.getName().equals(Object.class.getName())) {
             refs.addAll(Arrays.stream(clazz.getDeclaredFields())
-                    .filter(EntityReferences.FIELD_HAS_CASCADING_FK)
-                    .map(EntityReferences.FIELD_TO_FK_CLASS)
+                    .filter(FIELD_HAS_CASCADING_FK)
+                    .map(FIELD_TO_FK_CLASS)
                     .collect(Collectors.toList()));
             clazz = clazz.getSuperclass();
         }

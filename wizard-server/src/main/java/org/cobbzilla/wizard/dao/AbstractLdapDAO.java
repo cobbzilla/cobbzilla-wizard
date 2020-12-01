@@ -6,6 +6,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Transformer;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.wizard.ldap.LdapService;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.ldap.LdapEntity;
 import org.cobbzilla.wizard.server.config.LdapConfiguration;

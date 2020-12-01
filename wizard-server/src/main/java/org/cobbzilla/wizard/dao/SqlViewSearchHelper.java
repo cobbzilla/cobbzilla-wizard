@@ -6,6 +6,7 @@ import org.cobbzilla.util.jdbc.ResultSetBean;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.search.SearchQuery;
 import org.cobbzilla.wizard.model.search.SearchSort;
 import org.cobbzilla.wizard.model.search.SqlViewField;

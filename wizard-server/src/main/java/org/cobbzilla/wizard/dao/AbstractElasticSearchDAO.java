@@ -13,6 +13,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.cobbzilla.util.cache.AutoRefreshingReference;
 import org.cobbzilla.util.http.URIUtil;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.server.config.ElasticSearchConfig;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
