@@ -16,6 +16,7 @@ import org.cobbzilla.wizard.filters.ApiRateLimit;
 import org.cobbzilla.wizard.log.LogRelayAppenderConfig;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.model.IdentifiableBase;
+import org.cobbzilla.wizard.model.support.SupportInfo;
 import org.cobbzilla.wizard.resources.ParentResource;
 import org.cobbzilla.wizard.server.RestServer;
 import org.cobbzilla.wizard.util.SpringUtil;
