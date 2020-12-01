@@ -145,8 +145,8 @@ public class ResourceUtil {
     public static Response unauthorized() { return status(UNAUTHORIZED); }
     public static ResourceHttpException unauthorizedEx() { return new ResourceHttpException(UNAUTHORIZED); }
 
-    public static Response invalid() { return status(UNPROCESSABLE_ENTITY); }
-    public static Response invalid(List<ConstraintViolationBean> violations) { return status(UNPROCESSABLE_ENTITY, violations); }
+    public static Response invalid() { return status(INVALID); }
+    public static Response invalid(List<ConstraintViolationBean> violations) { return status(INVALID, violations); }
 
     public static Response invalid(ConstraintViolationBean violation) {
         final List<ConstraintViolationBean> violations = new ArrayList<>();

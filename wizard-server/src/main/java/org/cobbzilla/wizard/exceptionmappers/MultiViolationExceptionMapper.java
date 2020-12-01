@@ -13,7 +13,7 @@ import static org.cobbzilla.wizard.resources.ResourceUtil.status;
 public class MultiViolationExceptionMapper implements ExceptionMapper<MultiViolationException> {
 
     @Override public Response toResponse(MultiViolationException e) {
-        return status(HttpStatusCodes.UNPROCESSABLE_ENTITY, e.getViolations());
+        return status(HttpStatusCodes.INVALID, e.getViolations());
     }
 
 }

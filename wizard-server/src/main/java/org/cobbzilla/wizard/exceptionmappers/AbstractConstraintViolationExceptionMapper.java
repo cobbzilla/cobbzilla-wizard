@@ -13,7 +13,7 @@ import static org.cobbzilla.wizard.resources.ResourceUtil.status;
 
 public abstract class AbstractConstraintViolationExceptionMapper<E extends Exception> {
 
-    protected Response buildResponse(E e) { return status(HttpStatusCodes.UNPROCESSABLE_ENTITY, exception2json(e)); }
+    protected Response buildResponse(E e) { return status(HttpStatusCodes.INVALID, exception2json(e)); }
 
     protected List<ConstraintViolationBean> exception2json(E e) {
         return Collections.singletonList(mapGenericExceptionToConstraintViolationBean(e));

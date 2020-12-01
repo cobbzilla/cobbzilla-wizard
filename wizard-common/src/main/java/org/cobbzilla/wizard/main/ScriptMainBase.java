@@ -352,7 +352,7 @@ public abstract class ScriptMainBase<OPT extends ScriptMainOptionsBase>
         @Override public void unexpectedResponse(ApiScript script, RestResponse restResponse) {
             final String msg;
             switch (restResponse.status) {
-                case HttpStatusCodes.UNPROCESSABLE_ENTITY:
+                case HttpStatusCodes.INVALID:
                     msg = "Invalid: "+restResponse.json;
                     break;
                 case HttpStatusCodes.NOT_FOUND:

@@ -304,7 +304,7 @@ public class ApiRunner {
                 responseEntity = empty(restResponse.json) || response.isRaw() ? null : json(restResponse.json, JsonNode.class);
                 Object responseObject = responseEntity;
 
-                if (response.getStatus() == HttpStatusCodes.UNPROCESSABLE_ENTITY) {
+                if (response.getStatus() == HttpStatusCodes.INVALID) {
                     if (responseEntity != null) {
                         responseObject = new ValidationErrors(
                                 Arrays.asList(fromJsonOrDie(responseEntity, ConstraintViolationBean[].class)));

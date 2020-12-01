@@ -200,7 +200,7 @@ public class ApiClientBase implements Cloneable, Closeable {
                 return new NotFoundException(request, response);
             case FORBIDDEN:
                 return new ForbiddenException(request, response);
-            case UNPROCESSABLE_ENTITY:
+            case INVALID:
                 return new ValidationException(request, response);
             default: return new ApiException(request, response);
         }

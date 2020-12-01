@@ -17,7 +17,7 @@ public class SimpleViolationExceptionMapper implements ExceptionMapper<SimpleVio
 
     @Override
     public Response toResponse(SimpleViolationException e) {
-        return status(HttpStatusCodes.UNPROCESSABLE_ENTITY, getEntity(e));
+        return status(HttpStatusCodes.INVALID, getEntity(e));
     }
 
     protected List<ConstraintViolationBean> getEntity(SimpleViolationException e) {

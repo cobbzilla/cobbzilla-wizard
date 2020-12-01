@@ -355,7 +355,7 @@ public abstract class AbstractResourceIT<C extends PgRestServerConfiguration, S 
     }
 
     protected void assertExpectedViolations(RestResponse response, String... violationMessages) throws Exception{
-        assertEquals(HttpStatusCodes.UNPROCESSABLE_ENTITY, response.status);
+        assertEquals(HttpStatusCodes.INVALID, response.status);
         final ConstraintViolationBean[] violations = JsonUtil.FULL_MAPPER.readValue(response.json, ConstraintViolationBean[].class);
         assertExpectedViolations(violations, violationMessages);
     }
