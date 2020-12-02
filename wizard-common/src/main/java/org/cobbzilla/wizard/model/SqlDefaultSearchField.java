@@ -97,7 +97,7 @@ public class SqlDefaultSearchField implements SearchField {
                 case error: case opaque_string:
                     bounds.addAll(asList(bindNonSortableString(name())));
                     break;
-                case string:
+                case string: case json: case json_array:
                     if (f.getName().equals(UUID)) {
                         bounds.addAll(asList(bindUuid(name())));
                     } else {

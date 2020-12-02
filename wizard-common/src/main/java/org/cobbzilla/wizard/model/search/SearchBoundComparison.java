@@ -72,7 +72,7 @@ public enum SearchBoundComparison {
         return splitAndTrim(val, "" + delim);
     }
 
-    private SearchBoundSqlFunction sqlFunction;
+    private final SearchBoundSqlFunction sqlFunction;
 
     private static Object parseLikeArgument(SearchBound bound, String val, String locale) { return sqlFilter(val); }
 
