@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.filters.Scrubbable;
 import org.cobbzilla.wizard.filters.ScrubbableField;
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
 

@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.model.support;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 
 import java.util.HashMap;
 import java.util.Map;

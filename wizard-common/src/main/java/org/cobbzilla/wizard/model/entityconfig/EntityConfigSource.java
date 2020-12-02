@@ -1,6 +1,6 @@
 package org.cobbzilla.wizard.model.entityconfig;
 
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 
 public interface EntityConfigSource {
 

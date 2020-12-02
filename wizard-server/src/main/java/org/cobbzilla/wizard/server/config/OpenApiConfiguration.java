@@ -18,7 +18,7 @@ import org.apache.commons.collections4.map.SingletonMap;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.util.handlebars.HasHandlebars;
 import org.cobbzilla.wizard.filters.auth.AuthFilter;
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.util.ClasspathScanner;

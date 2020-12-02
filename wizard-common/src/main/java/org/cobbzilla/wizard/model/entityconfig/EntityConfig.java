@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.HasLocale;
 import org.cobbzilla.util.string.StringUtil;
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.annotations.*;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.validation.HasValue;

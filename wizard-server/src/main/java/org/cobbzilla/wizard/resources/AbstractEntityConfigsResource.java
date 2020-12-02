@@ -17,7 +17,7 @@ import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.dao.AbstractCRUDDAO;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
-import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.util.reflect.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldConfig;
