@@ -38,6 +38,7 @@ public class SearchQuery {
 
     public static final SearchQuery EMPTY_PAGE = new SearchQuery(1, 0);
     public static final SearchQuery LARGE_PAGE = new SearchQuery(1, 100);
+    public static final int DEFAULT_PAGE_SIZE = 10;
 
     // for using ResultPage as a query-parameter
     public static SearchQuery valueOf (String json) throws Exception {
@@ -93,7 +94,7 @@ public class SearchQuery {
     @Getter private int pageNumber = 1;
     public SearchQuery setPageNumber(int pageNumber) { this.pageNumber = pageNumber <= 0 ? 1 : pageNumber; return this; }
 
-    @Getter private int pageSize = 10;
+    @Getter private int pageSize = DEFAULT_PAGE_SIZE;
     public SearchQuery setPageSize(int pageSize) { this.pageSize = pageSize <= 0 ? 10 : pageSize; return this; }
 
     @JsonIgnore public int getPageOffset () { return (getPageNumber()-1) * pageSize; }
