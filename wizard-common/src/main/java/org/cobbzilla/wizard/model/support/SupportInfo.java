@@ -1,14 +1,14 @@
 package org.cobbzilla.wizard.model.support;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.cobbzilla.wizard.model.OpenApiSchema;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Schema
+@OpenApiSchema
 public class SupportInfo extends BasicSupportInfo {
 
     @JsonIgnore @Getter @Setter private Map<String, BasicSupportInfo> locale = new HashMap<>();

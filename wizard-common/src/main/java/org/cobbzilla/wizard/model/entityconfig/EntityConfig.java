@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.string.HasLocale;
 import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.wizard.model.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.annotations.*;
 import org.cobbzilla.wizard.model.search.SqlViewField;
 import org.cobbzilla.wizard.validation.HasValue;
@@ -190,11 +191,11 @@ public class EntityConfig {
      *  non-empty values!
      */
     public EntityConfig updateWithAnnotations() {
-        return updateWithAnnotations(getClassSafe(getClassName()), false);
+        return updateWithAnnotations(getClassSafe(getClassName()), false, null);
     }
 
     /** Update properties with values from the class' annotation. Doesn't override existing non-empty values! */
-    public EntityConfig updateWithAnnotations(Class<?> clazz, boolean isRootECCall) {
+    public EntityConfig updateWithAnnotations(Class<?> clazz, boolean isRootECCall, OpenApiSchema schema) {
         if (isRootECCall && clazz == null) throw new NullPointerException("Root class cannot be null");
 
         final Map<String, Integer> fieldIndexes = new HashMap<>();
@@ -215,6 +216,17 @@ public class EntityConfig {
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeURIs.class));
 
             final Set<String> entityFields = new HashSet<>(fieldNamesWithAnnotations(clazz, ECField.class, ECSearchable.class, ECForeignKey.class));
+            if (schema != null) {
+                final boolean hasIncludes = !empty(schema.include());
+                final boolean hasExcludes = !empty(schema.exclude());
+                if (!hasIncludes && !hasExcludes) {
+                    // include all getters
+                    entityFields.addAll(ReflectionUtil.toMap(instantiate(clazz)).keySet());
+                } else {
+                    if (hasIncludes) entityFields.addAll(Arrays.asList(schema.include()));
+                    if (hasExcludes) entityFields.removeAll(Arrays.asList(schema.exclude()));
+                }
+            }
             updateECFields(clazz, entityFields, fieldIndexes);
             updateWithAnnotation(clazz, clazz.getAnnotation(ECTypeChildren.class));
         }

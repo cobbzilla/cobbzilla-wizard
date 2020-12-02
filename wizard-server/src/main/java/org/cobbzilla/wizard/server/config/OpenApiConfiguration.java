@@ -2,7 +2,6 @@ package org.cobbzilla.wizard.server.config;
 
 import com.github.jknack.handlebars.Handlebars;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -18,6 +17,7 @@ import org.apache.commons.collections4.map.SingletonMap;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.util.handlebars.HasHandlebars;
 import org.cobbzilla.wizard.filters.auth.AuthFilter;
+import org.cobbzilla.wizard.model.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.util.ClasspathScanner;
@@ -111,7 +111,7 @@ public class OpenApiConfiguration {
         rc.register(new OpenApiResource().openApiConfiguration(oasConfig));
     }
 
-    public static final AnnotationTypeFilter SCHEMA_FILTER = new AnnotationTypeFilter(Schema.class);
+    public static final AnnotationTypeFilter SCHEMA_FILTER = new AnnotationTypeFilter(OpenApiSchema.class);
 
     protected void addEntitySchemas(OpenAPI oas, String[] packages, RestServerConfiguration configuration) throws Exception {
         final EntityConfigSource entityConfigSource = configuration.getBean(EntityConfigSource.class);
@@ -123,7 +123,8 @@ public class OpenApiConfiguration {
                 .setFilter(SCHEMA_FILTER)
                 .scan());
         for (Class<?> entity : apiEntities) {
-            final EntityConfig entityConfig = entityConfigSource.getOrCreateEntityConfig(entity);
+            final OpenApiSchema schema = entity.getAnnotation(OpenApiSchema.class);
+            final EntityConfig entityConfig = entityConfigSource.getOrCreateEntityConfig(entity, schema);
             oas.schema(entityConfig.example().getClass().getSimpleName(), entityConfig.openApiSchema());
         }
     }

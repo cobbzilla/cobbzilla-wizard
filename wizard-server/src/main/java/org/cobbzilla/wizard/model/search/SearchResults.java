@@ -2,7 +2,6 @@ package org.cobbzilla.wizard.model.search;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JavaType;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,7 +9,7 @@ import lombok.experimental.Accessors;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.filters.Scrubbable;
 import org.cobbzilla.wizard.filters.ScrubbableField;
-import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
+import org.cobbzilla.wizard.model.OpenApiSchema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
-@NoArgsConstructor @Accessors(chain=true) @Schema
+@NoArgsConstructor @Accessors(chain=true) @OpenApiSchema
 public class SearchResults<E> implements Scrubbable {
 
     public static final ScrubbableField[] SCRUBBABLE_FIELDS = new ScrubbableField[]{
@@ -44,10 +43,10 @@ public class SearchResults<E> implements Scrubbable {
         return type;
     }
 
-    @ECField @Getter @Setter private List<E> results = new ArrayList<>();
-    @ECField @Getter @Setter private Integer totalCount;
-    @ECField @Getter @Setter private String nextPage;
-    @ECField @Getter @Setter private String error;
+    @Getter @Setter private List<E> results = new ArrayList<>();
+    @Getter @Setter private Integer totalCount;
+    @Getter @Setter private String nextPage;
+    @Getter @Setter private String error;
 
     public String getResultType() { return empty(results) ? null : results.get(0).getClass().getName(); }
     public void setResultType (String val) {} // noop

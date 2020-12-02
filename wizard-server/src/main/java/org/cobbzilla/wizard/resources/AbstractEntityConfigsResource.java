@@ -17,6 +17,7 @@ import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.dao.AbstractCRUDDAO;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.model.OpenApiSchema;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfig;
 import org.cobbzilla.wizard.model.entityconfig.EntityConfigSource;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldConfig;
@@ -75,17 +76,15 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
     @GET
     @Operation(security=@SecurityRequirement(name=SEC_API_KEY),
-            tags={API_TAG_UTILITY},
+            tags=API_TAG_UTILITY,
             summary="Read entity configs. Returns an array of Strings, each an entity type. When param 'full' is true, response is a Map of entity type names to the full EntityConfig object for each type.",
             description="Read entity configs. Returns an array of Strings, each an entity type. When param 'full' is true, response is a Map of entity type names to the full EntityConfig object for each type.",
-            parameters={@Parameter(name="full", description="return all configs")},
-            responses={@ApiResponse(responseCode=SC_OK, description="the name of the entity types, or a map of all configs",
-                    content={@Content(mediaType=APPLICATION_JSON, examples={
+            parameters=@Parameter(name="full", description="return all configs"),
+            responses=@ApiResponse(responseCode=SC_OK, description="the name of the entity types, or a map of all configs",
+                    content=@Content(mediaType=APPLICATION_JSON, examples={
                             @ExampleObject(name="an array of entity type names", value="[\"SomeEntity\", \"AnotherEntity\"]"),
                             @ExampleObject(name="when 'full' param  is passed, returns map of name->config", value="{\"SomeEntity\": {\"entity-config-fields\": \"would-be-here\"}, \"AnotherEntity\": {\"entity-config-fields\": \"would-be-here\"}}")
-                    }
-                    )})
-            }
+                    }))
     )
     public Response getConfigs(@Context ContainerRequest ctx,
                                @QueryParam("full") Boolean full) {
@@ -93,9 +92,9 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
         return ok(full != null && full ? getConfigs().getEntries() : getConfigs().get().keySet());
     }
 
-    @Override public EntityConfig getOrCreateEntityConfig(Object thing) throws Exception {
+    @Override public EntityConfig getOrCreateEntityConfig(Object thing, OpenApiSchema schema) throws Exception {
         final EntityConfig entityConfig = getEntityConfig(thing);
-        return entityConfig != null ? entityConfig : getEntityConfig(toClass(thing), false);
+        return entityConfig != null ? entityConfig : getEntityConfig(toClass(thing), false, schema);
     }
 
     @Override public EntityConfig getEntityConfig(Object thing) {
@@ -118,13 +117,13 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
 
     @GET @Path("/{name}")
     @Operation(security=@SecurityRequirement(name=SEC_API_KEY),
-            tags={API_TAG_UTILITY},
+            tags=API_TAG_UTILITY,
             summary="Read the entity config for an entity type. Type names are case-insensitive.",
             description="Read the entity config for an entity type. Type names are case-insensitive.",
-            parameters={@Parameter(name="name", description="name of the entity type. names are case-insensitive.")},
+            parameters=@Parameter(name="name", description="name of the entity type. names are case-insensitive."),
             responses={
                     @ApiResponse(responseCode=SC_OK, description="the EntityConfig object for the type"),
-                    @ApiResponse(responseCode=SC_NOT_FOUND, description = "no EntityConfig exists with the name given")
+                    @ApiResponse(responseCode=SC_NOT_FOUND, description="no EntityConfig exists with the name given")
             }
     )
     public Response getConfig (@Context ContainerRequest ctx,
@@ -212,6 +211,10 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
     private EntityConfig getEntityConfig(Class<?> clazz) throws Exception { return getEntityConfig(clazz, true); }
 
     private EntityConfig getEntityConfig(Class<?> clazz, boolean root) throws Exception {
+        return getEntityConfig(clazz, root, null);
+    }
+
+    private EntityConfig getEntityConfig(Class<?> clazz, boolean root, OpenApiSchema schema) throws Exception {
         EntityConfig entityConfig;
         try {
             final InputStream in = loadResourceAsStream(ENTITY_CONFIG_BASE + "/" + packagePath(clazz) + "/" +
@@ -225,7 +228,7 @@ public abstract class AbstractEntityConfigsResource implements EntityConfigSourc
         entityConfig.setClassName(clazz.getName());
 
         try {
-            final EntityConfig updated = entityConfig.updateWithAnnotations(clazz, root);
+            final EntityConfig updated = entityConfig.updateWithAnnotations(clazz, root, schema);
 
             DAO dao = null;
             try {

@@ -1,6 +1,10 @@
 package org.cobbzilla.wizard.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.collection.NameAndValue;
@@ -8,16 +12,22 @@ import org.cobbzilla.util.time.UnicodeTimezone;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toCollection;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.cobbzilla.util.collection.NameAndValue.NAME_COMPARATOR;
+import static org.cobbzilla.util.http.HttpStatusCodes.SC_NOT_FOUND;
+import static org.cobbzilla.util.http.HttpStatusCodes.SC_OK;
 import static org.cobbzilla.util.time.UnicodeTimezone.getUnicodeTimezoneMap;
 import static org.cobbzilla.wizard.resources.ResourceUtil.notFound;
 import static org.cobbzilla.wizard.resources.ResourceUtil.ok;
+import static org.cobbzilla.wizard.server.config.OpenApiConfiguration.API_TAG_UTILITY;
+import static org.cobbzilla.wizard.server.config.OpenApiConfiguration.SEC_API_KEY;
 
 @Slf4j
 @Consumes(APPLICATION_JSON)
@@ -71,8 +81,14 @@ public class AbstractTimezonesResource {
             = getUnicodeTimezoneMap().keySet().stream().map(TzFormat.dll::format).collect(toCollection(TreeSet::new));
 
     @GET
-    public Response findAll (@PathParam("id") String id,
-                             @QueryParam("format") TzFormat format) {
+    @Operation(security=@SecurityRequirement(name=SEC_API_KEY),
+            tags=API_TAG_UTILITY,
+            summary="List all time zones",
+            description="List all time zones. The format parameter determines the format of the JSON, see TzFormat enum",
+            parameters=@Parameter(name="format", description="format of the response"),
+            responses=@ApiResponse(responseCode=SC_OK, description="a JSON array of timezones in the format requested")
+    )
+    public Response findAll (@QueryParam("format") TzFormat format) {
         final TzFormat fmt = format != null ? format : TzFormat.raw;
         switch (fmt) {
             case full: return ok(all_full);
@@ -85,6 +101,16 @@ public class AbstractTimezonesResource {
     }
 
     @GET @Path("/{id: .*}")
+    @Operation(security=@SecurityRequirement(name=SEC_API_KEY),
+            tags=API_TAG_UTILITY,
+            summary="Get the canonical name for a time zone",
+            description="Get the canonical name for a time zone. Some time zones have alias names. This returns the canonical name.",
+            parameters=@Parameter(name="id", description="time zone name"),
+            responses={
+                    @ApiResponse(responseCode=SC_OK, description="the canonical name of the time zone"),
+                    @ApiResponse(responseCode=SC_NOT_FOUND, description="the time zone was not found")
+            }
+    )
     public Response find (@PathParam("id") String id) {
 
         UnicodeTimezone utz = UnicodeTimezone.fromString(id);
