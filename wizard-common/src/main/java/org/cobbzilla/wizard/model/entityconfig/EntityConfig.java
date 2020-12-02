@@ -760,7 +760,7 @@ public class EntityConfig {
 
         final String simpleName = defaultObj.getClass().getSimpleName();
         s.name(simpleName)
-                .title(camelCaseToString(simpleName))
+                .title(simpleName)
                 .example(json(example, NOTNULL_MAPPER));
         s.setDefault(defaultObj);
         final Map<String, Schema> props = new HashMap<>();
