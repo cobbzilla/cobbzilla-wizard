@@ -225,6 +225,7 @@ public enum EntityFieldType {
                 if (name.equals(currency.name())) return currency;
                 if (name.equals(locale.name())) return locale;
                 if (name.equals(fqdn.name())) return fqdn;
+                if (name.toLowerCase().endsWith(email.name())) return email;
                 if (name.equals(hostname.name()) || name.equals("host") || name.endsWith("Host")) return hostname;
                 if (name.equals(time_zone.name()) || name.toLowerCase().equals("timezone")) return time_zone;
                 if (name.equals(error.name()) || name.equals("exception")) return error;
