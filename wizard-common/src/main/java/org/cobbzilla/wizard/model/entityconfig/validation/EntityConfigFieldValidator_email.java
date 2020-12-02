@@ -23,7 +23,7 @@ public class EntityConfigFieldValidator_email implements EntityConfigFieldValida
     }
 
     @Override public Object toObject(Locale locale, String value) {
-        return empty(value) ? "" : value.toString().trim();
+        return empty(value) ? "" : value.trim();
     }
 
 }
