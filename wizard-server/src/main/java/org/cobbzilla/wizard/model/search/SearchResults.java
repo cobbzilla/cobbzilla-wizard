@@ -10,6 +10,8 @@ import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.filters.Scrubbable;
 import org.cobbzilla.wizard.filters.ScrubbableField;
 import org.cobbzilla.wizard.model.OpenApiSchema;
+import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
+import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +47,7 @@ public class SearchResults<E> implements Scrubbable {
 
     @Getter @Setter private List<E> results = new ArrayList<>();
     @Getter @Setter private Integer totalCount;
-    @Getter @Setter private String nextPage;
+    @ECField(type=EntityFieldType.http_url) @Getter @Setter private String nextPage;
     @Getter @Setter private String error;
 
     public String getResultType() { return empty(results) ? null : results.get(0).getClass().getName(); }
