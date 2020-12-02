@@ -1,5 +1,6 @@
 package org.cobbzilla.wizard.model.entityconfig;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.models.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,8 +26,10 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
+import static org.apache.commons.lang3.reflect.FieldUtils.getAllFields;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.NOTNULL_MAPPER;
 import static org.cobbzilla.util.json.JsonUtil.json;
@@ -219,8 +222,22 @@ public class EntityConfig {
                 final boolean hasIncludes = annotationStringArrayHasValues(schema.include());
                 final boolean hasExcludes = annotationStringArrayHasValues(schema.exclude());
                 if (!hasIncludes && !hasExcludes) {
-                    // include all getters
-                    entityFields.addAll(ReflectionUtil.toMap(instantiate(clazz)).keySet());
+                    // sensible defaults
+                    final Object thing = instantiate(clazz);
+                    final List<String> defaultFields = Arrays.stream(getAllFields(clazz))
+                            .filter(f -> f.getAnnotation(JsonIgnore.class) == null)
+                            .filter(f -> f.getAnnotation(Transient.class) == null)
+                            .filter(f -> {
+                                try {
+                                    ReflectionUtil.get(thing, f.getName());
+                                    return true;
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                            .map(Field::getName)
+                            .collect(Collectors.toList());
+                    entityFields.addAll(defaultFields);
                 } else {
                     if (hasIncludes) entityFields.addAll(Arrays.asList(schema.include()));
                     if (hasExcludes) entityFields.removeAll(Arrays.asList(schema.exclude()));
