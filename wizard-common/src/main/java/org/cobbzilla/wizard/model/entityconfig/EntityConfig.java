@@ -27,8 +27,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 import static lombok.AccessLevel.PRIVATE;
-import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.daemon.ZillaRuntime.shortError;
+import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 import static org.cobbzilla.util.json.JsonUtil.NOTNULL_MAPPER;
 import static org.cobbzilla.util.json.JsonUtil.json;
 import static org.cobbzilla.util.reflect.ReflectionUtil.*;
@@ -217,8 +216,8 @@ public class EntityConfig {
 
             final Set<String> entityFields = new HashSet<>(fieldNamesWithAnnotations(clazz, ECField.class, ECSearchable.class, ECForeignKey.class));
             if (schema != null) {
-                final boolean hasIncludes = !empty(schema.include());
-                final boolean hasExcludes = !empty(schema.exclude());
+                final boolean hasIncludes = annotationStringArrayHasValues(schema.include());
+                final boolean hasExcludes = annotationStringArrayHasValues(schema.exclude());
                 if (!hasIncludes && !hasExcludes) {
                     // include all getters
                     entityFields.addAll(ReflectionUtil.toMap(instantiate(clazz)).keySet());

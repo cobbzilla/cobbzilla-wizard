@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.Getter;
@@ -125,7 +126,8 @@ public class OpenApiConfiguration {
         for (Class<?> entity : apiEntities) {
             final OpenApiSchema schema = entity.getAnnotation(OpenApiSchema.class);
             final EntityConfig entityConfig = entityConfigSource.getOrCreateEntityConfig(entity, schema);
-            oas.schema(entityConfig.example().getClass().getSimpleName(), entityConfig.openApiSchema());
+            final Schema<Object> s = entityConfig.openApiSchema();
+            oas.schema(s.getName(), s);
         }
     }
 
