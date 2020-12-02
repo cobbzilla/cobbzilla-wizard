@@ -99,7 +99,7 @@ public class ApiRunner {
     protected final Map<String, Object> ctx = new ConcurrentHashMap<>();
     public Map<String, Object> getContext () { return ctx; }
 
-    @Getter(lazy=true) private final Handlebars handlebars = standardHandlebars(new Handlebars(new HandlebarsUtil("api-runner(" + api + ")")));
+    @Getter(lazy=true) private final Handlebars handlebars = standardHandlebars(new Handlebars(new HandlebarsUtil("api-runner("+api+")")));
 
     public static Handlebars standardHandlebars(Handlebars hbs) {
         HandlebarsUtil.registerUtilityHelpers(hbs);
@@ -174,8 +174,7 @@ public class ApiRunner {
                         }
                     }
                     if (defaultParamsLog.length() > 0) {
-                        log.info(logPrefix + "Following parameter(s) are undefined, using shown default value(s):"
-                                 + defaultParamsLog.toString());
+                        log.info(logPrefix+"Following parameter(s) are undefined, using shown default value(s):"+defaultParamsLog.toString());
                     }
                 }
             }
@@ -190,19 +189,19 @@ public class ApiRunner {
 
         } else {
             setScriptForThread(script);
-            if (script.hasDelay()) sleep(script.getDelayMillis(), "delaying before starting script: " + script);
+            if (script.hasDelay()) sleep(script.getDelayMillis(), "delaying before starting script: "+script);
             if (listener != null) listener.beforeScript(script.getBefore(), getContext());
             try {
                 script.setStart(now());
                 do {
                     if (runOnce(script)) return true;
-                    sleep(Math.min(script.getTimeoutMillis() / 10, 1000), "waiting to retry script: " + script);
+                    sleep(Math.min(script.getTimeoutMillis() / 10, 1000), "waiting to retry script: "+script);
                 } while (!script.isTimedOut());
                 if (listener != null) listener.scriptTimedOut(script);
                 return false;
 
             } catch (Exception e) {
-                log.warn("run(" + script + "): " + e, e);
+                log.warn("run("+script+"): "+e, e);
                 throw e;
 
             } finally {
@@ -229,7 +228,7 @@ public class ApiRunner {
                 api.logout();
             } else {
                 final String sessionId = namedSessions.get(request.getSession());
-                if (sessionId == null) return die("Session named " + request.getSession() + " is not defined (" + namedSessions + ")");
+                if (sessionId == null) return die("Session named "+request.getSession()+" is not defined ("+namedSessions+")");
                 api.setToken(sessionId);
             }
         }
@@ -269,9 +268,9 @@ public class ApiRunner {
                             file = FileUtil.temp(".tmp");
                             FileUtil.toFile(file, handlebars(filePath.substring("data:".length()), ctx));
                         } else {
-                            if (empty(filePath)) die("run(" + script + "): file path doesn't exist");
+                            if (empty(filePath)) die("run("+script+"): file path doesn't exist");
                             file = new File(filePath);
-                            if (!file.exists()) die("run(" + script + "): file doesn't exist");
+                            if (!file.exists()) die("run("+script+"): file doesn't exist");
                         }
 
                         restResponse = api.doPost(uri, file);
@@ -299,7 +298,7 @@ public class ApiRunner {
 
                 final JsonNode responseEntity;
                 if (response.hasType() && response.getType().equals(String.class.getName()) && !(restResponse.json.startsWith("\"") && restResponse.json.endsWith("\""))) {
-                    restResponse.json = "\"" + restResponse.json + "\"";
+                    restResponse.json = "\""+restResponse.json+"\"";
                 }
                 responseEntity = empty(restResponse.json) || response.isRaw() ? null : json(restResponse.json, JsonNode.class);
                 Object responseObject = responseEntity;
@@ -349,7 +348,7 @@ public class ApiRunner {
                         try {
                             responseObject = fromJsonOrDie(responseEntity, storeClass);
                         } catch (IllegalStateException e) {
-                            log.warn("runOnce: error parsing JSON: " + e);
+                            log.warn("runOnce: error parsing JSON: "+e);
                             responseObject = responseEntity;
                         }
 
@@ -400,9 +399,9 @@ public class ApiRunner {
                                 }
                             } catch (Exception e) {
                                 if (script.isTimedOut()) {
-                                    log.warn("runOnce(" + script + "): condition check (" + condition + ") failed: " + e);
+                                    log.warn("runOnce("+script+"): condition check ("+condition+") failed: "+e);
                                 } else {
-                                    log.debug("runOnce(" + script + "): condition check (" + condition + ") failed: " + e);
+                                    log.debug("runOnce("+script+"): condition check ("+condition+") failed: "+e);
                                 }
                             }
                             sleep(Math.min(timeout/10, 1000), "waiting to retry condition: "+condition);
@@ -439,7 +438,7 @@ public class ApiRunner {
             try {
                 return forName(entityTypeHeaderValue);
             } catch (Exception e) {
-                log.warn("runOnce: error instantiating type (will treat as JsonNode): " + entityTypeHeaderValue + ": " + e);
+                log.warn("runOnce: error instantiating type (will treat as JsonNode): "+entityTypeHeaderValue+": "+e);
             }
         }
         return currentClass;
@@ -486,7 +485,7 @@ public class ApiRunner {
         return request.isHandlebarsEnabled() ? handlebars(json, getContext()) : json;
     }
 
-    protected String scriptName(ApiScript script, String name) { return "api-runner(" + script + "):" + name; }
+    protected String scriptName(ApiScript script, String name) { return "api-runner("+script+"):"+name; }
 
     protected String handlebars(String value, Map<String, Object> ctx) {
         return HandlebarsUtil.apply(getHandlebars(), value, mergeEnv(ctx));
