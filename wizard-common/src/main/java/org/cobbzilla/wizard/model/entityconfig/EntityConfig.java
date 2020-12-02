@@ -230,7 +230,7 @@ public class EntityConfig {
                             .filter(f -> f.getAnnotation(Transient.class) == null)
                             .filter(f -> {
                                 final int mods = f.getModifiers();
-                                return isPublic(mods) && !isStatic(mods) && !isFinal(mods);
+                                return (isPublic(mods) || hasGetter(thing, f.getName())) && !isStatic(mods) && !isFinal(mods);
                             })
                             .filter(f -> {
                                 try {
