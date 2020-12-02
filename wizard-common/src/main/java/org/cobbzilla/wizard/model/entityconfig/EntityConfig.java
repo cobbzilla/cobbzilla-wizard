@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.lang.reflect.Modifier.*;
 import static lombok.AccessLevel.PRIVATE;
 import static org.apache.commons.lang3.reflect.FieldUtils.getAllFields;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
@@ -227,6 +228,10 @@ public class EntityConfig {
                     final List<String> defaultFields = Arrays.stream(getAllFields(clazz))
                             .filter(f -> f.getAnnotation(JsonIgnore.class) == null)
                             .filter(f -> f.getAnnotation(Transient.class) == null)
+                            .filter(f -> {
+                                final int mods = f.getModifiers();
+                                return isPublic(mods) && !isStatic(mods) && !isFinal(mods);
+                            })
                             .filter(f -> {
                                 try {
                                     ReflectionUtil.get(thing, f.getName());
