@@ -93,6 +93,7 @@ public class OpenApiConfiguration {
         final OpenAPI oas = new OpenAPI()
                 .components(new Components().securitySchemes(MapBuilder.build(SEC_API_KEY, securityScheme)))
                 .info(info)
+                .tags(configuration.getOpenApiTags())
                 .servers(servers);
 
         final Set<String> packages = getPackages(configuration);

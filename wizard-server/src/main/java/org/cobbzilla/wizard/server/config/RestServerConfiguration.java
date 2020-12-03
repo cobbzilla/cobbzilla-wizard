@@ -2,6 +2,7 @@ package org.cobbzilla.wizard.server.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.jknack.handlebars.Handlebars;
+import io.swagger.v3.oas.models.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.springframework.context.ApplicationContext;
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +67,9 @@ public class RestServerConfiguration {
 
     @Getter @Setter private OpenApiConfiguration openApi;
     public boolean hasOpenApi () { return openApi != null && openApi.valid(); }
+
+    @Getter(lazy=true) private final List<Tag> openApiTags = initOpenApiTags();
+    protected List<Tag> initOpenApiTags () { return null; }
 
     @Getter @Setter private String springContextPath = "classpath:/spring.xml";
     @Getter @Setter private String springShardContextPath = "classpath:/spring-shard.xml";
