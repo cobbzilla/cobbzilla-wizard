@@ -51,7 +51,7 @@ public class AbstractTimezonesResource {
         fll (v -> v.replace(FORWARD_SLASH, FULL_LOW_LINE)),
         dll (v -> v.replace(FORWARD_SLASH, DASHED_LOW_LINE));
 
-        private Function<String, String> formatFunction;
+        private final Function<String, String> formatFunction;
 
         @JsonCreator public static TzFormat fromString(String v) { return valueOf(v.toLowerCase()); }
 
