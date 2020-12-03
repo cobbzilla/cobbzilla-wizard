@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.map.SingletonMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.http.Header;
@@ -19,6 +18,7 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
+import org.cobbzilla.util.collection.MapBuilder;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.http.HttpRequestBean;
@@ -519,11 +519,11 @@ public class ApiClientBase implements Cloneable, Closeable {
 
     public InputStream getStream(HttpRequestBean request) throws IOException {
         if (request.getMethod().equals(GET)) {
-            return HttpUtil.get(getBaseUri() + request.getUri(), new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.get(getBaseUri() + request.getUri(), MapBuilder.build(getTokenHeader(), getToken()), headers);
         } else if (request.getMethod().equals(POST)) {
-            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, MapBuilder.build(getTokenHeader(), getToken()), headers);
         } else if (request.getMethod().equals(PUT)) {
-            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), null, MapBuilder.build(getTokenHeader(), getToken()), headers);
         } else {
             throw new IOException("getStream: unsupported HTTP request method: "+request.getMethod());
         }
@@ -531,9 +531,9 @@ public class ApiClientBase implements Cloneable, Closeable {
 
     public InputStream uploadMultipartStream(HttpRequestBean request, String name) throws IOException {
         if (request.getMethod().equals(POST)) {
-            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.post(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, MapBuilder.build(getTokenHeader(), getToken()), headers);
         } else if (request.getMethod().equals(PUT)) {
-            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, new SingletonMap<>(getTokenHeader(), getToken()), headers);
+            return HttpUtil.put(getBaseUri() + request.getUri(), request.getEntityInputStream(), name, MapBuilder.build(getTokenHeader(), getToken()), headers);
         } else {
             throw new IOException("uploadMultipartStream: unsupported HTTP request method: "+request.getMethod());
         }

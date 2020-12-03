@@ -14,7 +14,7 @@ import io.swagger.v3.oas.models.servers.Server;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.map.SingletonMap;
+import org.cobbzilla.util.collection.MapBuilder;
 import org.cobbzilla.util.handlebars.HandlebarsUtil;
 import org.cobbzilla.util.handlebars.HasHandlebars;
 import org.cobbzilla.wizard.filters.auth.AuthFilter;
@@ -91,7 +91,7 @@ public class OpenApiConfiguration {
                 .in(SecurityScheme.In.HEADER);
 
         final OpenAPI oas = new OpenAPI()
-                .components(new Components().securitySchemes(new SingletonMap<>(SEC_API_KEY, securityScheme)))
+                .components(new Components().securitySchemes(MapBuilder.build(SEC_API_KEY, securityScheme)))
                 .info(info)
                 .servers(servers);
 

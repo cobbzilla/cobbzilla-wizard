@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-(c) Copyright 2013-2016 Jonathan Cobb
+(c) Copyright 2013-2020 Jonathan Cobb
 This code is available under the Apache License, version 2: http://www.apache.org/licenses/LICENSE-2.0.html
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -185,7 +185,7 @@ This code is available under the Apache License, version 2: http://www.apache.or
         <dependency>
             <groupId>com.mchange</groupId>
             <artifactId>c3p0</artifactId>
-            <version>0.9.5.4</version>
+            <version>0.9.5.5</version>
         </dependency>
 
         <!-- servlets and webapps -->
