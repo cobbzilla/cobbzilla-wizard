@@ -32,7 +32,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.*;
 @Slf4j
 public class OpenApiConfiguration {
 
-    // set contactEmail to this value to disable OpenAPI
+    // set `contactEmail` to this value to disable OpenAPI
     public static final String OPENAPI_DISABLED = "openapi_disabled";
     public static final String SEC_API_KEY = "apiKey";
     public static final String API_TAG_UTILITY = "Utilities";
