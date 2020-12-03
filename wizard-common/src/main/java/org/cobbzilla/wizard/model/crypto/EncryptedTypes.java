@@ -1,6 +1,6 @@
 package org.cobbzilla.wizard.model.crypto;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.hibernate.annotations.Type;
 
 import java.lang.reflect.Field;

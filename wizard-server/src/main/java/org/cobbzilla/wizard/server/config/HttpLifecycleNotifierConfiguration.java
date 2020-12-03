@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.server.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cobbzilla.util.http.HttpMethods;
 import org.cobbzilla.wizard.server.RestServerLifecycleEvent;
 
