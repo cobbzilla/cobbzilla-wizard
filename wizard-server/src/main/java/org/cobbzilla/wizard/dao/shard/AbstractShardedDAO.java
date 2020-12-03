@@ -8,13 +8,13 @@ import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.cache.redis.HasRedisConfiguration;
 import org.cobbzilla.wizard.cache.redis.RedisService;
 import org.cobbzilla.wizard.dao.DAO;
-import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableFindByUnique2FieldFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableFindByUnique3FieldFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableIdentityFinder;
 import org.cobbzilla.wizard.dao.shard.cache.ShardCacheableUniqueFieldFinder;
 import org.cobbzilla.wizard.dao.shard.task.*;
 import org.cobbzilla.wizard.model.search.SearchQuery;
+import org.cobbzilla.wizard.model.search.SearchResults;
 import org.cobbzilla.wizard.model.shard.ShardIO;
 import org.cobbzilla.wizard.model.shard.ShardMap;
 import org.cobbzilla.wizard.model.shard.ShardRange;
@@ -22,10 +22,7 @@ import org.cobbzilla.wizard.model.shard.Shardable;
 import org.cobbzilla.wizard.server.ApplicationContextConfig;
 import org.cobbzilla.wizard.server.CustomBeanResolver;
 import org.cobbzilla.wizard.server.RestServer;
-import org.cobbzilla.wizard.server.config.DatabaseConfiguration;
-import org.cobbzilla.wizard.server.config.HasDatabaseConfiguration;
-import org.cobbzilla.wizard.server.config.RestServerConfiguration;
-import org.cobbzilla.wizard.server.config.ShardSetConfiguration;
+import org.cobbzilla.wizard.server.config.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,7 +101,7 @@ public abstract class AbstractShardedDAO<E extends Shardable, D extends SingleSh
     protected String getSpringShardContextPath() { return "spring-shard.xml"; }
 
     public abstract ShardSetConfiguration getShardConfiguration();
-    protected abstract DatabaseConfiguration getMasterDbConfiguration();
+    protected abstract DatabaseShardConfiguration getMasterDbConfiguration();
     protected abstract ShardMapDAO getShardDAO();
 
     public AbstractShardedDAO() {

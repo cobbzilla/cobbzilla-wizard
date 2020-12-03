@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.cobbzilla.util.collection.SingletonSet;
-import org.cobbzilla.wizard.model.shard.ShardMap;
-import org.cobbzilla.wizard.model.shard.Shardable;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -51,17 +49,11 @@ public class DatabaseConfiguration {
         return DriverManager.getConnection(url, user, password);
     }
 
-    public DatabaseConfiguration getShardDatabaseConfiguration(ShardMap map) { return this; }
-
+    // Use DatabaseShardConfiguration if you want sharding
     public boolean hasShards() { return false; }
-
     @Getter(lazy=true) private final Set<String> shardSetNames = initShardSetNames();
-
     public static final String DEFAULT_SHARD = "getShardSetName:default";
-
     protected Set<String> initShardSetNames() { return new SingletonSet<>(DEFAULT_SHARD); }
-
-    public <E extends Shardable> String getShardSetName(Class<E> entityClass) { return DEFAULT_SHARD; }
 
     public void setDatabaseName(String dbName) {
         final String url = getUrl();

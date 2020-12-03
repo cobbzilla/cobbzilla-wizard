@@ -23,7 +23,7 @@ public class DatabaseShardConfiguration extends DatabaseConfiguration {
         return null;
     }
 
-    @Override public DatabaseConfiguration getShardDatabaseConfiguration(ShardMap map) {
+    public DatabaseConfiguration getShardDatabaseConfiguration(ShardMap map) {
         final DatabaseConfiguration config = new DatabaseConfiguration();
         config.setDriver(driver);
         config.setUrl(map.getUrl());
@@ -52,7 +52,7 @@ public class DatabaseShardConfiguration extends DatabaseConfiguration {
         return ShardSetConfiguration.DEFAULT_LOGICAL_SHARDS;
     }
 
-    @Override public <E extends Shardable> String getShardSetName(Class<E> entityClass) {
+    public <E extends Shardable> String getShardSetName(Class<E> entityClass) {
         if (empty(shard)) return null;
         for (ShardSetConfiguration config : shard) {
             if (config.getEntity().equals(entityClass.getName())) return config.getName();
