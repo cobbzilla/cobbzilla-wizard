@@ -35,7 +35,7 @@ public class OpenApiConfiguration {
     // set contactEmail to this value to disable OpenAPI
     public static final String OPENAPI_DISABLED = "openapi_disabled";
     public static final String SEC_API_KEY = "apiKey";
-    public static final String API_TAG_UTILITY = "utility";
+    public static final String API_TAG_UTILITY = "Utilities";
 
     @Getter @Setter private String title;
     @Getter @Setter private String description;
