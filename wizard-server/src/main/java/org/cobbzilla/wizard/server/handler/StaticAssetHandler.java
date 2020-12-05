@@ -1,7 +1,6 @@
 package org.cobbzilla.wizard.server.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cobbzilla.util.io.DeleteOnExit;
 import org.cobbzilla.util.io.FileUtil;
@@ -19,6 +18,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.util.*;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.toList;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 
@@ -210,7 +210,7 @@ public class StaticAssetHandler extends CLStaticHttpHandler {
     private String getRequestHeaderJavascript(Request request) throws Exception {
         Map<String, Object> headers = new HashMap<>();
         for (String name : request.getHeaderNames()) {
-            List<String> values = IteratorUtils.toList(request.getHeaders(name).iterator());
+            List<String> values = toList(request.getHeaders(name).iterator());
             if (values.size() == 1) {
                 headers.put(name, values.get(0));
             } else {

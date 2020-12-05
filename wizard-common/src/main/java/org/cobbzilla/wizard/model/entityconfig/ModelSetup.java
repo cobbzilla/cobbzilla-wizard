@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.InvocationHandler;
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cobbzilla.util.daemon.AwaitResult;
 import org.cobbzilla.util.reflect.ReflectionUtil;
@@ -633,7 +632,7 @@ public class ModelSetup {
         }
 
         public boolean hasData(final boolean strict) {
-            return IteratorUtils.toList(node.fieldNames()).stream().anyMatch((n) -> !ArrayUtils.contains(entity.excludeUpdateFields(strict), n));
+            return toList(node.fieldNames()).stream().anyMatch((n) -> !ArrayUtils.contains(entity.excludeUpdateFields(strict), n));
         }
 
         @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
