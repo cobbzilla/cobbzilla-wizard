@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.dao.shard;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.cobbzilla.util.collection.FieldTransformer;
 import org.cobbzilla.util.collection.mappy.MappyList;
 import org.cobbzilla.wizard.dao.AbstractCRUDDAO;

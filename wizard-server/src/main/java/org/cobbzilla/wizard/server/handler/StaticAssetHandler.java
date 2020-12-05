@@ -1,7 +1,7 @@
 package org.cobbzilla.wizard.server.handler;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cobbzilla.util.io.DeleteOnExit;
 import org.cobbzilla.util.io.FileUtil;

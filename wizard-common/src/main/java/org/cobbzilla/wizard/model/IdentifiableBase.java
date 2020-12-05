@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
-import org.cobbzilla.util.collection.FieldTransformer;
-import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldMode;
 import org.cobbzilla.wizard.model.entityconfig.EntityFieldType;
 import org.cobbzilla.wizard.model.entityconfig.annotations.ECField;
@@ -17,8 +15,9 @@ import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.UUID.randomUUID;
 import static org.cobbzilla.util.daemon.ZillaRuntime.*;
@@ -120,34 +119,19 @@ public class IdentifiableBase implements Identifiable {
     @Override public int hashCode() { return getUuid() != null ? getUuid().hashCode() : 0; }
 
     public static String[] toUuidArray(List<? extends Identifiable> entities) {
-        return empty(entities)
-                ? StringUtil.EMPTY_ARRAY
-                : (String[]) collectArray(entities, UUID);
+        return entities.stream().map(Identifiable::getUuid).toArray(String[]::new);
     }
 
-    public static List<String> toUuidList(Collection<? extends Identifiable> entities) {
-        if (empty(entities)) return Collections.emptyList();
-        return collectList(entities, UUID);
+    public static List<String> toUuidList(List<? extends Identifiable> entities) {
+        return entities.stream().map(Identifiable::getUuid).collect(Collectors.toList());
     }
 
-    private static final Map<String, FieldTransformer> fieldTransformerCache = new ConcurrentHashMap<>();
-    protected static FieldTransformer getFieldTransformer(String field) {
-        FieldTransformer f = fieldTransformerCache.get(field);
-        if (f == null) {
-            f = new FieldTransformer(field);
-            fieldTransformerCache.put(field, f);
-        }
-        return f;
+    public static <T> T[] collectArray(List<? extends Identifiable> entities, String field) {
+        return (T[]) entities.stream().map(e -> ReflectionUtil.get(e, field)).toArray();
     }
 
-    public static <T> T[] collectArray(Collection<? extends Identifiable> entities, String field) {
-        return (T[]) CollectionUtils.collect(entities, getFieldTransformer(field)).toArray(new String[entities.size()]);
-    }
-    public static <T> List<T> collectList(Collection<? extends Identifiable> entities, String field) {
-        return (List<T>) CollectionUtils.collect(entities, getFieldTransformer(field));
-    }
-    public static List<String> collectStringList(Collection<? extends Identifiable> entities, String field) {
-        return (List<String>) CollectionUtils.collect(entities, getFieldTransformer(field));
+    public static <T> List<T> collectList(List<? extends Identifiable> entities, String field) {
+        return (List<T>) entities.stream().map(e -> ReflectionUtil.get(e, field)).collect(Collectors.toList());
     }
 
 }

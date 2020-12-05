@@ -1,7 +1,5 @@
 package org.cobbzilla.wizard.dao;
 
-import org.apache.commons.collections.Transformer;
-import org.cobbzilla.util.collection.FieldTransformer;
 import org.cobbzilla.util.collection.MapBuilder;
 import org.cobbzilla.wizard.model.UniqueEmailEntity;
 import org.cobbzilla.wizard.validation.UniqueValidatorDaoHelper;
@@ -9,8 +7,6 @@ import org.cobbzilla.wizard.validation.UniqueValidatorDaoHelper;
 import java.util.Map;
 
 public abstract class UniqueEmailEntityDAO<E extends UniqueEmailEntity> extends AbstractUniqueCRUDDAO<E> {
-
-    public static final Transformer TO_EMAIL = new FieldTransformer("email");
 
     public E findByEmail (String email) { return findByUniqueField("email", email.toLowerCase()); }
 

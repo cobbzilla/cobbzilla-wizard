@@ -3,7 +3,7 @@ package org.cobbzilla.wizard.server.listener;
 import airbrake.AirbrakeNoticeBuilder;
 import airbrake.AirbrakeNotifier;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.buffer.CircularFifoBuffer;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.cobbzilla.util.daemon.ErrorApi;
 import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.wizard.server.RestServer;
@@ -43,8 +43,8 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
         private String env;
         private long sendInterval;
 
-        private final CircularFifoBuffer dupCache;
-        private final CircularFifoBuffer fifo;
+        private final CircularFifoQueue dupCache;
+        private final CircularFifoQueue fifo;
         private AirbrakeNotifier notifier;
 
         ErrbitApi(ErrorApiConfiguration errorApi) {
@@ -52,8 +52,8 @@ public class ErrbitConfigListener extends RestServerLifecycleListenerBase {
                 this.key = errorApi.getKey();
                 this.env = errorApi.getEnv();
                 this.sendInterval = errorApi.getSendInterval();
-                this.dupCache = new CircularFifoBuffer(errorApi.getDupCacheSize());
-                this.fifo = new CircularFifoBuffer(errorApi.getBufferSize());
+                this.dupCache = new CircularFifoQueue(errorApi.getDupCacheSize());
+                this.fifo = new CircularFifoQueue(errorApi.getBufferSize());
                 this.notifier = new AirbrakeNotifier(errorApi.getUrl());
             } else {
                 log.warn("ErrbitApi: errorApi is null or invalid, not running");

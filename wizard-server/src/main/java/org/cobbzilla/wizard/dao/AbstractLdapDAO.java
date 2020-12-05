@@ -2,8 +2,8 @@ package org.cobbzilla.wizard.dao;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.Transformer;
 import org.cobbzilla.util.collection.NameAndValue;
 import org.cobbzilla.wizard.ldap.LdapService;
 import org.cobbzilla.wizard.model.search.SearchResults;

@@ -10,7 +10,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.InvocationHandler;
-import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cobbzilla.util.daemon.AwaitResult;
 import org.cobbzilla.util.reflect.ReflectionUtil;
