@@ -416,7 +416,7 @@ public class PgRestServerConfiguration extends RestServerConfiguration implement
     public String[] getSqlConstraints(boolean includeIndexes) {
         return new EntityReferences()
                 .setPackages(getDatabase().getHibernate().getEntityPackages())
-                .generateConstraintSql(includeIndexes).toArray(new String[0]);
+                .generateConstraintSql(includeIndexes).toArray(String[]::new);
     }
 
     public boolean tableExists(String tableName) {
