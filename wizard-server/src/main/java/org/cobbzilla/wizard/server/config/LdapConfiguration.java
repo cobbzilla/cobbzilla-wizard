@@ -7,7 +7,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cobbzilla.util.http.URIUtil;
-import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.model.ldap.LdapContext;
 
 import java.util.HashMap;
@@ -17,6 +16,7 @@ import java.util.Map;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
+import static org.cobbzilla.util.system.CommandShell.hostname;
 
 @Slf4j
 public class LdapConfiguration implements LdapContext {
@@ -24,7 +24,7 @@ public class LdapConfiguration implements LdapContext {
     public static final String ENT_DOUBLE_QUOTE = "&quot;";
     public static final String ENT_SINGLE_QUOTE = "&#39;";
 
-    @Getter private Map<String, String> config = new HashMap<>();
+    @Getter private final Map<String, String> config = new HashMap<>();
 
     @Getter @Setter private String password;
 
@@ -67,7 +67,7 @@ public class LdapConfiguration implements LdapContext {
     public boolean isSecure() { return ArrayUtils.indexOf(SECURE_TRANSPORTS, getTransport()) >= 0; }
 
     public String getVersion() { return val("version", "3"); }
-    public String getDomain () { return val("domain", CommandShell.hostname()); }
+    public String getDomain () { return val("domain", hostname()); }
     public String getLdap_domain() { return val("ldap_domain", domainify(getDomain())); }
     public String getRealm() { return val("realm", getDomain()); }
     public String getBase_dn() { return val("base_dn", getLdap_domain()); }
