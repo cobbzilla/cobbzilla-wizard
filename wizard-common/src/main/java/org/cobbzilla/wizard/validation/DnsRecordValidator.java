@@ -1,10 +1,11 @@
 package org.cobbzilla.wizard.validation;
 
 import org.cobbzilla.util.dns.DnsRecord;
-import org.cobbzilla.util.string.ValidationRegexes;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.cobbzilla.util.string.ValidationRegexes.isHostname;
 
 public class DnsRecordValidator {
 
@@ -12,7 +13,7 @@ public class DnsRecordValidator {
 
         final List<ConstraintViolationBean> errors = new ArrayList<>();
 
-        if (!ValidationRegexes.HOST_PATTERN.matcher(dnsRecord.getFqdn()).matches()) {
+        if (!isHostname(dnsRecord.getFqdn())) {
             errors.add(new ConstraintViolationBean("err.dnsRecord.fqdn.invalid"));
         }
 
