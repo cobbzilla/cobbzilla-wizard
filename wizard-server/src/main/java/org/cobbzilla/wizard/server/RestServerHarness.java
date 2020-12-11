@@ -15,10 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.getDefaultTempDir;
-import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
-import static org.cobbzilla.util.reflect.ReflectionUtil.*;
+import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.reflect.ReflectionUtil.getTypeParameter;
+import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 import static org.cobbzilla.util.string.StringUtil.camelCaseToSnakeCase;
 
 @Slf4j
@@ -57,7 +56,7 @@ public class RestServerHarness<C extends RestServerConfiguration, S extends Rest
             }
             server.setConfiguration(configuration);
             configuration.setServer(server);
-            log.info("starting " + configuration.getServerName() + ": " + server.getClass().getName() + " with config: " + configuration);
+            log.info("starting " + configuration.getServerName() + ": " + server.getClass().getName());
         }
     }
 
