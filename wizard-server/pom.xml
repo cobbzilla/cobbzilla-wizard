@@ -246,7 +246,7 @@ This code is available under the Apache License, version 2: http://www.apache.or
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
-            <version>2.2.2</version>
+            <version>6.8.17</version>
         </dependency>
 
         <!-- support for traditional webapps in Jersey -->
